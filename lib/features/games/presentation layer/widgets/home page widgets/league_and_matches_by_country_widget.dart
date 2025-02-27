@@ -13,12 +13,12 @@ class LeaguesAndMatchesByCountryWidget extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.blueGrey,
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(6),
       ),
       width: double.infinity,
       height: 120.h,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 25.w),
+        padding: EdgeInsets.fromLTRB(40.w, 0, 0, 20.w),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [

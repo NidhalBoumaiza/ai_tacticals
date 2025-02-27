@@ -1,21 +1,27 @@
-import 'package:analysis_ai/core/app_colors.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../../../../core/app_colors.dart';
 import '../widgets/home page widgets/league_and_matches_by_country_widget.dart';
 
-class Test1 extends StatefulWidget {
-  const Test1({super.key});
+class MatchesScreen extends StatefulWidget {
+  const MatchesScreen({super.key});
 
   @override
-  State<Test1> createState() => _Test1State();
+  State<MatchesScreen> createState() => _MatchesScreenState();
 }
 
-class _Test1State extends State<Test1> {
+class _MatchesScreenState extends State<MatchesScreen> {
   bool isOn = false;
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,19 +100,19 @@ class _Test1State extends State<Test1> {
           ),
         ),
         backgroundColor: Color(0xffffffc2), // Light yellow-ish background
-        body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 30.w),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              ReusableText(
-                text: "Categories",
-                textSize: 120.sp,
-                textFontWeight: FontWeight.w700,
-                textColor: Colors.black,
-              ),
-              Expanded(
-                child: ListView.separated(
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(30.w, 20.h, 30.w, 60.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ReusableText(
+                  text: "Categories",
+                  textSize: 120.sp,
+                  textFontWeight: FontWeight.w700,
+                  textColor: Colors.black,
+                ),
+                ListView.separated(
                   physics: NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: 20,
@@ -117,8 +123,8 @@ class _Test1State extends State<Test1> {
                     return SizedBox(height: 12.h);
                   },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
