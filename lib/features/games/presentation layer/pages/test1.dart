@@ -97,15 +97,26 @@ class _Test1State extends State<Test1> {
         body: Padding(
           padding: EdgeInsets.symmetric(horizontal: 30.w),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              ListView.separated(
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return LeaguesAndMatchesByCountryWidget();
-                },
-                separatorBuilder: (BuildContext context, int index) {
-                  return SizedBox(height: 12.h);
-                },
+              ReusableText(
+                text: "Categories",
+                textSize: 120.sp,
+                textFontWeight: FontWeight.w700,
+                textColor: Colors.black,
+              ),
+              Expanded(
+                child: ListView.separated(
+                  physics: NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: 20,
+                  itemBuilder: (context, index) {
+                    return LeaguesAndMatchesByCountryWidget();
+                  },
+                  separatorBuilder: (BuildContext context, int index) {
+                    return SizedBox(height: 12.h);
+                  },
+                ),
               ),
             ],
           ),
