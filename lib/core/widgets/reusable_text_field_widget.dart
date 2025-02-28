@@ -21,6 +21,7 @@ class ReusableTextFieldWidget extends StatelessWidget {
   bool? enabled;
   double? paddingValue;
   String? Function(String?)? validatorFunction;
+  Color? fillColor;
 
   TextInputAction? textInputAction;
   void Function()? onEditingComplete;
@@ -31,6 +32,7 @@ class ReusableTextFieldWidget extends StatelessWidget {
     this.hintText,
     this.onPressedSuffixIcon,
     this.suffixIcon,
+    this.fillColor,
     this.obsecureText,
     this.errorMessage,
     this.keyboardType,
@@ -75,7 +77,7 @@ class ReusableTextFieldWidget extends StatelessWidget {
         decoration: InputDecoration(
           counterText: "",
           filled: true,
-          fillColor: Colors.white,
+          fillColor: fillColor ?? Colors.white,
           prefixIcon:
               prefixIcon != null
                   ? IconButton(

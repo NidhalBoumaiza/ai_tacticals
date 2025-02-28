@@ -58,9 +58,9 @@ class MyCustomButton extends StatelessWidget {
                 ),
                 widget != null
                     ? Padding(
-                        padding: EdgeInsets.only(left: 10.w),
-                        child: widget ?? const SizedBox(),
-                      )
+                      padding: EdgeInsets.only(left: 0.w),
+                      child: widget ?? const SizedBox(),
+                    )
                     : const SizedBox(),
               ],
             ),

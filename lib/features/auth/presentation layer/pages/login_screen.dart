@@ -54,6 +54,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   textFontWeight: FontWeight.w800,
                 ),
                 ReusableTextFieldWidget(
+                  fillColor: const Color(0xfffafcfc),
+                  borderSide: const BorderSide(
+                    color: Color(0xfff3f6f9),
+                    width: 3,
+                    style: BorderStyle.solid,
+                  ),
                   hintText: "email_hint".tr,
                   controller: TextEditingController(),
                   keyboardType: TextInputType.emailAddress,
@@ -65,6 +71,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   textFontWeight: FontWeight.w800,
                 ),
                 ReusableTextFieldWidget(
+                  fillColor: const Color(0xfffafcfc),
+                  borderSide: const BorderSide(
+                    color: Color(0xfff3f6f9),
+                    width: 3,
+                    style: BorderStyle.solid,
+                  ),
                   hintText: "password_hint".tr,
                   controller: TextEditingController(),
                   keyboardType: TextInputType.emailAddress,
@@ -84,11 +96,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     },
                     buttonColor: AppColor.primaryColor,
-                    text: 'login_button'.tr,
+                    text: ''.tr,
                     circularRadious: 5,
                     textButtonColor: Colors.black,
                     fontSize: 40.sp,
                     fontWeight: FontWeight.w800,
+                    widget: Lottie.asset(
+                      'assets/lottie/animationBallLoading.json',
+                      height: 150.h,
+                    ),
                   ),
                 ),
                 SizedBox(height: 50.h),
