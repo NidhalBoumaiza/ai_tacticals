@@ -1,6 +1,10 @@
+import 'package:analysis_ai/core/utils/custom_snack_bar.dart';
 import 'package:analysis_ai/core/widgets/my_customed_button.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
+import 'package:analysis_ai/features/auth/domain%20layer/entities/userEntity.dart';
+import 'package:analysis_ai/features/auth/presentation%20layer/bloc/signup_bloc/signup_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
@@ -23,6 +27,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       TextEditingController();
   late bool isObsecurePassword = true;
   late bool isObsecureConfirmPassword = true;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -43,7 +48,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         },
         child: SingleChildScrollView(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 50.w, vertical: 200.h),
+            padding: EdgeInsets.symmetric(horizontal: 50.w, vertical: 180.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -52,7 +57,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   child: Lottie.asset(
                     "assets/lottie/AnimationSignUp.json",
                     // Reuse or replace with a sign-up animation
-                    height: 700.h,
+                    height: 600.h,
                   ),
                 ),
                 Center(
@@ -63,83 +68,150 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
                 SizedBox(height: 50.h),
-                ReusableText(
-                  text: "name_label".tr,
-                  textSize: 100.sp,
-                  textFontWeight: FontWeight.w800,
-                ),
-                ReusableTextFieldWidget(
-                  hintText: "name_hint".tr,
-                  controller: _nameController,
-                  keyboardType: TextInputType.text,
-                  errorMessage: "empty_field_error".tr,
-                ),
-                SizedBox(height: 20.h),
-                ReusableText(
-                  text: "email_label".tr,
-                  textSize: 100.sp,
-                  textFontWeight: FontWeight.w800,
-                ),
-                ReusableTextFieldWidget(
-                  hintText: "email_hint".tr,
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  errorMessage: "empty_field_error".tr,
-                ),
-                SizedBox(height: 20.h),
-                ReusableText(
-                  text: "password_label".tr,
-                  textSize: 100.sp,
-                  textFontWeight: FontWeight.w800,
-                ),
-                ReusableTextFieldWidget(
-                  hintText: "password_hint".tr,
-                  controller: _passwordController,
-                  keyboardType: TextInputType.text,
-                  obsecureText: isObsecurePassword,
-                  onPressedSuffixIcon: () {
-                    setState(() {
-                      isObsecurePassword = !isObsecurePassword;
-                    });
-                  },
-                  // Hide password
-                  errorMessage: "empty_field_error".tr,
-                ),
-                SizedBox(height: 20.h),
-                ReusableText(
-                  text: "confirm_password_label".tr, // New translation needed
-                  textSize: 100.sp,
-                  textFontWeight: FontWeight.w800,
-                ),
-                ReusableTextFieldWidget(
-                  hintText: "confirm_password_hint".tr,
-                  // New translation needed
-                  controller: _confirmPasswordController,
-                  keyboardType: TextInputType.text,
-                  obsecureText: isObsecureConfirmPassword,
-                  errorMessage: "empty_field_error".tr,
-                  onPressedSuffixIcon: () {
-                    setState(() {
-                      isObsecureConfirmPassword = !isObsecureConfirmPassword;
-                    });
-                  },
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ReusableText(
+                        text: "name_label".tr,
+                        textSize: 100.sp,
+                        textFontWeight: FontWeight.w800,
+                      ),
+                      ReusableTextFieldWidget(
+                        borderSide: const BorderSide(
+                          color: Color(0xfff3f6f9),
+                          width: 3,
+                          style: BorderStyle.solid,
+                        ),
+                        hintText: "name_hint".tr,
+                        controller: _nameController,
+                        keyboardType: TextInputType.text,
+                        errorMessage: "empty_field_error".tr,
+                      ),
+                      SizedBox(height: 20.h),
+                      ReusableText(
+                        text: "email_label".tr,
+                        textSize: 100.sp,
+                        textFontWeight: FontWeight.w800,
+                      ),
+                      ReusableTextFieldWidget(
+                        borderSide: const BorderSide(
+                          color: Color(0xfff3f6f9),
+                          width: 3,
+                          style: BorderStyle.solid,
+                        ),
+                        hintText: "email_hint".tr,
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        errorMessage: "empty_field_error".tr,
+                      ),
+                      SizedBox(height: 20.h),
+                      ReusableText(
+                        text: "password_label".tr,
+                        textSize: 100.sp,
+                        textFontWeight: FontWeight.w800,
+                      ),
+                      ReusableTextFieldWidget(
+                        borderSide: const BorderSide(
+                          color: Color(0xfff3f6f9),
+                          width: 3,
+                          style: BorderStyle.solid,
+                        ),
+                        hintText: "password_hint".tr,
+                        controller: _passwordController,
+                        keyboardType: TextInputType.text,
+                        obsecureText: isObsecurePassword,
+                        onPressedSuffixIcon: () {
+                          setState(() {
+                            isObsecurePassword = !isObsecurePassword;
+                          });
+                        },
+                        // Hide password
+                        errorMessage: "empty_field_error".tr,
+                      ),
+                      SizedBox(height: 20.h),
+                      ReusableText(
+                        text: "confirm_password_label".tr,
+                        // New translation needed
+                        textSize: 100.sp,
+                        textFontWeight: FontWeight.w800,
+                      ),
+                      ReusableTextFieldWidget(
+                        borderSide: const BorderSide(
+                          color: Color(0xfff3f6f9),
+                          width: 3,
+                          style: BorderStyle.solid,
+                        ),
+                        hintText: "confirm_password_hint".tr,
+                        controller: _confirmPasswordController,
+                        keyboardType: TextInputType.text,
+                        obsecureText: isObsecureConfirmPassword,
+                        errorMessage: "empty_field_error".tr,
+                        onPressedSuffixIcon: () {
+                          setState(() {
+                            isObsecureConfirmPassword =
+                                !isObsecureConfirmPassword;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 SizedBox(height: 50.h),
                 Center(
-                  child: MyCustomButton(
-                    width: 540.w,
-                    height: 150.h,
-                    function: () {
-                      // Add sign-up logic here, then navigate
-                      Get.toNamed('/home'); // Navigate after successful sign-up
+                  child: BlocConsumer<SignupBloc, SignupState>(
+                    listener: (context, state) {
+                      if (state is SignupSuccess) {
+                        showSuccessSnackBar(
+                          context,
+                          'signup_sucess_message'.tr,
+                        );
+                        Future.delayed(
+                          const Duration(seconds: 2),
+                          () => Get.back(),
+                        );
+                      } else if (state is SignupError) {
+                        showErrorSnackBar(context, state.message);
+                      }
                     },
-                    buttonColor: AppColor.primaryColor,
-                    text: "sign_up_link".tr,
-                    // "Sign Up" button
-                    circularRadious: 5,
-                    textButtonColor: Colors.black,
-                    fontSize: 40.sp,
-                    fontWeight: FontWeight.w800,
+                    builder: (context, state) {
+                      return MyCustomButton(
+                        width: 540.w,
+                        height: 150.h,
+                        function:
+                            state is SignupLoading
+                                ? () {}
+                                : () {
+                                  if (_formKey.currentState!.validate()) {
+                                    UserEntity user = UserEntity(
+                                      '',
+                                      _nameController.text,
+                                      _emailController.text,
+                                      _passwordController.text,
+                                      _confirmPasswordController.text,
+                                    );
+                                    context.read<SignupBloc>().add(
+                                      SignupEventWithAllInfos(user: user),
+                                    );
+                                  }
+                                },
+                        buttonColor: AppColor.primaryColor,
+                        text: state is SignupLoading ? "" : "sign_up_link".tr,
+                        widget:
+                            state is SignupLoading
+                                ? Lottie.asset(
+                                  'assets/lottie/animationBallLoading.json',
+                                  height: 150.h,
+                                )
+                                : null,
+
+                        circularRadious: 5,
+                        textButtonColor: Colors.black,
+                        fontSize: 40.sp,
+                        fontWeight: FontWeight.w800,
+                      );
+                    },
                   ),
                 ),
                 SizedBox(height: 50.h),

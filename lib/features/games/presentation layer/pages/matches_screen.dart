@@ -99,7 +99,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
             ),
           ),
         ),
-        backgroundColor: Color(0xffffffc2), // Light yellow-ish background
+        backgroundColor: Color(0xff010001), // Light yellow-ish background
         body: SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.fromLTRB(30.w, 20.h, 30.w, 60.h),
@@ -110,7 +110,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   text: "Categories",
                   textSize: 120.sp,
                   textFontWeight: FontWeight.w700,
-                  textColor: Colors.black,
+                  textColor: Color(0xffececee),
                 ),
                 ListView.separated(
                   physics: NeverScrollableScrollPhysics(),

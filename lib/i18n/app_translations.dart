@@ -31,6 +31,7 @@ class AppTranslations extends Translations {
       'sign_up_success_message': SignUpSuccessMessage,
       'unauthorized_failure_message': "Vous n'êtes pas autorisé",
       'unexpected_error_message': "Une erreur inattendue s'est produite",
+
       'explore_now': "Explorer maintenant",
       // Login page strings
       'login_title': "Connexion",
@@ -50,6 +51,8 @@ class AppTranslations extends Translations {
       'confirm_password_hint': "Confirmez votre mot de passe",
       'confirm_password_label': "Confirmez le mot de passe",
       'have_account': "Vous avez déjà un compte ?",
+      'invalid_credentials': "E-mail ou mot de passe incorrect",
+      'signup_sucess_message': "Inscription réussie",
     },
     'ar_AR': {
       'title': 'عرض Flutter',
@@ -84,6 +87,8 @@ class AppTranslations extends Translations {
       'confirm_password_hint': "تأكيد كلمة المرور",
       'confirm_password_label': "تأكيد كلمة المرور",
       'have_account': "هل لديك حساب بالفعل؟",
+      'invalid_credentials': "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      'signup_sucess_message': "تم التسجيل بنجاح",
     },
     'en_US': {
       'title': 'Flutter Demo',
@@ -119,6 +124,8 @@ class AppTranslations extends Translations {
       'confirm_password_hint': "Confirm your password",
       'confirm_password_label': "Confirm Password",
       'have_account': "Already have an account?",
+      'invalid_credentials': "Incorrect email or password",
+      'signup_sucess_message': "Sign-up successful",
     },
   };
 }

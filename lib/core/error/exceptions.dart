@@ -2,20 +2,52 @@
 
 import 'package:equatable/equatable.dart';
 
-class ServerException implements Exception {}
+/// A general server-related exception with a message.
+class ServerException extends Equatable implements Exception {
+  final String message;
 
-class EmptyCacheException implements Exception {}
+  ServerException(this.message);
 
-class OfflineException implements Exception {}
-
-class ServerMessageException extends Equatable implements Exception {
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [message];
 }
 
-class UnauthorizedException implements Exception {
-  const UnauthorizedException();
+/// An exception thrown when the cache is empty.
+class EmptyCacheException extends Equatable implements Exception {
+  final String message;
+
+  EmptyCacheException(this.message);
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [message];
+}
+
+/// An exception thrown when there’s no internet connection.
+class OfflineException extends Equatable implements Exception {
+  final String message;
+
+  OfflineException(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+/// An exception thrown for server-specific error messages.
+class ServerMessageException extends Equatable implements Exception {
+  final String message;
+
+  ServerMessageException(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+/// An exception thrown for unauthorized access.
+class UnauthorizedException extends Equatable implements Exception {
+  final String message;
+
+  const UnauthorizedException([this.message = 'Unauthorized access']);
+
+  @override
+  List<Object?> get props => [message];
 }

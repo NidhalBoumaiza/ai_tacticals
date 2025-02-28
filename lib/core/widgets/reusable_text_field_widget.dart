@@ -56,6 +56,11 @@ class ReusableTextFieldWidget extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: paddingValue ?? 8.0),
       child: TextFormField(
+        style: GoogleFonts.nunito(
+          fontSize: 40.sp,
+          fontWeight: FontWeight.w700,
+          color: Colors.black,
+        ),
         textInputAction: textInputAction,
         enabled: enabled ?? true,
         minLines: minLines ?? 1,
@@ -101,15 +106,15 @@ class ReusableTextFieldWidget extends StatelessWidget {
                   )
                   : null,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0.sp),
+            borderRadius: BorderRadius.circular(5),
             borderSide: borderSide ?? BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0.sp),
+            borderRadius: BorderRadius.circular(5),
             borderSide: borderSide ?? BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0.sp),
+            borderRadius: BorderRadius.circular(5),
             borderSide: borderSide ?? BorderSide.none,
           ),
           hintText: hintText,

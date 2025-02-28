@@ -3,7 +3,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
-import '../../domain layer/entities/userEntity.dart'; // Using your UserEntity
+import '../../domain layer/entities/userEntity.dart';
 import '../../domain layer/repositories/user_repository.dart';
 import '../data sources/user_local_data_source.dart';
 import '../data sources/user_remote_data_source.dart';
@@ -35,8 +35,10 @@ class UserRepositoryImpl implements UserRepository {
         return const Right(unit);
       } on ServerException {
         return Left(ServerFailure());
-      } on ServerMessageException {
-        return Left(ServerMessageFailure("Something went wrong"));
+      } on ServerMessageException catch (e) {
+        return Left(ServerMessageFailure(e.message));
+      } on OfflineException catch (e) {
+        return Left(OfflineFailure());
       }
     } else {
       return Left(OfflineFailure());
@@ -53,9 +55,8 @@ class UserRepositoryImpl implements UserRepository {
         final UserModel userModel = await userRemoteDataSource.login(
           email,
           password,
-        ); // Assuming signIn exists
+        );
         await userLocalDataSource.cacheUser(userModel);
-        // Convert UserModel back to UserEntity
         final UserEntity userEntity = UserEntity(
           userModel.id,
           userModel.name,
@@ -66,8 +67,12 @@ class UserRepositoryImpl implements UserRepository {
         return Right(userEntity);
       } on ServerException {
         return Left(ServerFailure());
-      } on ServerMessageException {
-        return Left(ServerMessageFailure("Something went wrong"));
+      } on ServerMessageException catch (e) {
+        return Left(ServerMessageFailure(e.message));
+      } on UnauthorizedException catch (e) {
+        return Left(UnauthorizedFailure());
+      } on OfflineException catch (e) {
+        return Left(OfflineFailure());
       }
     } else {
       return Left(OfflineFailure());

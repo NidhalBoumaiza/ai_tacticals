@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
+import 'features/auth/presentation layer/bloc/login_bloc/login_bloc.dart';
+import 'features/auth/presentation layer/bloc/signup_bloc/signup_bloc.dart';
 import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
@@ -24,6 +26,8 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (create) => di.sl<BnvCubit>()..changeIndex(0)),
+        BlocProvider(create: (create) => di.sl<LoginBloc>()),
+        BlocProvider(create: (create) => di.sl<SignupBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),

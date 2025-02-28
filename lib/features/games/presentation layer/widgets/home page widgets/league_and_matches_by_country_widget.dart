@@ -12,7 +12,7 @@ class LeaguesAndMatchesByCountryWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.blueGrey,
+        color: Color(0xff161d1f),
         borderRadius: BorderRadius.circular(6),
       ),
       width: double.infinity,
@@ -26,9 +26,9 @@ class LeaguesAndMatchesByCountryWidget extends StatelessWidget {
             SizedBox(width: 50.w),
             ReusableText(
               text: "Spain",
-              textSize: 100.sp,
-              textFontWeight: FontWeight.w700,
-              textColor: Colors.black,
+              textSize: 110.sp,
+              textFontWeight: FontWeight.w400,
+              textColor: Color(0xffececee),
             ),
             SizedBox(width: 600.w),
             ReusableText(
