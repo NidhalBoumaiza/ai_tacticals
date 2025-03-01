@@ -117,7 +117,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   shrinkWrap: true,
                   itemCount: 20,
                   itemBuilder: (context, index) {
-                    return LeaguesAndMatchesByCountryWidget();
+                    return LeaguesAndMatchesByCountryWidget(
+                      countryName: '',
+                      countryFlag: '',
+                      leagues: [],
+                    );
                   },
                   separatorBuilder: (BuildContext context, int index) {
                     return SizedBox(height: 12.h);

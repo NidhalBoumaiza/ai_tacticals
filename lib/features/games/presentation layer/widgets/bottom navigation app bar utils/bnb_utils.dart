@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
-import '../../pages/test2.dart';
+import '../../pages/leagues_screen.dart';
 import '../../pages/test3.dart';
 import '../../pages/test4.dart';
 

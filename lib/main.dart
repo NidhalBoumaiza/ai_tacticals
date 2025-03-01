@@ -1,4 +1,5 @@
 import 'package:analysis_ai/features/auth/presentation%20layer/pages/login_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,6 +7,7 @@ import 'package:get/get.dart';
 
 import 'features/auth/presentation layer/bloc/login_bloc/login_bloc.dart';
 import 'features/auth/presentation layer/bloc/signup_bloc/signup_bloc.dart';
+import 'features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
 import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
@@ -13,6 +15,8 @@ import 'injection_container.dart' as di;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
+  final AppLifecycleObserver observer = AppLifecycleObserver();
+  WidgetsBinding.instance.addObserver(observer); // Attach the observer
   // await dotenv.load(fileName: ".env");
   // await dotenv.load(fileName: ".env");
   runApp(const MyApp());
@@ -28,6 +32,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (create) => di.sl<BnvCubit>()..changeIndex(0)),
         BlocProvider(create: (create) => di.sl<LoginBloc>()),
         BlocProvider(create: (create) => di.sl<SignupBloc>()),
+        BlocProvider(create: (create) => di.sl<CountriesBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),
@@ -49,5 +54,20 @@ class MyApp extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class AppLifecycleObserver with WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Clear the cache when the app is paused or detached
+      CachedNetworkImage.evictFromCache(
+        '',
+        cacheKey: "flag",
+      ); // Clear the entire cache
+      print('Cache cleared on app close');
+    }
   }
 }
