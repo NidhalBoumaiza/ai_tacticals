@@ -12,7 +12,7 @@ import '../../../../core/app_colors.dart';
 import '../../../../core/utils/custom_snack_bar.dart';
 import '../../../../core/utils/navigation_with_transition.dart';
 import '../../../../core/widgets/reusable_text_field_widget.dart';
-import '../../../games/presentation layer/pages/home_screen_squelette.dart';
+import '../../../games/presentation layer/pages/bottom app bar screens/home_screen_squelette.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

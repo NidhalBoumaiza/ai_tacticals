@@ -4,8 +4,8 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../../../../core/error/exceptions.dart';
-import '../models/country_model.dart';
+import '../../../../../core/error/exceptions.dart';
+import '../../models/country_model.dart';
 
 abstract class GamesRemoteDataSource {
   /// Fetches all countries (categories) from the remote API.

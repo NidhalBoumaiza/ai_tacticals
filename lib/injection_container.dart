@@ -1,6 +1,8 @@
 import 'package:analysis_ai/features/auth/data%20layer/data%20sources/user_local_data_source.dart';
 import 'package:analysis_ai/features/auth/presentation%20layer/bloc/login_bloc/login_bloc.dart';
 import 'package:analysis_ai/features/auth/presentation%20layer/bloc/signup_bloc/signup_bloc.dart';
+import 'package:analysis_ai/features/games/domain%20layer/repositories/league_repository.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/leagues_bloc/leagues_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -12,11 +14,15 @@ import 'features/auth/data layer/repositories/user_repository_impl.dart';
 import 'features/auth/domain layer/repositories/user_repository.dart';
 import 'features/auth/domain layer/usecases/login_usecase.dart';
 import 'features/auth/domain layer/usecases/signup_usecase.dart';
-import 'features/games/data layer/data sources/games_local_data_source.dart';
-import 'features/games/data layer/data sources/games_remote_data_source.dart';
+import 'features/games/data layer/data sources/countries/games_local_data_source.dart';
+import 'features/games/data layer/data sources/countries/games_remote_data_source.dart';
+import 'features/games/data layer/data sources/leagues/leagues_local_data_source.dart';
+import 'features/games/data layer/data sources/leagues/leagues_remote_data_source.dart';
 import 'features/games/data layer/repositories/games_repository_impl.dart';
+import 'features/games/data layer/repositories/league_repository_impl.dart';
 import 'features/games/domain layer/repositories/games_repository.dart';
 import 'features/games/domain layer/usecases/get_all_countries.dart';
+import 'features/games/domain layer/usecases/get_leagues_by_country_use_case.dart';
 import 'features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
 import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
 
@@ -27,6 +33,7 @@ Future<void> init() async {
   sl.registerFactory(() => LoginBloc(login: sl()));
   sl.registerFactory(() => SignupBloc(signup: sl()));
   sl.registerFactory(() => CountriesBloc(gamesRepository: sl()));
+  sl.registerFactory(() => LeaguesBloc(getLeaguesByCountry: sl()));
   // Cubit
   sl.registerFactory(() => BnvCubit());
 
@@ -34,6 +41,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));
   sl.registerLazySingleton(() => GetAllCountriesUseCase(sl()));
+  sl.registerLazySingleton(() => GetLeaguesByCountryUseCase(sl()));
   // ** Repositories **
   sl.registerLazySingleton<UserRepository>(
     () => UserRepositoryImpl(
@@ -47,6 +55,14 @@ Future<void> init() async {
     () => GamesRepositoryImpl(
       gamesRemoteDataSource: sl(),
       gamesLocalDataSource: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton<LeaguesRepository>(
+    () => LeaguesRepositoryImpl(
+      leaguesRemoteDataSource: sl(),
+      leaguesLocalDataSource: sl(),
       networkInfo: sl(),
     ),
   );
@@ -65,6 +81,14 @@ Future<void> init() async {
 
   sl.registerLazySingleton<GamesLocalDataSource>(
     () => GamesLocalDataSourceImpl(sharedPreferences: sl()),
+  );
+
+  sl.registerLazySingleton<LeaguesRemoteDataSource>(
+    () => LeaguesRemoteDataSourceImpl(client: sl()),
+  );
+
+  sl.registerLazySingleton<LeaguesLocalDataSource>(
+    () => LeaguesLocalDataSourceImpl(sharedPreferences: sl()),
   );
 
   // ** Core **

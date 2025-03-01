@@ -1,26 +1,35 @@
+import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
+import 'package:analysis_ai/features/auth/presentation%20layer/pages/login_screen.dart';
 import 'package:analysis_ai/features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../widgets/home page widgets/league_and_matches_by_country_widget.dart';
+import '../../widgets/home page widgets/league_and_matches_by_country_widget.dart';
 
-class Test2 extends StatefulWidget {
-  const Test2({super.key});
+class LeagueScreen extends StatefulWidget {
+  const LeagueScreen({super.key});
 
   @override
-  State<Test2> createState() => _Test2State();
+  State<LeagueScreen> createState() => _LeagueScreenState();
 }
 
-class _Test2State extends State<Test2> {
+class _LeagueScreenState extends State<LeagueScreen> {
   @override
   void initState() {
     super.initState();
     // Trigger fetching countries when the widget initializes
     context.read<CountriesBloc>().add(GetAllCountries());
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
   }
 
   @override
@@ -36,7 +45,22 @@ class _Test2State extends State<Test2> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Icon(FontAwesomeIcons.bars, size: 60.sp, color: Colors.white),
+                GestureDetector(
+                  onTap: () async {
+                    SharedPreferences prefs =
+                        await SharedPreferences.getInstance();
+                    await prefs.remove('TOKEN');
+                    navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
+                      context,
+                      LoginScreen(),
+                    );
+                  },
+                  child: Icon(
+                    FontAwesomeIcons.rightFromBracket,
+                    size: 60.sp,
+                    color: Colors.white,
+                  ),
+                ),
                 SizedBox(width: 765.w),
                 Icon(
                   FontAwesomeIcons.calendar,
@@ -44,17 +68,25 @@ class _Test2State extends State<Test2> {
                   color: Colors.white,
                 ),
                 SizedBox(width: 65.w),
-                Icon(
-                  FontAwesomeIcons.magnifyingGlass,
-                  size: 50.sp,
-                  color: Colors.white,
+                GestureDetector(
+                  onTap: () {
+                    SharedPreferences.getInstance().then((prefs) {
+                      final token = prefs.getString('TOKEN');
+                      print(token);
+                    });
+                  },
+                  child: Icon(
+                    FontAwesomeIcons.magnifyingGlass,
+                    size: 50.sp,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
           ),
         ),
       ),
-      backgroundColor: const Color(0xff010001), // Light yellow-ish background
+      backgroundColor: const Color(0xff010001), // Dark background
       body: BlocConsumer<CountriesBloc, CountriesState>(
         listener: (context, state) {
           if (state is CountriesError) {
@@ -91,9 +123,7 @@ class _Test2State extends State<Test2> {
                         return LeaguesAndMatchesByCountryWidget(
                           countryName: country.name,
                           countryFlag: country.alpha2 ?? country.flag,
-                          leagues: _getLeaguesForCountry(
-                            country.name,
-                          ), // Simulated leagues
+                          countryId: country.id, // Pass the country ID
                         ); // Pass country data
                       },
                       separatorBuilder: (BuildContext context, int index) {
@@ -135,49 +165,5 @@ class _Test2State extends State<Test2> {
         },
       ),
     );
-  }
-
-  List<String> _getLeaguesForCountry(String countryName) {
-    switch (countryName) {
-      case 'USA':
-        return [
-          'MLS',
-          'USL Championship',
-          'US Open Cup',
-          'NPSL',
-          'MLS Preseason',
-          'MLS Next Pro',
-          'NWSL',
-        ];
-      case 'Europe':
-        return [
-          'UEFA Champions League',
-          'Europa League',
-          'Premier League',
-          'La Liga',
-          'Serie A',
-          'Bundesliga',
-        ];
-      case 'South America':
-        return [
-          'Copa Libertadores',
-          'Brasileirão',
-          'Argentine Primera División',
-        ];
-      case 'Asia':
-        return ['AFC Champions League', 'J1 League', 'K League 1'];
-      case 'Africa':
-        return [
-          'CAF Champions League',
-          'Egyptian Premier League',
-          'South African Premier Division',
-        ];
-      case 'North & Central America':
-        return ['CONCACAF Champions League', 'Liga MX', 'Major League Soccer'];
-      case 'Oceania':
-        return ['OFC Champions League', 'A-League', 'National Premier Leagues'];
-      default:
-        return ['No leagues available'];
-    }
   }
 }

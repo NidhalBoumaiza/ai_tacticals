@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
-import '../widgets/bottom navigation app bar utils/bnb_utils.dart';
+import '../../widgets/bottom navigation app bar utils/bnb_utils.dart';
 
 class HomeScreenSquelette extends StatefulWidget {
   const HomeScreenSquelette({super.key});
@@ -18,7 +18,7 @@ class _HomeScreenSqueletteState extends State<HomeScreenSquelette> {
   Widget build(BuildContext context) {
     PersistentTabController _controller;
 
-    _controller = PersistentTabController(initialIndex: 0);
+    _controller = PersistentTabController(initialIndex: 1);
     return SafeArea(
       child: Scaffold(
         body: PersistentTabView(

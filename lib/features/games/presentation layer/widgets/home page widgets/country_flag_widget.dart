@@ -3,14 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 class CountryFlagWidget extends StatelessWidget {
-  final String flag;
+  final dynamic flag;
 
   const CountryFlagWidget({super.key, required this.flag});
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl =
-        'https://www.sofascore.com/static/images/flags/${flag.toLowerCase()}.png';
+    late String imageUrl;
+    bool isNumeric(String str) {
+      final numericRegex = RegExp(r'^\d+$');
+      return numericRegex.hasMatch(str);
+    }
+
+    if (isNumeric(flag)) {
+      imageUrl =
+          "https://api.sofascore.com/api/v1/unique-tournament/$flag/image/dark";
+    } else {
+      imageUrl =
+          'https://www.sofascore.com/static/images/flags/${flag.toLowerCase()}.png';
+    }
+
     print('Image URL: $imageUrl'); // Debugging: Print the URL
     return CachedNetworkImage(
       imageUrl: imageUrl,

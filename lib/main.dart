@@ -1,13 +1,16 @@
-import 'package:analysis_ai/features/auth/presentation%20layer/pages/login_screen.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/pages/bottom%20app%20bar%20screens/home_screen_squelette.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/auth/presentation layer/bloc/login_bloc/login_bloc.dart';
 import 'features/auth/presentation layer/bloc/signup_bloc/signup_bloc.dart';
+import 'features/auth/presentation layer/pages/starter_screen.dart';
 import 'features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
+import 'features/games/presentation layer/bloc/leagues_bloc/leagues_bloc.dart';
 import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
@@ -16,23 +19,36 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
   final AppLifecycleObserver observer = AppLifecycleObserver();
-  WidgetsBinding.instance.addObserver(observer); // Attach the observer
+  WidgetsBinding.instance.addObserver(observer);
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('TOKEN');
+  Widget screen;
+  if (token != null && token.isNotEmpty) {
+    print('Token: $token');
+    screen = HomeScreenSquelette();
+  } else {
+    screen = StarterScreen();
+  }
   // await dotenv.load(fileName: ".env");
   // await dotenv.load(fileName: ".env");
-  runApp(const MyApp());
+  runApp(MyApp(screen: screen));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Widget screen;
+
+  MyApp({super.key, required this.screen});
 
   @override
   Widget build(BuildContext context) {
+    print(screen);
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (create) => di.sl<BnvCubit>()..changeIndex(0)),
         BlocProvider(create: (create) => di.sl<LoginBloc>()),
         BlocProvider(create: (create) => di.sl<SignupBloc>()),
         BlocProvider(create: (create) => di.sl<CountriesBloc>()),
+        BlocProvider(create: (create) => di.sl<LeaguesBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),
@@ -44,7 +60,7 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             ),
-            home: LoginScreen(),
+            home: screen,
             translations: AppTranslations(),
             darkTheme: ThemeData.dark(),
             themeMode: ThemeMode.system,

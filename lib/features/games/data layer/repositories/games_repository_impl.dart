@@ -5,8 +5,8 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain layer/entities/country_entity.dart';
 import '../../domain layer/repositories/games_repository.dart';
-import '../data sources/games_local_data_source.dart';
-import '../data sources/games_remote_data_source.dart';
+import '../data sources/countries/games_local_data_source.dart';
+import '../data sources/countries/games_remote_data_source.dart';
 import '../models/country_model.dart';
 
 class GamesRepositoryImpl implements GamesRepository {
