@@ -158,6 +158,7 @@ class _LeagueInfosScreenState extends State<LeagueInfosScreen>
             controller: _tabController,
             children: [
               StandingScreen(
+                leagueName: widget.leagueName,
                 leagueId: widget.leagueId,
                 seasonId: widget.seasons[0].id,
               ),

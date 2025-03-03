@@ -53,12 +53,30 @@ class StandingsLocalDataSourceImpl implements StandingsLocalDataSource {
   }
 }
 
-// Ensure toJson methods are included (unchanged from previous)
+// Updated JSON extensions
 extension StandingsModelJson on StandingsModel {
   Map<String, dynamic> toJson() {
     return {
+      'standings':
+          groups.map((group) => (group as GroupModel).toJson()).toList(),
       'tournament': {
-        'uniqueTournament': {'id': league.id, 'name': league.name},
+        'uniqueTournament': {'id': league?.id, 'name': league?.name},
+      },
+    };
+  }
+}
+
+extension GroupModelJson on GroupModel {
+  Map<String, dynamic> toJson() {
+    return {
+      'tournament': {
+        'name': name,
+        'isGroup': isGroup,
+        'groupName': groupName,
+        'uniqueTournament': {
+          'id': null, // Not stored here; handled at StandingsModel level
+          'name': null,
+        },
       },
       'name': name,
       'tieBreakingRule': {'text': tieBreakingRuleText},
@@ -73,9 +91,14 @@ extension TeamStandingModelJson on TeamStandingModel {
       'team': {
         'shortName': shortName,
         'id': id,
-        'teamColors': (teamColors as TeamColorsModel).toJson(),
+        'teamColors':
+            teamColors != null
+                ? (teamColors as TeamColorsModel).toJson()
+                : null,
         'fieldTranslations':
-            (fieldTranslations as FieldTranslationsModel).toJson(),
+            fieldTranslations != null
+                ? (fieldTranslations as FieldTranslationsModel).toJson()
+                : null,
         'country': {'alpha2': countryAlpha2},
       },
       'position': position,
@@ -85,6 +108,10 @@ extension TeamStandingModelJson on TeamStandingModel {
       'scoresAgainst': scoresAgainst,
       'scoreDiffFormatted': scoreDiffFormatted,
       'points': points,
+      'promotion':
+          promotion != null
+              ? {'text': promotion!.text, 'id': promotion!.id}
+              : null,
     };
   }
 }

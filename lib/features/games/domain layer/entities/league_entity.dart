@@ -1,10 +1,11 @@
+// lib/features/standings/domain_layer/entities/league_entity.dart
 class LeagueEntity {
-  final int id;
-  final String name;
+  final int? id;
+  final String? name;
 
-  LeagueEntity({required this.id, required this.name});
+  LeagueEntity({this.id, this.name});
 
-  factory LeagueEntity.create({required int id, required String name}) {
+  factory LeagueEntity.create({int? id, String? name}) {
     return LeagueEntity(id: id, name: name);
   }
 

@@ -156,7 +156,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                       return GestureDetector(
                         onTap: () {
                           context.read<SeasonsCubit>().getSeasons(league.id);
-                          _showSeasonsDialog(context, league.id, league.name);
+                          _showSeasonsDialog(context, league.id!, league.name!);
                         },
                         child: Container(
                           height: 105.h,
@@ -173,7 +173,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                               SizedBox(width: 30.w),
                               Expanded(
                                 child: ReusableText(
-                                  text: league.name,
+                                  text: league.name!,
                                   textSize: 100.sp,
                                   textFontWeight: FontWeight.w400,
                                   textColor: const Color(0xffececee),
@@ -212,14 +212,12 @@ class _LeaguesAndMatchesByCountryWidgetState
             builder: (context, state) {
               if (state is SeasonsLoading) {
                 return AlertDialog(
-                  contentPadding: EdgeInsets.all(16.h), // Reduced padding
+                  contentPadding: EdgeInsets.all(16.h),
                   content: SizedBox(
-                    width: 100.w, // Small width
-                    height: 100.h, // Small height
+                    width: 100.w,
+                    height: 100.h,
                     child: const Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.0, // Thinner stroke for smaller size
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 2.0),
                     ),
                   ),
                 );
@@ -238,7 +236,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                     pageTransitionAnimation: PageTransitionAnimation.slideRight,
                   );
                 });
-                return const SizedBox.shrink(); // Temporary placeholder while navigating
+                return const SizedBox.shrink();
               } else if (state is SeasonsError) {
                 return AlertDialog(content: Center(child: Text(state.message)));
               }
