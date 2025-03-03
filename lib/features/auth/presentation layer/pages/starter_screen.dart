@@ -2,9 +2,10 @@ import 'package:analysis_ai/core/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/utils/navigation_with_transition.dart';
 import '../../../../core/widgets/my_customed_button.dart';
+import 'login_screen.dart';
 
 class StarterScreen extends StatefulWidget {
   const StarterScreen({super.key});
@@ -98,18 +99,10 @@ class _StarterScreenState extends State<StarterScreen>
               height: 150.h,
               // Your original value
               function: () {
-                SharedPreferences.getInstance().then((prefs) {
-                  final token = prefs.getString('TOKEN');
-                  if (token != null && token.isNotEmpty) {
-                    print(token);
-                  } else {
-                    print('No token found');
-                  }
-                });
-                // navigateToAnotherScreenWithBottomToTopTransition(
-                //   context,
-                //   LoginScreen(),
-                // );
+                navigateToAnotherScreenWithBottomToTopTransition(
+                  context,
+                  LoginScreen(),
+                );
               },
               buttonColor: AppColor.primaryColor,
               text: 'explore_now'.tr,

@@ -1,20 +1,47 @@
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/pages/screens%20of%20league%20infos%20screen/standing_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../domain layer/entities/season_entity.dart';
 import '../widgets/year_drop_down_menu.dart';
 
-class StandingsScreen extends StatefulWidget {
-  const StandingsScreen({super.key});
+class LeagueInfosScreen extends StatefulWidget {
+  final int leagueId;
+  final String leagueName;
+  final List<SeasonEntity> seasons;
+
+  const LeagueInfosScreen({
+    super.key,
+    required this.leagueName,
+    required this.leagueId,
+    required this.seasons,
+  });
 
   @override
-  State<StandingsScreen> createState() => _StandingsScreenState();
+  State<LeagueInfosScreen> createState() => _LeagueInfosScreenState();
 }
 
-class _StandingsScreenState extends State<StandingsScreen> {
-  final List<Map<String, dynamic>> standings = [
-    // Your standings data here
-  ];
+class _LeagueInfosScreenState extends State<LeagueInfosScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  late int index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: 4,
+      vsync: this, // Now valid with SingleTickerProviderStateMixin
+      initialIndex: 0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,13 +87,14 @@ class _StandingsScreenState extends State<StandingsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     ReusableText(
-                                      text: "UEFA Champions League",
+                                      text: widget.leagueName,
                                       textSize: 120.sp, // Much larger text
                                       textFontWeight: FontWeight.w600,
                                       textColor: Colors.white,
                                     ),
-                                    YearDropdownMenu(),
-                                    SizedBox(height: 50.h), // Increased spacing
+                                    YearDropdownMenu(seasons: widget.seasons),
+                                    SizedBox(height: 50.h),
+                                    // Increased spacing
                                   ],
                                 ),
                               ],
@@ -80,11 +108,13 @@ class _StandingsScreenState extends State<StandingsScreen> {
                 bottom: PreferredSize(
                   preferredSize: Size.fromHeight(0),
                   child: TabBar(
+                    controller: _tabController,
                     isScrollable: true,
                     indicatorPadding: EdgeInsets.zero,
                     labelPadding: EdgeInsets.symmetric(horizontal: 40.w),
                     tabs: [
                       Tab(
+                        iconMargin: EdgeInsets.zero,
                         child: ReusableText(
                           text: 'Standings',
                           textSize: 120.sp, // Much larger text
@@ -92,6 +122,7 @@ class _StandingsScreenState extends State<StandingsScreen> {
                           textColor: Colors.white,
                         ),
                       ),
+
                       Tab(
                         child: ReusableText(
                           text: 'Matches',
@@ -100,6 +131,7 @@ class _StandingsScreenState extends State<StandingsScreen> {
                           textColor: Colors.white,
                         ),
                       ),
+
                       Tab(
                         child: ReusableText(
                           text: 'Top Scorers',
@@ -122,76 +154,30 @@ class _StandingsScreenState extends State<StandingsScreen> {
               ),
             ];
           },
-          body: Column(
+          body: TabBarView(
+            controller: _tabController,
             children: [
-              Expanded(
-                child: ListView.builder(
-                  itemCount: standings.length,
-                  itemBuilder: (context, index) {
-                    return _buildStandingItem(standings[index], index + 1);
-                  },
-                ),
+              StandingScreen(
+                leagueId: widget.leagueId,
+                seasonId: widget.seasons[0].id,
               ),
+              const Center(child: Text('Matches Page')),
+              // Replace with your widget
+              const Center(child: Text('Top Scorers Page')),
+              // Replace with your widget
+              const Center(child: Text('Top Assists Page')),
+              // Replace with your widget
             ],
           ),
         ),
       ),
     );
   }
-
-  Widget _buildStandingItem(Map<String, dynamic> standing, int rank) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 30.h, horizontal: 40.w),
-      color: Colors.black,
-      child: Row(
-        children: [
-          Container(
-            width: 60.w, // Much larger flag icon
-            height: 60.w,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/flags/${standing['flag']}.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          SizedBox(width: 30.w), // Increased spacing
-          ReusableText(
-            text: '$rank',
-            textSize: 120.sp, // Much larger text
-            textFontWeight: FontWeight.w400,
-            textColor: Colors.green,
-          ),
-          SizedBox(width: 30.w), // Increased spacing
-          ReusableText(
-            text: standing['team'],
-            textSize: 120.sp, // Much larger text
-            textFontWeight: FontWeight.w400,
-            textColor: Colors.white,
-          ),
-          Spacer(),
-          ReusableText(
-            text: '${standing['played']}',
-            textSize: 120.sp, // Much larger text
-            textFontWeight: FontWeight.w400,
-            textColor: Colors.white,
-          ),
-          SizedBox(width: 50.w), // Increased spacing
-          ReusableText(
-            text: '+${standing['goalDiff']}',
-            textSize: 120.sp, // Much larger text
-            textFontWeight: FontWeight.w400,
-            textColor: Colors.white,
-          ),
-          SizedBox(width: 50.w), // Increased spacing
-          ReusableText(
-            text: '${standing['points']}',
-            textSize: 120.sp, // Much larger text
-            textFontWeight: FontWeight.w400,
-            textColor: Colors.white,
-          ),
-        ],
-      ),
-    );
-  }
 }
+
+// List<Widget> tabBarScreens = [
+//   StandingsScreen(leagueName: ''),
+//   GamesPerRoundScreen(),
+//   Test1(),
+//   Test2(),
+// ];

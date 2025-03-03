@@ -1,15 +1,15 @@
-import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
-import 'package:analysis_ai/features/auth/presentation%20layer/pages/login_screen.dart';
 import 'package:analysis_ai/features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../widgets/home page widgets/league_and_matches_by_country_widget.dart';
+import '../../../../auth/presentation layer/pages/login_screen.dart';
+import '../../widgets/home page widgets/standing screen widgets/league_and_matches_by_country_widget.dart';
 
 class LeagueScreen extends StatefulWidget {
   const LeagueScreen({super.key});
@@ -50,9 +50,14 @@ class _LeagueScreenState extends State<LeagueScreen> {
                     SharedPreferences prefs =
                         await SharedPreferences.getInstance();
                     await prefs.remove('TOKEN');
-                    navigateToAnotherScreenWithSlideTransitionFromRightToLeftPushReplacement(
+                    PersistentNavBarNavigator.pushNewScreen(
                       context,
-                      LoginScreen(),
+                      screen: LoginScreen(),
+                      withNavBar: false,
+                      // Hides the bottom navigation bar
+                      pageTransitionAnimation:
+                          PageTransitionAnimation
+                              .slideRight, // Matches your right-to-left intent
                     );
                   },
                   child: Icon(

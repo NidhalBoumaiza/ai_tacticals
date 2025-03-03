@@ -1,17 +1,19 @@
-import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
+// lib/features/standings/presentation_layer/widgets/leagues_and_matches_by_country_widget.dart
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
-import 'package:analysis_ai/features/games/presentation layer/bloc/leagues_bloc/leagues_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
-import '../../pages/standing_screen.dart';
+import '../../../bloc/leagues_bloc/leagues_bloc.dart';
+import '../../../cubit/seasons cubit/seasons_cubit.dart';
+import '../../../pages/league_infos_screen.dart';
 import 'country_flag_widget.dart';
 
 class LeaguesAndMatchesByCountryWidget extends StatefulWidget {
   final String countryName;
   final String countryFlag;
-  final int countryId; // Added to fetch leagues dynamically
+  final int countryId;
 
   const LeaguesAndMatchesByCountryWidget({
     super.key,
@@ -27,30 +29,33 @@ class LeaguesAndMatchesByCountryWidget extends StatefulWidget {
 
 class _LeaguesAndMatchesByCountryWidgetState
     extends State<LeaguesAndMatchesByCountryWidget> {
-  bool _isExpanded = false; // Track expansion state
+  bool _isExpanded = false;
 
   @override
   void initState() {
     super.initState();
-    // No initial fetch; fetch only when expanded
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
-    _isExpanded = false; // Reset expansion state
+    _isExpanded = false;
     super.dispose();
+  }
+
+  void showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Collapsed/Expanded Header
         GestureDetector(
           onTap: () {
             setState(() {
-              _isExpanded = !_isExpanded; // Toggle expansion
+              _isExpanded = !_isExpanded;
               if (_isExpanded) {
                 context.read<LeaguesBloc>().add(
                   GetLeaguesByCountry(countryId: widget.countryId),
@@ -60,9 +65,7 @@ class _LeaguesAndMatchesByCountryWidgetState
           },
           child: Container(
             height: 115.h,
-            // Fixed height
             padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 25.w),
-            // Tighter padding
             decoration: BoxDecoration(
               color: const Color(0xff161d1f),
               borderRadius: BorderRadius.only(
@@ -89,14 +92,13 @@ class _LeaguesAndMatchesByCountryWidgetState
                     ],
                   ),
                 ),
-                // Show loading indicator or arrow based on LeaguesBloc state
                 BlocBuilder<LeaguesBloc, LeaguesState>(
                   builder: (context, state) {
                     if (state is LeaguesLoading && _isExpanded) {
                       return Row(
                         children: [
                           SizedBox(
-                            width: 35.sp, // Match icon size
+                            width: 35.sp,
                             height: 35.sp,
                             child: CircularProgressIndicator(
                               color: const Color(0xffececee),
@@ -109,9 +111,8 @@ class _LeaguesAndMatchesByCountryWidgetState
                     }
                     return Icon(
                       _isExpanded ? Icons.expand_less : Icons.expand_more,
-                      // Toggle icon
                       color: const Color(0xffececee),
-                      size: 80.sp, // Small icon
+                      size: 80.sp,
                     );
                   },
                 ),
@@ -119,11 +120,10 @@ class _LeaguesAndMatchesByCountryWidgetState
             ),
           ),
         ),
-        // Animated Expansion for Leagues (Dynamic Height)
         BlocBuilder<LeaguesBloc, LeaguesState>(
           builder: (context, state) {
             if (state is LeaguesLoading && _isExpanded) {
-              return const SizedBox.shrink(); // Hide content while loading (optional, can show a placeholder)
+              return const SizedBox.shrink();
             } else if (state is LeaguesError && _isExpanded) {
               return Container(
                 padding: EdgeInsets.all(8.h),
@@ -137,8 +137,8 @@ class _LeaguesAndMatchesByCountryWidgetState
               );
             } else if (state is LeaguesSuccess && _isExpanded) {
               return AnimatedContainer(
-                duration: const Duration(milliseconds: 500), // Smooth animation
-                curve: Curves.easeInOut, // Animation curve
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeInOut,
                 child: Container(
                   decoration: BoxDecoration(
                     color: const Color(0xff161d1f),
@@ -152,32 +152,29 @@ class _LeaguesAndMatchesByCountryWidgetState
                     shrinkWrap: true,
                     itemCount: state.leagues.length,
                     itemBuilder: (context, index) {
+                      final league = state.leagues[index];
                       return GestureDetector(
                         onTap: () {
-                          navigateToAnotherScreenWithBottomToTopTransition(
-                            context,
-                            StandingsScreen(),
-                          );
+                          context.read<SeasonsCubit>().getSeasons(league.id);
+                          _showSeasonsDialog(context, league.id, league.name);
                         },
                         child: Container(
-                          height: 105.h, // Fixed height per league
+                          height: 105.h,
                           padding: EdgeInsets.symmetric(
                             vertical: 2.h,
                             horizontal: 30.w,
-                          ), // Tighter padding
+                          ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               SizedBox(width: 10.w),
-                              CountryFlagWidget(
-                                flag: state.leagues[index].id.toString(),
-                              ),
+                              CountryFlagWidget(flag: league.id.toString()),
                               SizedBox(width: 30.w),
                               Expanded(
                                 child: ReusableText(
-                                  text: state.leagues[index].name,
-                                  textSize: 100.sp, // Compact text size
+                                  text: league.name,
+                                  textSize: 100.sp,
                                   textFontWeight: FontWeight.w400,
                                   textColor: const Color(0xffececee),
                                 ),
@@ -191,10 +188,63 @@ class _LeaguesAndMatchesByCountryWidgetState
                 ),
               );
             }
-            return const SizedBox.shrink(); // No content when collapsed or not loaded
+            return const SizedBox.shrink();
           },
         ),
       ],
+    );
+  }
+
+  void _showSeasonsDialog(
+    BuildContext context,
+    int leagueId,
+    String leagueName,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (dialogContext) => BlocConsumer<SeasonsCubit, SeasonsState>(
+            listener: (context, state) {
+              if (state is SeasonsError) {
+                showErrorSnackBar(context, "Error while loading seasons");
+              }
+            },
+            builder: (context, state) {
+              if (state is SeasonsLoading) {
+                return AlertDialog(
+                  contentPadding: EdgeInsets.all(16.h), // Reduced padding
+                  content: SizedBox(
+                    width: 100.w, // Small width
+                    height: 100.h, // Small height
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0, // Thinner stroke for smaller size
+                      ),
+                    ),
+                  ),
+                );
+              } else if (state is SeasonsLoaded) {
+                print("Seasons loaded: ${state.seasons.length}");
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  Navigator.pop(dialogContext); // Close dialog
+                  PersistentNavBarNavigator.pushNewScreen(
+                    context,
+                    screen: LeagueInfosScreen(
+                      leagueId: leagueId,
+                      leagueName: leagueName,
+                      seasons: state.seasons,
+                    ),
+                    withNavBar: false,
+                    pageTransitionAnimation: PageTransitionAnimation.slideRight,
+                  );
+                });
+                return const SizedBox.shrink(); // Temporary placeholder while navigating
+              } else if (state is SeasonsError) {
+                return AlertDialog(content: Center(child: Text(state.message)));
+              }
+              return const SizedBox.shrink();
+            },
+          ),
     );
   }
 }

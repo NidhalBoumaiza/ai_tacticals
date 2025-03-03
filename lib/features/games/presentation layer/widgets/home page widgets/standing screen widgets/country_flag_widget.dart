@@ -33,7 +33,11 @@ class CountryFlagWidget extends StatelessWidget {
             child: Container(
               width: 25,
               height: 25,
-              color: Colors.grey.shade300,
+
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(50),
+              ),
             ),
           ),
       errorWidget: (context, url, error) {

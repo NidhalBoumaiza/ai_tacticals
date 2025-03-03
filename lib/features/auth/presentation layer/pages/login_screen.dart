@@ -29,161 +29,168 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xffffffc2),
-      body: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 50.w, vertical: 200.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Center(
-                  child: Lottie.asset(
-                    "assets/lottie/AnimationLogin.json",
-                    height: 700.h,
+    return WillPopScope(
+      onWillPop: () async {
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xffffffc2),
+        body: GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+          },
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 50.w, vertical: 200.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Center(
+                    child: Lottie.asset(
+                      "assets/lottie/AnimationLogin.json",
+                      height: 700.h,
+                    ),
                   ),
-                ),
-                Center(
-                  child: ReusableText(
-                    text: "login_title".tr,
-                    textSize: 200.sp,
-                    textFontWeight: FontWeight.w800,
+                  Center(
+                    child: ReusableText(
+                      text: "login_title".tr,
+                      textSize: 200.sp,
+                      textFontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 50.h),
-                      ReusableText(
-                        text: "email_label".tr,
-                        textSize: 100.sp,
-                        textFontWeight: FontWeight.w800,
-                      ),
-                      ReusableTextFieldWidget(
-                        borderSide: const BorderSide(
-                          color: Color(0xfff3f6f9),
-                          width: 3,
-                          style: BorderStyle.solid,
-                        ),
-                        hintText: "email_hint".tr,
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        errorMessage: "empty_field_error".tr,
-                      ),
-                      ReusableText(
-                        text: "password_label".tr,
-                        textSize: 100.sp,
-                        textFontWeight: FontWeight.w800,
-                      ),
-                      ReusableTextFieldWidget(
-                        obsecureText: obscureText,
-                        controller: _passwordController,
-                        onPressedSuffixIcon: () {
-                          setState(() {
-                            obscureText = !obscureText;
-                          });
-                        },
-                        borderSide: const BorderSide(
-                          color: Color(0xfff3f6f9),
-                          width: 3,
-                          style: BorderStyle.solid,
-                        ),
-                        hintText: "password_hint".tr,
-                        keyboardType: TextInputType.emailAddress,
-                        errorMessage: "empty_field_error".tr,
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 50.h),
-                Center(
-                  child: BlocConsumer<LoginBloc, LoginState>(
-                    listener: (context, state) {
-                      if (state is LoginSuccess) {
-                        navigateToAnotherScreenWithFadeTransition(
-                          context,
-                          HomeScreenSquelette(),
-                        );
-                      } else if (state is LoginError) {
-                        showErrorSnackBar(context, "invalid_credentials".tr);
-                      }
-                    },
-                    builder: (context, state) {
-                      return MyCustomButton(
-                        width: 540.w,
-                        // Your original value
-                        height: 150.h,
-                        // Your original value
-                        function:
-                            state is LoginLoading
-                                ? () {}
-                                : () {
-                                  FocusScope.of(context).unfocus();
-                                  if (_formKey.currentState!.validate()) {
-                                    context.read<LoginBloc>().add(
-                                      LoginWithEmailAndPassword(
-                                        email: _emailController.text,
-                                        password: _passwordController.text,
-                                      ),
-                                    );
-                                  }
-                                },
-                        buttonColor: AppColor.primaryColor,
-                        text: state is LoginLoading ? ''.tr : 'login_button'.tr,
-                        circularRadious: 5,
-                        textButtonColor: Colors.black,
-                        fontSize: 40.sp,
-                        fontWeight: FontWeight.w800,
-                        widget:
-                            state is LoginLoading
-                                ? Lottie.asset(
-                                  'assets/lottie/animationBallLoading.json',
-                                  height: 150.h,
-                                )
-                                : null,
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: 50.h),
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ReusableText(
-                        text: "no_account".tr, // "Don't have an account?"
-                        textSize: 100.sp,
-                        textFontWeight: FontWeight.w600,
-                        textColor: Colors.black,
-                      ),
-                      SizedBox(width: 10.w),
-                      GestureDetector(
-                        onTap: () {
-                          FocusScope.of(context).unfocus();
-                          navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                            context,
-                            SignUpScreen(),
-                          );
-                        },
-                        child: ReusableText(
-                          text: "sign_up_link".tr, // "Sign Up"
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 50.h),
+                        ReusableText(
+                          text: "email_label".tr,
                           textSize: 100.sp,
                           textFontWeight: FontWeight.w800,
-                          textColor:
-                              AppColor.primaryColor, // Highlighted as clickable
                         ),
-                      ),
-                    ],
+                        ReusableTextFieldWidget(
+                          borderSide: const BorderSide(
+                            color: Color(0xfff3f6f9),
+                            width: 3,
+                            style: BorderStyle.solid,
+                          ),
+                          hintText: "email_hint".tr,
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          errorMessage: "empty_field_error".tr,
+                        ),
+                        ReusableText(
+                          text: "password_label".tr,
+                          textSize: 100.sp,
+                          textFontWeight: FontWeight.w800,
+                        ),
+                        ReusableTextFieldWidget(
+                          obsecureText: obscureText,
+                          controller: _passwordController,
+                          onPressedSuffixIcon: () {
+                            setState(() {
+                              obscureText = !obscureText;
+                            });
+                          },
+                          borderSide: const BorderSide(
+                            color: Color(0xfff3f6f9),
+                            width: 3,
+                            style: BorderStyle.solid,
+                          ),
+                          hintText: "password_hint".tr,
+                          keyboardType: TextInputType.emailAddress,
+                          errorMessage: "empty_field_error".tr,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  SizedBox(height: 50.h),
+                  Center(
+                    child: BlocConsumer<LoginBloc, LoginState>(
+                      listener: (context, state) {
+                        if (state is LoginSuccess) {
+                          navigateToAnotherScreenWithFadeTransition(
+                            context,
+                            HomeScreenSquelette(),
+                          );
+                        } else if (state is LoginError) {
+                          showErrorSnackBar(context, "invalid_credentials".tr);
+                        }
+                      },
+                      builder: (context, state) {
+                        return MyCustomButton(
+                          width: 540.w,
+                          // Your original value
+                          height: 150.h,
+                          // Your original value
+                          function:
+                              state is LoginLoading
+                                  ? () {}
+                                  : () {
+                                    FocusScope.of(context).unfocus();
+                                    if (_formKey.currentState!.validate()) {
+                                      context.read<LoginBloc>().add(
+                                        LoginWithEmailAndPassword(
+                                          email: _emailController.text,
+                                          password: _passwordController.text,
+                                        ),
+                                      );
+                                    }
+                                  },
+                          buttonColor: AppColor.primaryColor,
+                          text:
+                              state is LoginLoading ? ''.tr : 'login_button'.tr,
+                          circularRadious: 5,
+                          textButtonColor: Colors.black,
+                          fontSize: 40.sp,
+                          fontWeight: FontWeight.w800,
+                          widget:
+                              state is LoginLoading
+                                  ? Lottie.asset(
+                                    'assets/lottie/animationBallLoading.json',
+                                    height: 150.h,
+                                  )
+                                  : null,
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 50.h),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ReusableText(
+                          text: "no_account".tr, // "Don't have an account?"
+                          textSize: 100.sp,
+                          textFontWeight: FontWeight.w600,
+                          textColor: Colors.black,
+                        ),
+                        SizedBox(width: 10.w),
+                        GestureDetector(
+                          onTap: () {
+                            FocusScope.of(context).unfocus();
+                            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                              context,
+                              SignUpScreen(),
+                            );
+                          },
+                          child: ReusableText(
+                            text: "sign_up_link".tr, // "Sign Up"
+                            textSize: 100.sp,
+                            textFontWeight: FontWeight.w800,
+                            textColor:
+                                AppColor
+                                    .primaryColor, // Highlighted as clickable
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

@@ -1,14 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../domain layer/entities/season_entity.dart';
+
 class YearDropdownMenu extends StatefulWidget {
+  final List<SeasonEntity> seasons;
+
+  YearDropdownMenu({required this.seasons});
+
   @override
   _YearDropdownMenuState createState() => _YearDropdownMenuState();
 }
 
 class _YearDropdownMenuState extends State<YearDropdownMenu> {
-  late String? selectedYear = '24/25'; // Track the selected year
-  final List<String> years = ['24/25', '23/24', '22/23', '21/22', '20/21'];
+  late String? selectedYear;
+  late List<String> years;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedYear = widget.seasons.first.year;
+    years = widget.seasons.map((e) => e.year).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
