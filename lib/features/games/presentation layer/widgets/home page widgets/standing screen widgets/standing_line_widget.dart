@@ -1,58 +1,47 @@
+// lib/features/standings/presentation_layer/widgets/standing_line_widget.dart
+import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../../../../../core/widgets/reusable_text.dart';
-
 class StandingLineWidget extends StatelessWidget {
   final int position;
-
+  final Color positionColor; // New parameter for position color
+  final int teamId;
   final String teamName;
   final int played;
   final int difference;
   final int points;
-  final int teamId;
 
   const StandingLineWidget({
     super.key,
-    required this.teamId,
     required this.position,
-
+    required this.positionColor,
+    required this.teamId,
     required this.teamName,
     required this.played,
     required this.difference,
     required this.points,
   });
 
-  Color chooseColor(position) {
-    if (position >= 1 && position <= 8) {
-      return Color(0xff38b752);
-    } else if (position >= 9 && position <= 24) {
-      return Color(0xff7eeb76);
-    } else {
-      return Color(0xff8a8e90);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 40.h, top: 0),
+      padding: EdgeInsets.only(bottom: 30.h),
       child: Row(
         children: [
           Container(
             decoration: BoxDecoration(
-              color: chooseColor(position),
-              borderRadius: BorderRadius.circular(100.r),
+              color: positionColor,
+              shape: BoxShape.circle,
             ),
             width: 50.w,
-            height: 50.w,
             child: Center(
               child: ReusableText(
                 text: position.toString(),
-                textSize: 100.sp,
-                textColor: Colors.black,
+                textSize: 90.sp,
+                textColor: Color(0xffe7eaec), // Use dynamic color
                 textFontWeight: FontWeight.w800,
               ),
             ),
@@ -67,8 +56,8 @@ class StandingLineWidget extends StatelessWidget {
                   baseColor: Colors.grey.shade300,
                   highlightColor: Colors.grey.shade100,
                   child: Container(
-                    width: 25,
-                    height: 25,
+                    width: 25.w,
+                    height: 25.w,
                     color: Colors.grey.shade300,
                   ),
                 ),
@@ -89,29 +78,26 @@ class StandingLineWidget extends StatelessWidget {
             child: ReusableText(
               text: "  $teamName",
               textSize: 100.sp,
-              textColor: Color(0xffe9ebef),
-              textFontWeight: FontWeight.w600,
+              textColor: Colors.white,
+              textFontWeight: FontWeight.w400,
             ),
           ),
           SizedBox(
             width: 150.w,
             child: ReusableText(
-              text: "8",
+              text: played.toString(),
               textSize: 100.sp,
-              textColor: Color(0xffe9ebef),
-              textFontWeight: FontWeight.w600,
+              textColor: Colors.white,
+              textFontWeight: FontWeight.w400,
             ),
           ),
           SizedBox(
             width: 150.w,
             child: ReusableText(
-              text:
-                  difference > 0
-                      ? "+${difference.toString()}"
-                      : difference.toString(),
+              text: difference.toString(),
               textSize: 100.sp,
-              textColor: Color(0xffe9ebef),
-              textFontWeight: FontWeight.w600,
+              textColor: Colors.white,
+              textFontWeight: FontWeight.w400,
             ),
           ),
           SizedBox(
@@ -119,8 +105,8 @@ class StandingLineWidget extends StatelessWidget {
             child: ReusableText(
               text: points.toString(),
               textSize: 100.sp,
-              textColor: Color(0xffe9ebef),
-              textFontWeight: FontWeight.w600,
+              textColor: Colors.white,
+              textFontWeight: FontWeight.w400,
             ),
           ),
         ],

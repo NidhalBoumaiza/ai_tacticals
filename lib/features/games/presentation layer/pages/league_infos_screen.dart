@@ -13,6 +13,7 @@ class LeagueInfosScreen extends StatefulWidget {
 
   const LeagueInfosScreen({
     super.key,
+
     required this.leagueName,
     required this.leagueId,
     required this.seasons,

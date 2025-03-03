@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../domain layer/entities/standing_entity.dart';
 import '../../bloc/standing bloc/standing_bloc.dart';
+import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
 import '../../widgets/home page widgets/standing screen widgets/standing_line_widget.dart';
 
 class StandingScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class StandingScreen extends StatefulWidget {
 
   const StandingScreen({
     super.key,
+
     required this.leagueName,
     required this.leagueId,
     required this.seasonId,
@@ -53,7 +55,7 @@ class _StandingScreenState extends State<StandingScreen> {
                 Row(
                   children: [
                     SizedBox(width: 10.w),
-                    const Icon(Icons.access_alarm),
+                    CountryFlagWidget(flag: widget.leagueId.toString()),
                     SizedBox(width: 50.w),
                     BlocBuilder<StandingBloc, StandingsState>(
                       builder: (context, state) {
@@ -71,7 +73,7 @@ class _StandingScreenState extends State<StandingScreen> {
                           text: widget.leagueName,
                           textSize: 130.sp,
                           textColor: Colors.white,
-                          textFontWeight: FontWeight.w800,
+                          textFontWeight: FontWeight.w600,
                         );
                       },
                     ),
@@ -121,7 +123,7 @@ class _StandingScreenState extends State<StandingScreen> {
                                 _buildStandingsTable(state.standings.groups[0]),
                               ],
                             )
-                          // Multi-group standings (display all groups)
+                          // Multi-group standings
                           else if (isGroupBased)
                             ...state.standings.groups.map((group) {
                               return Column(
@@ -181,141 +183,202 @@ class _StandingScreenState extends State<StandingScreen> {
     print(
       'Building table for group: ${group.name ?? group.groupName}, Rows: ${group.rows.length}',
     );
-    return Column(
-      children: [
-        Row(
+
+    // State to toggle tieBreakingRuleText visibility
+    bool _isExpanded = false;
+
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState) {
+        // Count lines in tieBreakingRuleText (approximate by splitting on newlines)
+        final tieBreakingLines =
+            group.tieBreakingRuleText != null
+                ? group.tieBreakingRuleText!.split('\n').length
+                : 0;
+        final showToggleButton = tieBreakingLines > 4;
+
+        return Column(
           children: [
-            SizedBox(
-              width: 50.w,
-              child: ReusableText(
-                text: "#",
-                textSize: 100.sp,
-                textColor: const Color(0xff8a8e90),
-                textFontWeight: FontWeight.w600,
-              ),
+            Row(
+              children: [
+                SizedBox(
+                  width: 50.w,
+                  child: ReusableText(
+                    text: "#",
+                    textSize: 100.sp,
+                    textColor: const Color(0xff8a8e90),
+                    textFontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(width: 25.w),
+                SizedBox(
+                  width: 510.w,
+                  child: ReusableText(
+                    text: "Team",
+                    textSize: 100.sp,
+                    textColor: const Color(0xff8a8e90),
+                    textFontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(
+                  width: 150.w,
+                  child: ReusableText(
+                    text: "P",
+                    textSize: 100.sp,
+                    textColor: const Color(0xff8a8e90),
+                    textFontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(
+                  width: 150.w,
+                  child: ReusableText(
+                    text: "DIFF",
+                    textSize: 100.sp,
+                    textColor: const Color(0xff8a8e90),
+                    textFontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(
+                  width: 80.w,
+                  child: ReusableText(
+                    text: "PTS",
+                    textSize: 100.sp,
+                    textColor: const Color(0xff8a8e90),
+                    textFontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(width: 25.w),
-            SizedBox(
-              width: 510.w,
-              child: ReusableText(
-                text: "Team",
-                textSize: 100.sp,
-                textColor: const Color(0xff8a8e90),
-                textFontWeight: FontWeight.w600,
-              ),
+            ListView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              itemCount: group.rows.length,
+              itemBuilder: (context, index) {
+                final team = group.rows[index];
+                print(
+                  'Team: ${team.shortName}, ID: ${team.id}, Position: ${team.position}',
+                );
+                final hasPromotion = team.promotion?.text != null;
+                final positionColor =
+                    hasPromotion
+                        ? (team.promotion!.text == "Relegation" ||
+                                team.promotion!.text == "Relegation Playoffs"
+                            ? const Color(0xffef5056)
+                            : team.promotion!.text == 'UEFA Europa League'
+                            ? const Color(0xff278eea)
+                            : team.promotion!.text == 'Playoffs' ||
+                                team.promotion!.text == 'Champions League' ||
+                                team.promotion!.text == 'Promotion' ||
+                                team.promotion!.text == 'Promotion round' ||
+                                team.promotion!.text == 'Promotion playoffs'
+                            ? const Color(0xff38b752) // Green for Playoffs
+                            : const Color(
+                              0xff80ec7b,
+                            )) // Lighter green for Qualification Playoffs
+                        : const Color(0xff161d1f); // Default grey
+
+                return StandingLineWidget(
+                  position: team.position ?? 0,
+                  positionColor: positionColor,
+                  teamId: team.id ?? 0,
+                  teamName: team.shortName ?? 'Unknown',
+                  played: team.matches ?? 0,
+                  difference:
+                      team.scoreDiffFormatted != null
+                          ? int.tryParse(
+                                team.scoreDiffFormatted!.replaceAll('+', ''),
+                              ) ??
+                              0
+                          : 0,
+                  points: team.points ?? 0,
+                );
+              },
             ),
-            SizedBox(
-              width: 150.w,
-              child: ReusableText(
-                text: "P",
-                textSize: 100.sp,
-                textColor: const Color(0xff8a8e90),
-                textFontWeight: FontWeight.w600,
+            SizedBox(height: 20.h),
+            const Divider(),
+            if (group.rows.any((team) => team.promotion?.text == 'Playoffs'))
+              Padding(
+                padding: EdgeInsets.only(left: 40.w, top: 15.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 20.w,
+                      width: 20.w,
+                      decoration: BoxDecoration(
+                        color: const Color(0xff38b752),
+                        borderRadius: BorderRadius.circular(100.r),
+                      ),
+                    ),
+                    ReusableText(
+                      textSize: 90.sp,
+                      text: '    Playoffs',
+                      textColor: const Color(0xff8a8e90),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            SizedBox(
-              width: 150.w,
-              child: ReusableText(
-                text: "DIFF",
-                textSize: 100.sp,
-                textColor: const Color(0xff8a8e90),
-                textFontWeight: FontWeight.w600,
+            if (group.rows.any(
+              (team) => team.promotion?.text == 'Qualification Playoffs',
+            ))
+              Padding(
+                padding: EdgeInsets.only(left: 40.w, top: 15.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 20.w,
+                      width: 20.w,
+                      decoration: BoxDecoration(
+                        color: const Color(0xff80ec7b),
+                        borderRadius: BorderRadius.circular(100.r),
+                      ),
+                    ),
+                    ReusableText(
+                      textSize: 90.sp,
+                      text: '    Qualification playoffs',
+                      textColor: const Color(0xff8a8e90),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            SizedBox(
-              width: 80.w,
-              child: ReusableText(
-                text: "PTS",
-                textSize: 100.sp,
-                textColor: const Color(0xff8a8e90),
-                textFontWeight: FontWeight.w600,
+            if (group.tieBreakingRuleText != null)
+              Padding(
+                padding: EdgeInsets.only(top: 15.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ReusableText(
+                      text:
+                          _isExpanded || !showToggleButton
+                              ? group.tieBreakingRuleText!
+                              : group.tieBreakingRuleText!
+                                  .split('\n')
+                                  .take(3)
+                                  .join('\n'),
+                      textSize: 90.sp,
+                      textColor: Colors.white,
+                    ),
+                    if (showToggleButton)
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        child: ReusableText(
+                          text: _isExpanded ? 'Show Less' : 'Show More',
+                          textSize: 90.sp,
+                          textColor: const Color(
+                            0xff38b752,
+                          ), // Green for button
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
           ],
-        ),
-        ListView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          itemCount: group.rows.length,
-          itemBuilder: (context, index) {
-            final team = group.rows[index];
-            print(
-              'Team: ${team.shortName}, ID: ${team.id}, Position: ${team.position}',
-            );
-            return StandingLineWidget(
-              position: team.position ?? 0,
-              teamId: team.id ?? 0,
-              teamName: team.shortName ?? 'Unknown',
-              played: team.matches ?? 0,
-              difference:
-                  team.scoreDiffFormatted != null
-                      ? int.tryParse(
-                            team.scoreDiffFormatted!.replaceAll('+', ''),
-                          ) ??
-                          0
-                      : 0,
-              points: team.points ?? 0,
-            );
-          },
-        ),
-        SizedBox(height: 20.h),
-        const Divider(),
-        if (group.rows.any((team) => team.promotion?.text == 'Playoffs'))
-          Padding(
-            padding: EdgeInsets.only(left: 40.w, top: 15.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Container(
-                  height: 20.w,
-                  width: 20.w,
-                  decoration: BoxDecoration(
-                    color: const Color(0xff38b752),
-                    borderRadius: BorderRadius.circular(100.r),
-                  ),
-                ),
-                ReusableText(
-                  textSize: 90.sp,
-                  text: '    Playoffs',
-                  textColor: const Color(0xff8a8e90),
-                ),
-              ],
-            ),
-          ),
-        if (group.rows.any(
-          (team) => team.promotion?.text == 'Qualification Playoffs',
-        ))
-          Padding(
-            padding: EdgeInsets.only(left: 40.w, top: 15.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Container(
-                  height: 20.w,
-                  width: 20.w,
-                  decoration: BoxDecoration(
-                    color: const Color(0xff80ec7b),
-                    borderRadius: BorderRadius.circular(100.r),
-                  ),
-                ),
-                ReusableText(
-                  textSize: 90.sp,
-                  text: '    Qualification playoffs',
-                  textColor: const Color(0xff8a8e90),
-                ),
-              ],
-            ),
-          ),
-        if (group.tieBreakingRuleText != null)
-          Padding(
-            padding: EdgeInsets.only(top: 15.h),
-            child: ReusableText(
-              text: group.tieBreakingRuleText!,
-              textSize: 90.sp,
-              textColor: Colors.white,
-            ),
-          ),
-      ],
+        );
+      },
     );
   }
 }
