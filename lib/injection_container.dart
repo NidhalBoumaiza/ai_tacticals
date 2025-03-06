@@ -1,3 +1,4 @@
+// injection_container.dart
 import 'package:analysis_ai/features/auth/data%20layer/data%20sources/user_local_data_source.dart';
 import 'package:analysis_ai/features/auth/presentation%20layer/bloc/login_bloc/login_bloc.dart';
 import 'package:analysis_ai/features/auth/presentation%20layer/bloc/signup_bloc/signup_bloc.dart';
@@ -24,6 +25,8 @@ import 'features/games/data layer/data sources/leagues/leagues_local_data_source
 import 'features/games/data layer/data sources/leagues/leagues_remote_data_source.dart';
 import 'features/games/data layer/data sources/matches/matches_local_data_source.dart';
 import 'features/games/data layer/data sources/matches/matches_remote_data_source.dart';
+import 'features/games/data layer/data sources/player details/player_details_local_data_source.dart';
+import 'features/games/data layer/data sources/player details/player_details_remote_data_source.dart';
 import 'features/games/data layer/data sources/players/player_local_data_source.dart';
 import 'features/games/data layer/data sources/players/players_remote_data_source.dart';
 import 'features/games/data layer/data sources/standing/standing_local_data_source.dart';
@@ -33,40 +36,68 @@ import 'features/games/data layer/data sources/statics/statics_remote_data_sourc
 import 'features/games/data layer/repositories/games_repository_impl.dart';
 import 'features/games/data layer/repositories/league_repository_impl.dart';
 import 'features/games/data layer/repositories/matches_repository_impl.dart';
+import 'features/games/data layer/repositories/player_details_repository_impl.dart';
 import 'features/games/data layer/repositories/players_repository_impl.dart';
 import 'features/games/data layer/repositories/standing_repository_impl.dart';
 import 'features/games/data layer/repositories/statics_repository_impl.dart';
 import 'features/games/domain layer/repositories/games_repository.dart';
 import 'features/games/domain layer/repositories/matches_repository.dart';
+import 'features/games/domain layer/repositories/player_details_repository.dart';
 import 'features/games/domain layer/repositories/statics_repository.dart';
+import 'features/games/domain layer/usecases/get _last_year_summary_use_case.dart';
 import 'features/games/domain layer/usecases/get_all_countries_use_case.dart';
 import 'features/games/domain layer/usecases/get_all_players_infos_use_case.dart';
 import 'features/games/domain layer/usecases/get_leagues_by_country_use_case.dart';
 import 'features/games/domain layer/usecases/get_matches_by_team_use_case.dart';
+import 'features/games/domain layer/usecases/get_media_use_case.dart';
+import 'features/games/domain layer/usecases/get_national_team_stats_use_case.dart';
+import 'features/games/domain layer/usecases/get_player_attributes_use_case.dart';
 import 'features/games/domain layer/usecases/get_season_use_case.dart';
 import 'features/games/domain layer/usecases/get_standing_use_case.dart';
 import 'features/games/domain layer/usecases/get_statics_use_case.dart';
+import 'features/games/domain layer/usecases/get_transfert_history_use_case.dart';
 import 'features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
+import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
+import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
+import 'features/games/presentation layer/bloc/national team bloc/national_team_stats_bloc.dart';
+import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
 import 'features/games/presentation layer/bloc/players_bloc/players_bloc.dart';
 import 'features/games/presentation layer/bloc/stats bloc/stats_bloc.dart';
+import 'features/games/presentation layer/bloc/transfert history bloc/transfer_history_bloc.dart';
 import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
 import 'features/games/presentation layer/cubit/seasons cubit/seasons_cubit.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  // Bloc
+  // Blocs
   sl.registerFactory(() => LoginBloc(login: sl()));
   sl.registerFactory(() => SignupBloc(signup: sl()));
   sl.registerFactory(() => CountriesBloc(gamesRepository: sl()));
   sl.registerFactory(() => LeaguesBloc(getLeaguesByCountry: sl()));
   sl.registerFactory(() => StandingBloc(getStandings: sl()));
-  sl.registerFactory(() => MatchesBloc(getMatchesPerTeam: sl())); // Cubit
+  sl.registerFactory(() => MatchesBloc(getMatchesPerTeam: sl()));
   sl.registerFactory(() => BnvCubit());
   sl.registerFactory(() => SeasonsCubit(getSeasonsUseCase: sl()));
   sl.registerFactory(() => PlayersBloc(getAllPlayersInfos: sl()));
-  sl.registerFactory(() => StatsBloc(repository: sl())); // Added StatsBloc
-  // ** UseCases **
+  sl.registerFactory(() => StatsBloc(repository: sl()));
+
+  // New Player Blocs
+  sl.registerFactory(
+    () => PlayerAttributesBloc(getPlayerAttributesUseCase: sl()),
+  );
+  sl.registerFactory(
+    () => NationalTeamStatsBloc(getNationalTeamStatsUseCase: sl()),
+  );
+  sl.registerFactory(
+    () => LastYearSummaryBloc(getLastYearSummaryUseCase: sl()),
+  );
+  sl.registerFactory(
+    () => TransferHistoryBloc(getTransferHistoryUseCase: sl()),
+  );
+  sl.registerFactory(() => MediaBloc(getMediaUseCase: sl()));
+
+  // Use Cases
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));
   sl.registerLazySingleton(() => GetAllCountriesUseCase(sl()));
@@ -75,8 +106,16 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetSeasonsUseCase(sl()));
   sl.registerLazySingleton(() => GetMatchesPerTeam(sl()));
   sl.registerLazySingleton(() => GetAllPlayersInfos(sl()));
-  sl.registerLazySingleton(() => GetTeamStatsUseCAse(sl())); // Added
-  // ** Repositories **
+  sl.registerLazySingleton(() => GetTeamStatsUseCAse(sl()));
+
+  // New Player Use Cases
+  sl.registerLazySingleton(() => GetPlayerAttributesUseCase(sl()));
+  sl.registerLazySingleton(() => GetNationalTeamStatsUseCase(sl()));
+  sl.registerLazySingleton(() => GetLastYearSummaryUseCase(sl()));
+  sl.registerLazySingleton(() => GetTransferHistoryUseCase(sl()));
+  sl.registerLazySingleton(() => GetMediaUseCase(sl()));
+
+  // Repositories
   sl.registerLazySingleton<UserRepository>(
     () => UserRepositoryImpl(
       userRemoteDataSource: sl(),
@@ -126,7 +165,6 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<StaticsRepository>(
-    // Added
     () => StatsRepositoryImpl(
       remoteDataSource: sl(),
       localDataSource: sl(),
@@ -134,7 +172,16 @@ Future<void> init() async {
     ),
   );
 
-  // ** Data Sources **
+  // New Player Repository
+  sl.registerLazySingleton<PlayerDetailsRepository>(
+    () => PlayerDetailsRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  // Data Sources
   sl.registerLazySingleton<UserRemoteDataSource>(
     () => UserRemoteDataSourceImpl(client: sl(), localDataSource: sl()),
   );
@@ -181,24 +228,27 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<StatsRemoteDataSource>(
-    // Added
     () => StatsRemoteDataSourceImpl(client: sl()),
   );
 
   sl.registerLazySingleton<StatsLocalDataSource>(
-    // Added
     () => StatsLocalDataSourceImpl(sharedPreferences: sl()),
   );
-  // ** Core **
 
+  // New Player Data Sources
+  sl.registerLazySingleton<PlayerDetailsRemoteDataSource>(
+    () => PlayerDetailsRemoteDataSourceImpl(client: sl()),
+  );
+  sl.registerLazySingleton<PlayerDetailsLocalDataSource>(
+    () => PlayerDetailsLocalDataSourceImpl(),
+  );
+
+  // Core
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
 
-  // ** External **
-
+  // External
   final sharedPreferences = await SharedPreferences.getInstance();
-
   sl.registerLazySingleton(() => sharedPreferences);
-
   sl.registerLazySingleton(() => http.Client());
   sl.registerLazySingleton<InternetConnectionChecker>(
     () => InternetConnectionChecker.instance,

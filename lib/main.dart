@@ -1,7 +1,14 @@
+// main.dart
+import 'package:analysis_ai/features/auth/presentation%20layer/bloc/login_bloc/login_bloc.dart';
+import 'package:analysis_ai/features/auth/presentation%20layer/bloc/signup_bloc/signup_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/countries_bloc/countries_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/leagues_bloc/leagues_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/matches_bloc/matches_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/players_bloc/players_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/standing%20bloc/standing_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/stats%20bloc/stats_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/cubit/bnv%20cubit/bnv_cubit.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/cubit/seasons%20cubit/seasons_cubit.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/pages/bottom%20app%20bar%20screens/home_screen_squelette.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,14 +16,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'features/auth/presentation layer/bloc/login_bloc/login_bloc.dart';
-import 'features/auth/presentation layer/bloc/signup_bloc/signup_bloc.dart';
-import 'features/auth/presentation layer/pages/starter_screen.dart';
-import 'features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
-import 'features/games/presentation layer/bloc/leagues_bloc/leagues_bloc.dart';
-import 'features/games/presentation layer/bloc/standing bloc/standing_bloc.dart';
-import 'features/games/presentation layer/bloc/stats bloc/stats_bloc.dart';
-import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
+import 'features/auth/presentation%20layer/pages/starter_screen.dart';
+import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
+import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
+import 'features/games/presentation layer/bloc/national team bloc/national_team_stats_bloc.dart';
+import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
+import 'features/games/presentation layer/bloc/transfert history bloc/transfer_history_bloc.dart';
+import 'features/games/presentation layer/pages/bottom app bar screens/home_screen_squelette.dart';
+import 'features/games/presentation layer/pages/player info screen/player_info_screen.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
 
@@ -59,6 +66,12 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (create) => di.sl<MatchesBloc>()),
         BlocProvider(create: (create) => di.sl<PlayersBloc>()),
         BlocProvider(create: (create) => di.sl<StatsBloc>()),
+        // New Player Blocs
+        BlocProvider(create: (create) => di.sl<PlayerAttributesBloc>()),
+        BlocProvider(create: (create) => di.sl<NationalTeamStatsBloc>()),
+        BlocProvider(create: (create) => di.sl<LastYearSummaryBloc>()),
+        BlocProvider(create: (create) => di.sl<TransferHistoryBloc>()),
+        BlocProvider(create: (create) => di.sl<MediaBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),
@@ -70,7 +83,7 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             ),
-            home: screen,
+            home: PlayerStatsScreen(playerId: 5545),
             translations: AppTranslations(),
             darkTheme: ThemeData.dark(),
             themeMode: ThemeMode.system,
@@ -88,11 +101,7 @@ class AppLifecycleObserver with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      // Clear the cache when the app is paused or detached
-      CachedNetworkImage.evictFromCache(
-        '',
-        cacheKey: "flag",
-      ); // Clear the entire cache
+      CachedNetworkImage.evictFromCache('', cacheKey: "flag");
       print('Cache cleared on app close');
     }
   }
