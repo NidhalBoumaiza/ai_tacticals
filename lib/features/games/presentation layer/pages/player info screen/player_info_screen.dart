@@ -15,9 +15,9 @@ import '../../bloc/player statics bloc/player_attributes_bloc.dart';
 import '../../bloc/transfert history bloc/transfer_history_bloc.dart';
 
 class PlayerStatsScreen extends StatefulWidget {
-  final int playerId;
+  late int playerId;
 
-  const PlayerStatsScreen({super.key, required this.playerId});
+  PlayerStatsScreen({super.key, required this.playerId});
 
   @override
   State<PlayerStatsScreen> createState() => _PlayerStatsScreenState();
@@ -30,15 +30,24 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   @override
   void initState() {
     super.initState();
+    widget.playerId = 159665;
     _refreshData();
   }
 
   Future<void> _refreshData() async {
-    context.read<PlayerAttributesBloc>().add(FetchPlayerAttributes(159665));
-    context.read<LastYearSummaryBloc>().add(FetchLastYearSummary(159665));
-    context.read<NationalTeamStatsBloc>().add(FetchNationalTeamStats(159665));
-    context.read<TransferHistoryBloc>().add(FetchTransferHistory(159665));
-    context.read<MediaBloc>().add(FetchMedia(159665));
+    context.read<PlayerAttributesBloc>().add(
+      FetchPlayerAttributes(widget.playerId),
+    );
+    context.read<LastYearSummaryBloc>().add(
+      FetchLastYearSummary(widget.playerId),
+    );
+    context.read<NationalTeamStatsBloc>().add(
+      FetchNationalTeamStats(widget.playerId),
+    );
+    context.read<TransferHistoryBloc>().add(
+      FetchTransferHistory(widget.playerId),
+    );
+    context.read<MediaBloc>().add(FetchMedia(widget.playerId));
   }
 
   @override
@@ -57,7 +66,9 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
           children: [
             Text(
               'Player Statistics',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: const Color(0xFFF1D778)),
             ),
             Text(
               '#${widget.playerId}',
@@ -70,16 +81,24 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.deepPurple.shade700, Colors.deepPurple.shade400],
+              colors: [const Color(0xFFF3D07E), const Color(0xFF33353B)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
-        elevation: 4,
+        elevation: 6,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Color(0xFFF1D778)),
+            onPressed: _refreshData,
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refreshData,
+        color: const Color(0xFFF1D778),
+        backgroundColor: const Color(0xFF33353B),
         child: CustomScrollView(
           controller: _scrollController,
           slivers: [
@@ -123,10 +142,14 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       child: BlocBuilder<LastYearSummaryBloc, LastYearSummaryState>(
         builder:
             (context, state) => Card(
-              elevation: 4,
+              elevation: 6,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: const Color(0xFFF3D07E).withOpacity(0.3),
+                ),
               ),
+              color: const Color(0xFF33353B).withOpacity(0.1),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -137,11 +160,19 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                       children: [
                         Text(
                           'Performance Trend',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFF1D778),
+                          ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.info_outline, size: 20),
+                          icon: const Icon(
+                            Icons.info_outline,
+                            color: Color(0xFFF1D778),
+                            size: 20,
+                          ),
                           onPressed: () => _showPerformanceInfo(context),
                         ),
                       ],
@@ -176,12 +207,25 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               .toList();
 
       if (validSpots.isEmpty) {
-        return const Center(child: Text('No valid data to display'));
+        return const Center(
+          child: Text(
+            'No valid data to display',
+            style: TextStyle(color: Color(0xFFF1D778)),
+          ),
+        );
       }
 
       return LineChart(
         LineChartData(
-          gridData: FlGridData(show: true),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: true,
+            getDrawingHorizontalLine:
+                (value) => FlLine(
+                  color: const Color(0xFFF3D07E).withOpacity(0.3),
+                  strokeWidth: 0.5,
+                ),
+          ),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
@@ -190,7 +234,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                 getTitlesWidget: (value, meta) {
                   return Text(
                     value.toInt().toString(),
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFF1D778),
+                    ),
                   );
                 },
               ),
@@ -229,14 +276,17 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               sideTitles: SideTitles(showTitles: false),
             ),
           ),
-          borderData: FlBorderData(show: true),
+          borderData: FlBorderData(
+            show: true,
+            border: Border.all(color: const Color(0xFFF3D07E).withOpacity(0.5)),
+          ),
           minY: 0,
           maxY: 10,
           extraLinesData: ExtraLinesData(
             horizontalLines: [
               HorizontalLine(
                 y: 7,
-                color: Colors.orange.withOpacity(0.4),
+                color: const Color(0xFFF3D07E).withOpacity(0.6),
                 strokeWidth: 1,
                 dashArray: [5, 5],
               ),
@@ -244,19 +294,18 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
           ),
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              //tooltipBgColor: Colors.deepPurple.shade100,
               getTooltipItems:
                   (spots) =>
                       spots.map((spot) {
                         final date = sortedSummary[spot.x.toInt()].date;
                         return LineTooltipItem(
                           '${DateFormat('MMM dd').format(date!)}',
-                          const TextStyle(color: Colors.black87),
+                          const TextStyle(color: Color(0xFFF1D778)),
                           children: [
                             TextSpan(
                               text: '\nRating: ${spot.y.toStringAsFixed(1)}',
-                              style: TextStyle(
-                                color: Colors.deepPurple.shade800,
+                              style: const TextStyle(
+                                color: Color(0xFFF3D07E),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -269,13 +318,28 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
             LineChartBarData(
               spots: validSpots,
               isCurved: true,
-              color: Colors.deepPurple,
+              color: const Color(0xFFF1D778),
               barWidth: 2,
               belowBarData: BarAreaData(
                 show: true,
-                color: Colors.deepPurple.withOpacity(0.15),
+                color: const Color(0xFFF3D07E).withOpacity(0.15),
               ),
-              dotData: FlDotData(show: true),
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (
+                  FlSpot spot,
+                  double xPercentage,
+                  LineChartBarData barData,
+                  int index,
+                ) {
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: const Color(0xFFF1D778),
+                    strokeWidth: 2,
+                    strokeColor: Colors.white,
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -298,16 +362,23 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
           return SliverToBoxAdapter(
             child: StatsGrid(
               items: [
-                StatItem(Icons.flag, 'Team', state.stats.team?.name ?? '-'),
+                StatItem(
+                  Icons.flag,
+                  'Team',
+                  state.stats.team?.name ?? '-',
+                  color: const Color(0xFFF1D778),
+                ),
                 StatItem(
                   Icons.emoji_events,
                   'Caps',
                   state.stats.appearances?.toString() ?? '-',
+                  color: const Color(0xFFF1D778),
                 ),
                 StatItem(
                   Icons.sports_soccer,
                   'Goals',
                   state.stats.goals?.toString() ?? '-',
+                  color: const Color(0xFFF1D778),
                 ),
                 StatItem(
                   Icons.calendar_today,
@@ -315,6 +386,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                   state.stats.debutDate != null
                       ? DateFormat('yyyy').format(state.stats.debutDate!)
                       : '-',
+                  color: const Color(0xFFF1D778),
                 ),
               ],
             ),
@@ -340,7 +412,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
             return const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Text('No transfer history available'),
+                child: Text(
+                  'No transfer history available',
+                  style: TextStyle(color: Color(0xFFF1D778)),
+                ),
               ),
             );
           }
@@ -375,7 +450,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
             return const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Text('No media available'),
+                child: Text(
+                  'No media available',
+                  style: TextStyle(color: Color(0xFFF1D778)),
+                ),
               ),
             );
           }
@@ -405,7 +483,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       padding: const EdgeInsets.all(8.0),
       child: Text(
         message,
-        style: const TextStyle(color: Colors.red, fontSize: 14),
+        style: const TextStyle(color: Color(0xFFF1D778), fontSize: 14),
       ),
     );
   }
@@ -415,14 +493,22 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Performance Trend Info'),
+            title: const Text(
+              'Performance Trend Info',
+              style: TextStyle(color: Color(0xFFF1D778)),
+            ),
             content: const Text(
               'This chart shows the player\'s rating trend over the last year. The orange line indicates a benchmark rating of 7.',
+              style: TextStyle(color: Color(0xFFF3D07E)),
             ),
+            backgroundColor: const Color(0xFF33353B),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: Color(0xFFF1D778)),
+                ),
               ),
             ],
           ),
@@ -434,7 +520,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text(media.title ?? 'Media Preview'),
+            title: Text(
+              media.title ?? 'Media Preview',
+              style: const TextStyle(color: Color(0xFFF1D778)),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -444,7 +533,8 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                     height: 200,
                     fit: BoxFit.cover,
                     errorWidget:
-                        (context, url, error) => const Icon(Icons.error),
+                        (context, url, error) =>
+                            const Icon(Icons.error, color: Color(0xFFF1D778)),
                   ),
                 const SizedBox(height: 8),
                 if (media.url != null)
@@ -455,24 +545,33 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                         await launchUrl(uri);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Cannot launch URL')),
+                          const SnackBar(
+                            content: Text(
+                              'Cannot launch URL',
+                              style: TextStyle(color: Color(0xFF33353B)),
+                            ),
+                          ),
                         );
                       }
                     },
                     child: Text(
                       media.url!,
                       style: const TextStyle(
-                        color: Colors.blue,
+                        color: Color(0xFFF3D07E),
                         decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
               ],
             ),
+            backgroundColor: const Color(0xFF33353B),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(color: Color(0xFFF1D778)),
+                ),
               ),
             ],
           ),
@@ -517,14 +616,11 @@ class AnimatedStatsCard extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Colors.deepPurple.shade100,
-                    Colors.deepPurple.shade50,
-                  ],
+                  colors: [const Color(0xFFF3D07E), const Color(0xFF33353B)],
                 ),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Colors.black12,
+                    color: const Color(0xFF33353B).withOpacity(0.2),
                     blurRadius: 10,
                     spreadRadius: 2,
                   ),
@@ -542,12 +638,12 @@ class AnimatedStatsCard extends StatelessWidget {
                           context,
                         ).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: Colors.deepPurple.shade800,
+                          color: const Color(0xFFF1D778),
                         ),
                       ),
                       Icon(
                         isExpanded ? Icons.expand_less : Icons.expand_more,
-                        color: Colors.deepPurple.shade600,
+                        color: const Color(0xFFF1D778),
                       ),
                     ],
                   ),
@@ -558,24 +654,26 @@ class AnimatedStatsCard extends StatelessWidget {
                         RadarChartData(
                           radarBackgroundColor: Colors.transparent,
                           radarBorderData: BorderSide(
-                            color: Colors.deepPurple.shade300,
+                            color: const Color(0xFFF3D07E).withOpacity(0.5),
                           ),
                           gridBorderData: BorderSide(
-                            color: Colors.grey.shade300,
+                            color: const Color(0xFFF1D778).withOpacity(0.3),
                           ),
                           titleTextStyle: const TextStyle(
-                            color: Colors.black,
+                            color: Color(0xFFF1D778),
                             fontSize: 14,
                           ),
                           tickCount: 5,
-                          ticksTextStyle: TextStyle(
-                            color: Colors.grey.shade600,
+                          ticksTextStyle: const TextStyle(
+                            color: Color(0xFFF3D07E),
                             fontSize: 10,
                           ),
                           dataSets: [
                             RadarDataSet(
-                              fillColor: Colors.deepPurple.withOpacity(0.15),
-                              borderColor: Colors.deepPurple,
+                              fillColor: const Color(
+                                0xFFF1D778,
+                              ).withOpacity(0.15),
+                              borderColor: const Color(0xFFF3D07E),
                               borderWidth: 2,
                               entryRadius: 2,
                               dataEntries:
@@ -594,7 +692,12 @@ class AnimatedStatsCard extends StatelessWidget {
                               'Defending',
                               'Creativity',
                             ];
-                            return RadarChartTitle(text: titles[index]);
+                            return RadarChartTitle(
+                              text: titles[index],
+                              // textStyle: const TextStyle(
+                              //   color: Color(0xFFF1D778),
+                              // ),
+                            );
                           },
                         ),
                       ),
@@ -625,7 +728,12 @@ class TransferTimelineItem extends StatelessWidget {
       margin: const EdgeInsets.only(left: 24),
       padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
       decoration: BoxDecoration(
-        border: Border(left: BorderSide(color: Colors.grey.shade300, width: 2)),
+        border: Border(
+          left: BorderSide(
+            color: const Color(0xFFF3D07E).withOpacity(0.5),
+            width: 2,
+          ),
+        ),
       ),
       child: ListTile(
         leading: Container(
@@ -633,10 +741,10 @@ class TransferTimelineItem extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.deepPurple.shade100,
+            color: const Color(0xFFF3D07E).withOpacity(0.2),
           ),
           alignment: Alignment.center,
-          child: const Icon(Icons.swap_horiz, color: Colors.deepPurple),
+          child: const Icon(Icons.swap_horiz, color: Color(0xFFF1D778)),
         ),
         title: RichText(
           text: TextSpan(
@@ -645,7 +753,7 @@ class TransferTimelineItem extends StatelessWidget {
               TextSpan(
                 text: transfer.fromTeam?.name ?? 'Unknown Team',
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: Colors.grey.shade400,
                   decoration: TextDecoration.lineThrough,
                 ),
               ),
@@ -653,7 +761,7 @@ class TransferTimelineItem extends StatelessWidget {
               TextSpan(
                 text: transfer.toTeam?.name ?? 'Unknown Team',
                 style: TextStyle(
-                  color: Colors.deepPurple.shade800,
+                  color: const Color(0xFFF1D778),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -667,15 +775,18 @@ class TransferTimelineItem extends StatelessWidget {
               transfer.date != null
                   ? DateFormat('MMM yyyy').format(transfer.date!)
                   : 'N/A',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(fontSize: 12, color: const Color(0xFFF3D07E)),
             ),
             if (transfer.fee != null)
               Chip(
                 label: Text(
                   '${NumberFormat.compactCurrency(symbol: transfer.currency ?? '').format(transfer.fee)}',
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF33353B),
+                  ),
                 ),
-                backgroundColor: Colors.deepPurple.shade50,
+                backgroundColor: const Color(0xFFF1D778).withOpacity(0.3),
                 visualDensity: VisualDensity.compact,
               ),
           ],
@@ -689,8 +800,15 @@ class StatItem extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
+  final Color color;
 
-  const StatItem(this.icon, this.title, this.value, {super.key});
+  const StatItem(
+    this.icon,
+    this.title,
+    this.value, {
+    super.key,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -698,19 +816,31 @@ class StatItem extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.deepPurple.shade50,
+        gradient: LinearGradient(
+          colors: [
+            color.withOpacity(0.2),
+            const Color(0xFF33353B).withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 28, color: Colors.deepPurple.shade600),
+          Icon(icon, size: 28, color: color),
           const SizedBox(height: 8),
-          Text(title, style: Theme.of(context).textTheme.labelSmall),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: color),
+          ),
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: Colors.deepPurple.shade800,
+              color: color,
             ),
           ),
         ],
@@ -757,13 +887,15 @@ class MediaThumbnail extends StatelessWidget {
               imageUrl: media.thumbnailUrl ?? '',
               fit: BoxFit.cover,
               errorWidget:
-                  (_, __, ___) => Container(color: Colors.grey.shade200),
+                  (_, __, ___) => Container(
+                    color: const Color(0xFF33353B).withOpacity(0.3),
+                  ),
             ),
             Center(
               child: Icon(
                 Icons.play_circle_filled,
                 size: 40,
-                color: Colors.white.withOpacity(0.8),
+                color: const Color(0xFFF1D778).withOpacity(0.8),
               ),
             ),
           ],
@@ -782,13 +914,13 @@ class ShimmerLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: const Color(0xFF33353B).withOpacity(0.3),
+      highlightColor: const Color(0xFFF3D07E).withOpacity(0.2),
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF33353B).withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
       ),
