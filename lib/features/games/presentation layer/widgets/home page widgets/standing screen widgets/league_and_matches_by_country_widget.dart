@@ -7,7 +7,7 @@ import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 import '../../../bloc/leagues_bloc/leagues_bloc.dart';
 import '../../../cubit/seasons cubit/seasons_cubit.dart';
-import '../../../pages/league_infos_screen.dart';
+import '../../../pages/league info screens/league_infos_squelette_screen.dart';
 import 'country_flag_widget.dart';
 
 class LeaguesAndMatchesByCountryWidget extends StatefulWidget {
@@ -64,7 +64,7 @@ class _LeaguesAndMatchesByCountryWidgetState
             });
           },
           child: Container(
-            height: 115.h,
+            height: 125.h,
             padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 25.w),
             decoration: BoxDecoration(
               color: const Color(0xff161d1f),
@@ -82,11 +82,11 @@ class _LeaguesAndMatchesByCountryWidgetState
                   child: Row(
                     children: [
                       CountryFlagWidget(flag: widget.countryFlag),
-                      SizedBox(width: 70.w),
+                      SizedBox(width: 60.w),
                       ReusableText(
                         text: widget.countryName,
                         textSize: 110.sp,
-                        textFontWeight: FontWeight.w400,
+                        textFontWeight: FontWeight.w500,
                         textColor: const Color(0xffececee),
                       ),
                     ],
@@ -227,7 +227,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                   Navigator.pop(dialogContext); // Close dialog
                   PersistentNavBarNavigator.pushNewScreen(
                     context,
-                    screen: LeagueInfosScreen(
+                    screen: LeagueInfosSqueletteScreen(
                       leagueId: leagueId,
                       leagueName: leagueName,
                       seasons: state.seasons,

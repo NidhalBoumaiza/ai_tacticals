@@ -1,3 +1,5 @@
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/matches_bloc/matches_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/players_bloc/players_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/cubit/seasons%20cubit/seasons_cubit.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/pages/bottom%20app%20bar%20screens/home_screen_squelette.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -13,6 +15,7 @@ import 'features/auth/presentation layer/pages/starter_screen.dart';
 import 'features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
 import 'features/games/presentation layer/bloc/leagues_bloc/leagues_bloc.dart';
 import 'features/games/presentation layer/bloc/standing bloc/standing_bloc.dart';
+import 'features/games/presentation layer/bloc/stats bloc/stats_bloc.dart';
 import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
@@ -53,6 +56,9 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (create) => di.sl<LeaguesBloc>()),
         BlocProvider(create: (create) => di.sl<StandingBloc>()),
         BlocProvider(create: (create) => di.sl<SeasonsCubit>()),
+        BlocProvider(create: (create) => di.sl<MatchesBloc>()),
+        BlocProvider(create: (create) => di.sl<PlayersBloc>()),
+        BlocProvider(create: (create) => di.sl<StatsBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),

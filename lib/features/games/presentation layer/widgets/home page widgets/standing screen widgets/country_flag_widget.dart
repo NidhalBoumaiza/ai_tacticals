@@ -4,8 +4,15 @@ import 'package:shimmer/shimmer.dart';
 
 class CountryFlagWidget extends StatelessWidget {
   final dynamic flag;
+  late double height;
+  late double width;
 
-  const CountryFlagWidget({super.key, required this.flag});
+  CountryFlagWidget({
+    super.key,
+    required this.flag,
+    this.height = 25.0,
+    this.width = 25.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +38,8 @@ class CountryFlagWidget extends StatelessWidget {
             baseColor: Colors.grey.shade300,
             highlightColor: Colors.grey.shade100,
             child: Container(
-              width: 25,
-              height: 25,
+              width: width ?? 25,
+              height: height ?? 25,
 
               decoration: BoxDecoration(
                 color: Colors.grey.shade300,
@@ -45,10 +52,10 @@ class CountryFlagWidget extends StatelessWidget {
         return Icon(Icons.error);
       },
       fit: BoxFit.cover,
-      width: 25,
+      width: width ?? 25,
 
       cacheKey: flag,
-      height: 25, // Increase height for better visibility
+      height: height ?? 25, // Increase height for better visibility
     );
   }
 }

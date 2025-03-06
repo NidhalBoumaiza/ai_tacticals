@@ -1,0 +1,251 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shimmer/shimmer.dart';
+
+import '../../../../../core/widgets/reusable_text.dart';
+import '../../../domain layer/entities/player_entity.dart';
+import '../../bloc/players_bloc/players_bloc.dart';
+import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+
+class SquadScreen extends StatefulWidget {
+  final int teamId;
+
+  const SquadScreen({super.key, required this.teamId});
+
+  @override
+  State<SquadScreen> createState() => _SquadScreenState();
+}
+
+class _SquadScreenState extends State<SquadScreen> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<PlayersBloc>().add(GetAllPlayersEvent(teamId: widget.teamId));
+  }
+
+  Color _getPositionColor(String position) {
+    return switch (position) {
+      'Goalkeeper' => const Color(0xffdcb050),
+      'Defense' => const Color(0xff7a85e5),
+      'Midfield' => const Color(0xff4abc55),
+      'Forward' => const Color(0xffe03b3c),
+      _ => const Color(0xff8a8e90),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<PlayersBloc, PlayersState>(
+      builder: (context, state) {
+        if (state is PlayersLoading) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
+        } else if (state is PlayersError) {
+          return Center(
+            child: ReusableText(
+              text: state.message,
+              textSize: 100.sp,
+              textColor: Colors.red,
+              textFontWeight: FontWeight.w600,
+            ),
+          );
+        } else if (state is PlayersLoaded) {
+          return _buildGroupedPlayersList(state.players);
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildGroupedPlayersList(List<PlayerEntity> players) {
+    final groupedPlayers = <String, List<PlayerEntity>>{};
+
+    for (var player in players) {
+      final position = player.position ?? 'Unknown Position';
+      groupedPlayers.putIfAbsent(position, () => []).add(player);
+    }
+
+    const positionOrder = [
+      'Goalkeeper',
+      'Defense',
+      'Midfield',
+      'Forward',
+      'Other Position',
+    ];
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 20.h),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xff161d1f),
+            borderRadius: BorderRadius.circular(55.r),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 30.h, horizontal: 30.w),
+            child: Column(
+              children: [
+                ...positionOrder
+                    .where((pos) => groupedPlayers.containsKey(pos))
+                    .map((position) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 20.h, top: 30.h),
+                            child: ReusableText(
+                              text: position,
+                              textSize: 110.sp,
+                              textColor: _getPositionColor(position),
+                              textFontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          _buildPositionGroup(groupedPlayers[position]!),
+                        ],
+                      );
+                    }),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPositionGroup(List<PlayerEntity> players) {
+    return ListView.separated(
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: players.length,
+      separatorBuilder:
+          (context, index) =>
+              Divider(color: Colors.grey.shade800, height: 30.h),
+      itemBuilder: (context, index) {
+        final player = players[index];
+        return _buildPlayerRow(player);
+      },
+    );
+  }
+
+  Widget _buildPlayerRow(PlayerEntity player) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Container(
+                width: 110.w,
+                height: 110.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.shade800, // Fallback color
+                ),
+                child: ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl:
+                        'https://img.sofascore.com/api/v1/player/${player.id}/image',
+                    placeholder:
+                        (context, url) => Shimmer.fromColors(
+                          baseColor: Colors.grey.shade300,
+                          highlightColor: Colors.grey.shade100,
+                          child: Container(
+                            width: 110.w,
+                            height: 110.w,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(55.w),
+                            ),
+                          ),
+                        ),
+                    errorWidget: (context, url, error) {
+                      print('Error loading player ${player.id} image: $error');
+                      return Icon(
+                        Icons.person,
+                        size: 60.w,
+                        color: Colors.grey.shade600,
+                      );
+                    },
+                    fit: BoxFit.cover,
+                    width: 110.w,
+                    height: 110.w,
+                    cacheKey: player.id?.toString(),
+                  ),
+                ),
+              ),
+              SizedBox(width: 45.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ReusableText(
+                      text: player.name ?? 'N/A',
+                      textSize: 100.sp,
+                      textColor: const Color(0xffe4e9ea),
+                      textFontWeight: FontWeight.w700,
+                    ),
+                    SizedBox(height: 5.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: player.shirtNumber != null ? 45.w : 60.w,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              ReusableText(
+                                text:
+                                    player.shirtNumber != null
+                                        ? player.shirtNumber.toString()
+                                        : "N/A",
+                                textSize: 90.sp,
+                                textColor: Colors.white,
+                                textAlign: TextAlign.end,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          width: 130.w,
+                          child: ReusableText(
+                            text:
+                                player.age != null
+                                    ? "${player.age.toString()} ans"
+                                    : "N/A",
+                            textSize: 90.sp,
+                            textColor: Colors.white,
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                        SizedBox(width: 30.w),
+                        CountryFlagWidget(
+                          flag: player.countryAlpha2,
+                          height: 15,
+                          width: 15,
+                        ),
+                        SizedBox(width: 10.w),
+                        SizedBox(
+                          width: 80.w,
+                          child: ReusableText(
+                            text: player.countryAlpha3 ?? "N/A",
+                            textSize: 90.sp,
+                            textColor: Colors.white,
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

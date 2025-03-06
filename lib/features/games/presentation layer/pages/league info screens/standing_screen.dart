@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../core/utils/navigation_with_transition.dart';
 import '../../../domain layer/entities/standing_entity.dart';
 import '../../bloc/standing bloc/standing_bloc.dart';
 import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
 import '../../widgets/home page widgets/standing screen widgets/standing_line_widget.dart';
+import '../team info screens/team_info_screen_squelette.dart';
 
 class StandingScreen extends StatefulWidget {
   final String leagueName;
@@ -16,7 +18,6 @@ class StandingScreen extends StatefulWidget {
 
   const StandingScreen({
     super.key,
-
     required this.leagueName,
     required this.leagueId,
     required this.seasonId,
@@ -44,6 +45,10 @@ class _StandingScreenState extends State<StandingScreen> {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 20.h),
         child: Container(
+          height:
+              context.read<StandingBloc>().state is StandingsSuccess
+                  ? null
+                  : MediaQuery.of(context).size.height * 0.8,
           decoration: BoxDecoration(
             color: const Color(0xff161d1f),
             borderRadius: BorderRadius.circular(55.r),
@@ -105,7 +110,6 @@ class _StandingScreenState extends State<StandingScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Total standings (no groups)
                           if (!isGroupBased &&
                               state.standings.groups.isNotEmpty)
                             Column(
@@ -123,7 +127,6 @@ class _StandingScreenState extends State<StandingScreen> {
                                 _buildStandingsTable(state.standings.groups[0]),
                               ],
                             )
-                          // Multi-group standings
                           else if (isGroupBased)
                             ...state.standings.groups.map((group) {
                               return Column(
@@ -153,12 +156,7 @@ class _StandingScreenState extends State<StandingScreen> {
                     } else if (state is StandingsError) {
                       print('Error: ${state.message}');
                       return Center(
-                        child: ReusableText(
-                          text: state.message,
-                          textSize: 100.sp,
-                          textColor: Colors.red,
-                          textFontWeight: FontWeight.w600,
-                        ),
+                        child: Image.asset("assets/images/Empty.png"),
                       );
                     }
                     return Center(
@@ -184,17 +182,49 @@ class _StandingScreenState extends State<StandingScreen> {
       'Building table for group: ${group.name ?? group.groupName}, Rows: ${group.rows.length}',
     );
 
-    // State to toggle tieBreakingRuleText visibility
-    bool _isExpanded = false;
-
     return StatefulBuilder(
       builder: (BuildContext context, StateSetter setState) {
-        // Count lines in tieBreakingRuleText (approximate by splitting on newlines)
+        bool isExpanded = false; // Renamed to avoid shadowing
+
+        // Count lines in tieBreakingRuleText with more robust splitting
         final tieBreakingLines =
             group.tieBreakingRuleText != null
-                ? group.tieBreakingRuleText!.split('\n').length
+                ? group.tieBreakingRuleText!
+                    .split(RegExp(r'\n|\r\n|\r'))
+                    .where((line) => line.trim().isNotEmpty)
+                    .length
                 : 0;
-        final showToggleButton = tieBreakingLines > 4;
+        print('Raw TieBreakingRuleText: "${group.tieBreakingRuleText}"');
+        print('TieBreakingRule Lines: $tieBreakingLines');
+        final showToggleButton =
+            tieBreakingLines > 3; // Adjusted to match take(3)
+
+        // Extract unique promotion types and their colors
+        final promotionTypes =
+            group.rows
+                .where((team) => team.promotion?.text != null)
+                .map((team) => team.promotion!.text!)
+                .toSet()
+                .toList();
+        print('Unique Promotion Types: $promotionTypes');
+
+        final promotionColors =
+            promotionTypes.map((promotion) {
+              if (promotion == "Relegation" ||
+                  promotion == "Relegation Playoffs") {
+                return const Color(0xffef5056); // Red for relegation
+              } else if (promotion == "UEFA Europa League") {
+                return const Color(0xff278eea); // Blue for Europa League
+              } else if (promotion == "Playoffs" ||
+                  promotion == "Champions League" ||
+                  promotion == "Promotion" ||
+                  promotion == "Promotion round" ||
+                  promotion == "Promotion playoffs") {
+                return const Color(0xff38b752); // Green for Playoffs/Promotion
+              } else {
+                return const Color(0xff80ec7b); // Lighter green for others
+              }
+            }).toList();
 
         return Column(
           children: [
@@ -263,84 +293,49 @@ class _StandingScreenState extends State<StandingScreen> {
                         ? (team.promotion!.text == "Relegation" ||
                                 team.promotion!.text == "Relegation Playoffs"
                             ? const Color(0xffef5056)
-                            : team.promotion!.text == 'UEFA Europa League'
+                            : team.promotion!.text == "UEFA Europa League"
                             ? const Color(0xff278eea)
-                            : team.promotion!.text == 'Playoffs' ||
-                                team.promotion!.text == 'Champions League' ||
-                                team.promotion!.text == 'Promotion' ||
-                                team.promotion!.text == 'Promotion round' ||
-                                team.promotion!.text == 'Promotion playoffs'
-                            ? const Color(0xff38b752) // Green for Playoffs
-                            : const Color(
-                              0xff80ec7b,
-                            )) // Lighter green for Qualification Playoffs
-                        : const Color(0xff161d1f); // Default grey
+                            : team.promotion!.text == "Playoffs" ||
+                                team.promotion!.text == "Champions League" ||
+                                team.promotion!.text == "Promotion" ||
+                                team.promotion!.text == "Promotion round" ||
+                                team.promotion!.text == "Promotion playoffs"
+                            ? const Color(0xff38b752)
+                            : const Color(0xff80ec7b))
+                        : const Color(0xff161d1f);
 
-                return StandingLineWidget(
-                  position: team.position ?? 0,
-                  positionColor: positionColor,
-                  teamId: team.id ?? 0,
-                  teamName: team.shortName ?? 'Unknown',
-                  played: team.matches ?? 0,
-                  difference:
-                      team.scoreDiffFormatted != null
-                          ? int.tryParse(
-                                team.scoreDiffFormatted!.replaceAll('+', ''),
-                              ) ??
-                              0
-                          : 0,
-                  points: team.points ?? 0,
+                return GestureDetector(
+                  onTap: () {
+                    navigateToAnotherScreenWithBottomToTopTransition(
+                      context,
+                      TeamInfoScreenSquelette(
+                        teamId: team.id!,
+                        teamName: team.shortName!,
+                        seasonId: widget.seasonId,
+                        leagueId: widget.leagueId,
+                      ),
+                    );
+                  },
+                  child: StandingLineWidget(
+                    position: team.position ?? 0,
+                    positionColor: positionColor,
+                    teamId: team.id ?? 0,
+                    teamName: team.shortName ?? 'Unknown',
+                    played: team.matches ?? 0,
+                    difference:
+                        team.scoreDiffFormatted != null
+                            ? int.tryParse(
+                                  team.scoreDiffFormatted!.replaceAll('+', ''),
+                                ) ??
+                                0
+                            : 0,
+                    points: team.points ?? 0,
+                  ),
                 );
               },
             ),
             SizedBox(height: 20.h),
             const Divider(),
-            if (group.rows.any((team) => team.promotion?.text == 'Playoffs'))
-              Padding(
-                padding: EdgeInsets.only(left: 40.w, top: 15.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 20.w,
-                      width: 20.w,
-                      decoration: BoxDecoration(
-                        color: const Color(0xff38b752),
-                        borderRadius: BorderRadius.circular(100.r),
-                      ),
-                    ),
-                    ReusableText(
-                      textSize: 90.sp,
-                      text: '    Playoffs',
-                      textColor: const Color(0xff8a8e90),
-                    ),
-                  ],
-                ),
-              ),
-            if (group.rows.any(
-              (team) => team.promotion?.text == 'Qualification Playoffs',
-            ))
-              Padding(
-                padding: EdgeInsets.only(left: 40.w, top: 15.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Container(
-                      height: 20.w,
-                      width: 20.w,
-                      decoration: BoxDecoration(
-                        color: const Color(0xff80ec7b),
-                        borderRadius: BorderRadius.circular(100.r),
-                      ),
-                    ),
-                    ReusableText(
-                      textSize: 90.sp,
-                      text: '    Qualification playoffs',
-                      textColor: const Color(0xff8a8e90),
-                    ),
-                  ],
-                ),
-              ),
             if (group.tieBreakingRuleText != null)
               Padding(
                 padding: EdgeInsets.only(top: 15.h),
@@ -349,10 +344,11 @@ class _StandingScreenState extends State<StandingScreen> {
                   children: [
                     ReusableText(
                       text:
-                          _isExpanded || !showToggleButton
+                          isExpanded || !showToggleButton
                               ? group.tieBreakingRuleText!
                               : group.tieBreakingRuleText!
-                                  .split('\n')
+                                  .split(RegExp(r'\n|\r\n|\r'))
+                                  .where((line) => line.trim().isNotEmpty)
                                   .take(3)
                                   .join('\n'),
                       textSize: 90.sp,
@@ -362,18 +358,51 @@ class _StandingScreenState extends State<StandingScreen> {
                       TextButton(
                         onPressed: () {
                           setState(() {
-                            _isExpanded = !_isExpanded;
+                            isExpanded = !isExpanded;
+                            print('Toggle pressed, isExpanded: $isExpanded');
                           });
                         },
                         child: ReusableText(
-                          text: _isExpanded ? 'Show Less' : 'Show More',
+                          text: isExpanded ? 'Show Less' : 'Show More',
                           textSize: 90.sp,
-                          textColor: const Color(
-                            0xff38b752,
-                          ), // Green for button
+                          textColor: const Color(0xff38b752),
                         ),
                       ),
                   ],
+                ),
+              ),
+            if (promotionTypes.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: 15.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children:
+                      promotionTypes.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final promotion = entry.value;
+                        final color = promotionColors[index];
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 5.h),
+                          child: Row(
+                            children: [
+                              Container(
+                                height: 20.w,
+                                width: 20.w,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  borderRadius: BorderRadius.circular(100.r),
+                                ),
+                              ),
+                              SizedBox(width: 10.w),
+                              ReusableText(
+                                text: promotion,
+                                textSize: 90.sp,
+                                textColor: const Color(0xff8a8e90),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                 ),
               ),
           ],
