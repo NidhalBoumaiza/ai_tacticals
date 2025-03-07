@@ -20,7 +20,7 @@ class PlayersRepositoryImpl implements PlayersRepository {
   });
 
   @override
-  Future<Either<Failure, List<PlayerEntity>>> getAllPlayersInfos(
+  Future<Either<Failure, List<PlayerEntityy>>> getAllPlayersInfos(
     int teamId,
   ) async {
     if (await networkInfo.isConnected) {

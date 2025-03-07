@@ -9,7 +9,7 @@ import '../../../domain layer/entities/player_entity.dart';
 import '../../models/player_model.dart';
 
 abstract class PlayersLocalDataSource {
-  Future<List<PlayerEntity>> getLastPlayers(int teamId);
+  Future<List<PlayerEntityy>> getLastPlayers(int teamId);
 
   Future<void> cachePlayers(List<PlayerModel> players, int teamId);
 }
@@ -21,7 +21,7 @@ class PlayersLocalDataSourceImpl implements PlayersLocalDataSource {
   PlayersLocalDataSourceImpl({required this.sharedPreferences});
 
   @override
-  Future<List<PlayerEntity>> getLastPlayers(int teamId) async {
+  Future<List<PlayerEntityy>> getLastPlayers(int teamId) async {
     final key = _getCacheKey(teamId);
     final jsonString = sharedPreferences.getString(key);
 

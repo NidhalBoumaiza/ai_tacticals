@@ -144,6 +144,7 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                 seasonId: widget.seasons[0].id,
               ),
               GamesPerRoundScreen(
+                leagueName: widget.leagueName,
                 uniqueTournamentId: widget.leagueId,
                 seasonId: widget.seasons[0].id,
               ),

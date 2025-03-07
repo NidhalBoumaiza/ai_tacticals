@@ -24,7 +24,7 @@ import 'features/games/presentation layer/bloc/national team bloc/national_team_
 import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
 import 'features/games/presentation layer/bloc/transfert history bloc/transfer_history_bloc.dart';
 import 'features/games/presentation layer/pages/bottom app bar screens/home_screen_squelette.dart';
-import 'features/games/presentation layer/pages/match details screen/match_details_screen.dart';
+import 'features/games/presentation layer/pages/match details screen/match_details_squelette_screen.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
 
@@ -85,7 +85,7 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             ),
-            home: MatchDetailsScreen(matchId: 12764332),
+            home: screen,
             translations: AppTranslations(),
             darkTheme: ThemeData.dark(),
             themeMode: ThemeMode.system,

@@ -62,8 +62,8 @@ class _SquadScreenState extends State<SquadScreen> {
     );
   }
 
-  Widget _buildGroupedPlayersList(List<PlayerEntity> players) {
-    final groupedPlayers = <String, List<PlayerEntity>>{};
+  Widget _buildGroupedPlayersList(List<PlayerEntityy> players) {
+    final groupedPlayers = <String, List<PlayerEntityy>>{};
 
     for (var player in players) {
       final position = player.position ?? 'Unknown Position';
@@ -117,7 +117,7 @@ class _SquadScreenState extends State<SquadScreen> {
     );
   }
 
-  Widget _buildPositionGroup(List<PlayerEntity> players) {
+  Widget _buildPositionGroup(List<PlayerEntityy> players) {
     return ListView.separated(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
@@ -140,7 +140,7 @@ class _SquadScreenState extends State<SquadScreen> {
     );
   }
 
-  Widget _buildPlayerRow(PlayerEntity player) {
+  Widget _buildPlayerRow(PlayerEntityy player) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

@@ -16,7 +16,7 @@ class PlayersLoading extends PlayersState {
 }
 
 class PlayersLoaded extends PlayersState {
-  final List<PlayerEntity> players;
+  final List<PlayerEntityy> players;
 
   const PlayersLoaded({required this.players});
 

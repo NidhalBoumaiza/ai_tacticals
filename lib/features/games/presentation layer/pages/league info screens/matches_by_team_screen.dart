@@ -1,3 +1,4 @@
+import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,8 +7,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../domain layer/entities/matches_entities.dart';
 import '../../bloc/matches_bloc/matches_bloc.dart';
 import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+import '../match details screen/match_details_squelette_screen.dart';
 
 class GamesPerRoundScreen extends StatefulWidget {
+  final String leagueName;
+
   final int uniqueTournamentId;
   final int seasonId;
 
@@ -15,6 +19,7 @@ class GamesPerRoundScreen extends StatefulWidget {
     super.key,
     required this.uniqueTournamentId,
     required this.seasonId,
+    required this.leagueName,
   });
 
   @override
@@ -186,83 +191,86 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                         ),
                                       )
                                       : SizedBox.shrink(),
-                                  Container(
-                                    padding: EdgeInsets.all(20.w),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xff161d1f),
-                                      borderRadius: BorderRadius.vertical(
-                                        bottom: Radius.circular(12.r),
+                                  GestureDetector(
+                                    onTap: () {
+                                      navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                                        context,
+                                        MatchDetailsSqueletteScreen(
+                                          matchId: match.id!,
+                                          homeTeamId:
+                                              match.homeTeam!.id.toString(),
+                                          awayTeamId:
+                                              match.awayTeam!.id.toString(),
+                                          homeShortName:
+                                              match.homeTeam!.shortName!,
+                                          awayShortName:
+                                              match.awayTeam!.shortName!,
+                                          leagueName: widget.leagueName,
+                                          matchDate: date!,
+                                          matchStatus: status,
+                                          homeScore: match.homeScore!.current!,
+                                          awayScore: match.awayScore!.current!,
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.all(20.w),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xff161d1f),
+                                        borderRadius: BorderRadius.vertical(
+                                          bottom: Radius.circular(12.r),
+                                        ),
                                       ),
-                                    ),
-                                    margin: EdgeInsets.only(bottom: 12.h),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        SizedBox(
-                                          width: 180.w,
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              ReusableText(
-                                                text:
-                                                    date != null
-                                                        ? "${date.day}.${date.month}.${date.year}"
-                                                        : "N/A",
-                                                textSize: 90.sp,
-                                                textColor: Colors.white,
-                                              ),
-                                              if (status.isNotEmpty)
+                                      margin: EdgeInsets.only(bottom: 12.h),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          SizedBox(
+                                            width: 180.w,
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
                                                 ReusableText(
-                                                  text: status,
-                                                  textSize: 80.sp,
-                                                  textColor: Colors.grey,
+                                                  text:
+                                                      date != null
+                                                          ? "${date.day}.${date.month}.${date.year}"
+                                                          : "N/A",
+                                                  textSize: 90.sp,
+                                                  textColor: Colors.white,
                                                 ),
-                                            ],
+                                                if (status.isNotEmpty)
+                                                  ReusableText(
+                                                    text: status,
+                                                    textSize: 80.sp,
+                                                    textColor: Colors.grey,
+                                                  ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        SizedBox(width: 20.w),
-                                        Container(
-                                          width: 2.w,
-                                          height: 80.h,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                        Expanded(
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            children: [
-                                              SizedBox(width: 30.w),
-                                              CountryFlagWidget(
-                                                flag:
-                                                    match.homeTeam!.id
-                                                        .toString(),
-                                              ),
-                                              SizedBox(width: 10.w),
-                                              ReusableText(
-                                                text:
-                                                    match.homeTeam?.shortName ??
-                                                    "Unknown",
-                                                textSize: 100.sp,
-                                                textColor: Colors.white,
-                                                textFontWeight: FontWeight.w600,
-                                              ),
-                                              SizedBox(width: 20.w),
-                                              ReusableText(
-                                                text:
-                                                    '${match.homeScore?.current ?? "-"} - ${match.awayScore?.current ?? "-"}',
-                                                textSize: 100.sp,
-                                                textColor: Colors.white,
-                                                textFontWeight: FontWeight.w600,
-                                              ),
-                                              SizedBox(width: 20.w),
-                                              SizedBox(
-                                                width: 200.w,
-                                                child: ReusableText(
+                                          SizedBox(width: 20.w),
+                                          Container(
+                                            width: 2.w,
+                                            height: 80.h,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          Expanded(
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              children: [
+                                                SizedBox(width: 30.w),
+                                                CountryFlagWidget(
+                                                  flag:
+                                                      match.homeTeam!.id
+                                                          .toString(),
+                                                ),
+                                                SizedBox(width: 10.w),
+                                                ReusableText(
                                                   text:
                                                       match
-                                                          .awayTeam
+                                                          .homeTeam
                                                           ?.shortName ??
                                                       "Unknown",
                                                   textSize: 100.sp,
@@ -270,17 +278,41 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                                   textFontWeight:
                                                       FontWeight.w600,
                                                 ),
-                                              ),
-                                              SizedBox(width: 10.w),
-                                              CountryFlagWidget(
-                                                flag:
-                                                    match.awayTeam!.id
-                                                        .toString(),
-                                              ),
-                                            ],
+                                                SizedBox(width: 20.w),
+                                                ReusableText(
+                                                  text:
+                                                      '${match.homeScore?.current ?? "-"} - ${match.awayScore?.current ?? "-"}',
+                                                  textSize: 100.sp,
+                                                  textColor: Colors.white,
+                                                  textFontWeight:
+                                                      FontWeight.w600,
+                                                ),
+                                                SizedBox(width: 20.w),
+                                                SizedBox(
+                                                  width: 200.w,
+                                                  child: ReusableText(
+                                                    text:
+                                                        match
+                                                            .awayTeam
+                                                            ?.shortName ??
+                                                        "Unknown",
+                                                    textSize: 100.sp,
+                                                    textColor: Colors.white,
+                                                    textFontWeight:
+                                                        FontWeight.w600,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 10.w),
+                                                CountryFlagWidget(
+                                                  flag:
+                                                      match.awayTeam!.id
+                                                          .toString(),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],

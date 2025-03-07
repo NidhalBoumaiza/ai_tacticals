@@ -9,7 +9,7 @@ class GetAllPlayersInfos {
 
   GetAllPlayersInfos(this.playerRepository);
 
-  Future<Either<Failure, List<PlayerEntity>>> call(int teamId) async {
+  Future<Either<Failure, List<PlayerEntityy>>> call(int teamId) async {
     return await playerRepository.getAllPlayersInfos(teamId);
   }
 }

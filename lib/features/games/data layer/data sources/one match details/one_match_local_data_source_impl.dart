@@ -1,15 +1,21 @@
 // one_match_local_data_source.dart
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../../../core/error/exceptions.dart';
 import '../../../domain layer/entities/one_match_statics_entity.dart';
-
 
 // Abstract class
 abstract class OneMatchLocalDataSource {
   Future<void> cacheMatchDetails(
-      MatchEventEntity event, MatchStatisticsEntity stats, int matchId);
+    MatchEventEntity event,
+    MatchStatisticsEntity stats,
+    int matchId,
+  );
+
   Future<MatchEventEntity> getLastMatchEvent(int matchId);
+
   Future<MatchStatisticsEntity> getLastMatchStatistics(int matchId);
 }
 
@@ -21,7 +27,10 @@ class OneMatchLocalDataSourceImpl implements OneMatchLocalDataSource {
 
   @override
   Future<void> cacheMatchDetails(
-      MatchEventEntity event, MatchStatisticsEntity stats, int matchId) async {
+    MatchEventEntity event,
+    MatchStatisticsEntity stats,
+    int matchId,
+  ) async {
     final eventJson = json.encode(event.toJson());
     final statsJson = json.encode(stats.toJson());
     await sharedPreferences.setString('match_event_$matchId', eventJson);
@@ -34,7 +43,9 @@ class OneMatchLocalDataSourceImpl implements OneMatchLocalDataSource {
     if (jsonString != null) {
       return MatchEventEntity.fromJson(json.decode(jsonString));
     } else {
-      throw EmptyCacheException('No cached match event found for matchId: $matchId');
+      throw EmptyCacheException(
+        'No cached match event found for matchId: $matchId',
+      );
     }
   }
 
@@ -44,7 +55,9 @@ class OneMatchLocalDataSourceImpl implements OneMatchLocalDataSource {
     if (jsonString != null) {
       return MatchStatisticsEntity.fromJson(json.decode(jsonString));
     } else {
-      throw EmptyCacheException('No cached match statistics found for matchId: $matchId');
+      throw EmptyCacheException(
+        'No cached match statistics found for matchId: $matchId',
+      );
     }
   }
 }
@@ -78,23 +91,15 @@ extension TournamentEntityExtension on TournamentEntity {
 }
 
 extension UniqueTournamentEntityExtension on UniqueTournamentEntity {
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    'id': id,
-  };
+  Map<String, dynamic> toJson() => {'name': name, 'id': id};
 }
 
 extension SeasonEntityExtension on SeasonEntity {
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    'year': year,
-  };
+  Map<String, dynamic> toJson() => {'name': name, 'year': year};
 }
 
 extension RoundInfoEntityExtension on RoundInfoEntity {
-  Map<String, dynamic> toJson() => {
-    'round': round,
-  };
+  Map<String, dynamic> toJson() => {'round': round};
 }
 
 extension StatusEntityExtension on StatusEntity {
@@ -114,15 +119,11 @@ extension VenueEntityExtension on VenueEntity {
 }
 
 extension CityEntityExtension on CityEntity {
-  Map<String, dynamic> toJson() => {
-    'name': name,
-  };
+  Map<String, dynamic> toJson() => {'name': name};
 }
 
 extension RefereeEntityExtension on RefereeEntity {
-  Map<String, dynamic> toJson() => {
-    'name': name,
-  };
+  Map<String, dynamic> toJson() => {'name': name};
 }
 
 extension TeamEntityExtension on TeamEntity {
@@ -135,10 +136,8 @@ extension TeamEntityExtension on TeamEntity {
   };
 }
 
-extension ManagerEntityExtension on ManagerEntity {
-  Map<String, dynamic> toJson() => {
-    'name': name,
-  };
+extension ManagerEntityExtension on ManagerEntityy {
+  Map<String, dynamic> toJson() => {'name': name};
 }
 
 extension ScoreEntityExtension on ScoreEntity {

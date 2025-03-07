@@ -1,4 +1,4 @@
-// entities.dart
+// features/games/domain layer/entities/one_match_statics_entity.dart
 
 class MatchEventEntity {
   final TournamentEntity tournament;
@@ -54,6 +54,24 @@ class MatchEventEntity {
       startTimestamp: json['startTimestamp'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'tournament': tournament.toJson(),
+    'season': season.toJson(),
+    'roundInfo': roundInfo.toJson(),
+    'status': status.toJson(),
+    'winnerCode': winnerCode,
+    'attendance': attendance,
+    'venue': venue.toJson(),
+    'referee': referee.toJson(),
+    'homeTeam': homeTeam.toJson(),
+    'awayTeam': awayTeam.toJson(),
+    'homeScore': homeScore.toJson(),
+    'awayScore': awayScore.toJson(),
+    'time': time.toJson(),
+    'id': id,
+    'startTimestamp': startTimestamp,
+  };
 }
 
 class TournamentEntity {
@@ -65,9 +83,16 @@ class TournamentEntity {
   factory TournamentEntity.fromJson(Map<String, dynamic> json) {
     return TournamentEntity(
       name: json['name'],
-      uniqueTournament: UniqueTournamentEntity.fromJson(json['uniqueTournament']),
+      uniqueTournament: UniqueTournamentEntity.fromJson(
+        json['uniqueTournament'],
+      ),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'uniqueTournament': uniqueTournament.toJson(),
+  };
 }
 
 class UniqueTournamentEntity {
@@ -77,11 +102,10 @@ class UniqueTournamentEntity {
   UniqueTournamentEntity({required this.name, required this.id});
 
   factory UniqueTournamentEntity.fromJson(Map<String, dynamic> json) {
-    return UniqueTournamentEntity(
-      name: json['name'],
-      id: json['id'],
-    );
+    return UniqueTournamentEntity(name: json['name'], id: json['id']);
   }
+
+  Map<String, dynamic> toJson() => {'name': name, 'id': id};
 }
 
 class SeasonEntity {
@@ -91,11 +115,10 @@ class SeasonEntity {
   SeasonEntity({required this.name, required this.year});
 
   factory SeasonEntity.fromJson(Map<String, dynamic> json) {
-    return SeasonEntity(
-      name: json['name'],
-      year: json['year'],
-    );
+    return SeasonEntity(name: json['name'], year: json['year']);
   }
+
+  Map<String, dynamic> toJson() => {'name': name, 'year': year};
 }
 
 class RoundInfoEntity {
@@ -106,6 +129,8 @@ class RoundInfoEntity {
   factory RoundInfoEntity.fromJson(Map<String, dynamic> json) {
     return RoundInfoEntity(round: json['round']);
   }
+
+  Map<String, dynamic> toJson() => {'round': round};
 }
 
 class StatusEntity {
@@ -113,7 +138,11 @@ class StatusEntity {
   final String description;
   final String type;
 
-  StatusEntity({required this.code, required this.description, required this.type});
+  StatusEntity({
+    required this.code,
+    required this.description,
+    required this.type,
+  });
 
   factory StatusEntity.fromJson(Map<String, dynamic> json) {
     return StatusEntity(
@@ -122,6 +151,12 @@ class StatusEntity {
       type: json['type'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'code': code,
+    'description': description,
+    'type': type,
+  };
 }
 
 class VenueEntity {
@@ -138,6 +173,12 @@ class VenueEntity {
       capacity: json['capacity'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'city': city.toJson(),
+    'name': name,
+    'capacity': capacity,
+  };
 }
 
 class CityEntity {
@@ -148,6 +189,8 @@ class CityEntity {
   factory CityEntity.fromJson(Map<String, dynamic> json) {
     return CityEntity(name: json['name']);
   }
+
+  Map<String, dynamic> toJson() => {'name': name};
 }
 
 class RefereeEntity {
@@ -158,12 +201,14 @@ class RefereeEntity {
   factory RefereeEntity.fromJson(Map<String, dynamic> json) {
     return RefereeEntity(name: json['name']);
   }
+
+  Map<String, dynamic> toJson() => {'name': name};
 }
 
 class TeamEntity {
   final String name;
   final String shortName;
-  final ManagerEntity manager;
+  final ManagerEntityy manager;
   final VenueEntity venue;
   final String nameCode;
 
@@ -179,21 +224,31 @@ class TeamEntity {
     return TeamEntity(
       name: json['name'],
       shortName: json['shortName'],
-      manager: ManagerEntity.fromJson(json['manager']),
+      manager: ManagerEntityy.fromJson(json['manager']),
       venue: VenueEntity.fromJson(json['venue']),
       nameCode: json['nameCode'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'shortName': shortName,
+    'manager': manager.toJson(),
+    'venue': venue.toJson(),
+    'nameCode': nameCode,
+  };
 }
 
-class ManagerEntity {
+class ManagerEntityy {
   final String name;
 
-  ManagerEntity({required this.name});
+  ManagerEntityy({required this.name});
 
-  factory ManagerEntity.fromJson(Map<String, dynamic> json) {
-    return ManagerEntity(name: json['name']);
+  factory ManagerEntityy.fromJson(Map<String, dynamic> json) {
+    return ManagerEntityy(name: json['name']);
   }
+
+  Map<String, dynamic> toJson() => {'name': name};
 }
 
 class ScoreEntity {
@@ -217,6 +272,13 @@ class ScoreEntity {
       normaltime: json['normaltime'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'current': current,
+    'period1': period1,
+    'period2': period2,
+    'normaltime': normaltime,
+  };
 }
 
 class TimeEntity {
@@ -231,6 +293,11 @@ class TimeEntity {
       injuryTime2: json['injuryTime2'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'injuryTime1': injuryTime1,
+    'injuryTime2': injuryTime2,
+  };
 }
 
 class MatchStatisticsEntity {
@@ -240,11 +307,16 @@ class MatchStatisticsEntity {
 
   factory MatchStatisticsEntity.fromJson(Map<String, dynamic> json) {
     return MatchStatisticsEntity(
-      statistics: (json['statistics'] as List)
-          .map((e) => StatisticsPeriodEntity.fromJson(e))
-          .toList(),
+      statistics:
+          (json['statistics'] as List)
+              .map((e) => StatisticsPeriodEntity.fromJson(e))
+              .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'statistics': statistics.map((e) => e.toJson()).toList(),
+  };
 }
 
 class StatisticsPeriodEntity {
@@ -256,27 +328,42 @@ class StatisticsPeriodEntity {
   factory StatisticsPeriodEntity.fromJson(Map<String, dynamic> json) {
     return StatisticsPeriodEntity(
       period: json['period'],
-      groups: (json['groups'] as List)
-          .map((e) => StatisticsGroupEntity.fromJson(e))
-          .toList(),
+      groups:
+          (json['groups'] as List)
+              .map((e) => StatisticsGroupEntity.fromJson(e))
+              .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'period': period,
+    'groups': groups.map((e) => e.toJson()).toList(),
+  };
 }
 
 class StatisticsGroupEntity {
   final String groupName;
   final List<StatisticsItemEntity> statisticsItems;
 
-  StatisticsGroupEntity({required this.groupName, required this.statisticsItems});
+  StatisticsGroupEntity({
+    required this.groupName,
+    required this.statisticsItems,
+  });
 
   factory StatisticsGroupEntity.fromJson(Map<String, dynamic> json) {
     return StatisticsGroupEntity(
       groupName: json['groupName'],
-      statisticsItems: (json['statisticsItems'] as List)
-          .map((e) => StatisticsItemEntity.fromJson(e))
-          .toList(),
+      statisticsItems:
+          (json['statisticsItems'] as List)
+              .map((e) => StatisticsItemEntity.fromJson(e))
+              .toList(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'groupName': groupName,
+    'statisticsItems': statisticsItems.map((e) => e.toJson()).toList(),
+  };
 }
 
 class StatisticsItemEntity {
@@ -318,4 +405,17 @@ class StatisticsItemEntity {
       awayTotal: json['awayTotal'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'home': home,
+    'away': away,
+    'compareCode': compareCode,
+    'statisticsType': statisticsType,
+    'valueType': valueType,
+    'homeValue': homeValue,
+    'awayValue': awayValue,
+    'homeTotal': homeTotal,
+    'awayTotal': awayTotal,
+  };
 }
