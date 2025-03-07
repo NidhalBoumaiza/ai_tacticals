@@ -1,3 +1,4 @@
+import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +9,7 @@ import '../../../../../core/widgets/reusable_text.dart';
 import '../../../domain layer/entities/player_entity.dart';
 import '../../bloc/players_bloc/players_bloc.dart';
 import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+import '../player info screen/player_info_screen.dart';
 
 class SquadScreen extends StatefulWidget {
   final int teamId;
@@ -125,7 +127,15 @@ class _SquadScreenState extends State<SquadScreen> {
               Divider(color: Colors.grey.shade800, height: 30.h),
       itemBuilder: (context, index) {
         final player = players[index];
-        return _buildPlayerRow(player);
+        return GestureDetector(
+          onTap: () {
+            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+              context,
+              PlayerStatsScreen(playerId: player.id!, playerName: player.name!),
+            );
+          },
+          child: _buildPlayerRow(player),
+        );
       },
     );
   }

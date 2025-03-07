@@ -1,12 +1,14 @@
-// features/players/presentation/screens/player_stats_screen.dart
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../../core/widgets/reusable_text.dart';
 import '../../../domain layer/entities/player_statics_entity.dart';
 import '../../bloc/last year summery bloc/last_year_summary_bloc.dart';
 import '../../bloc/media bloc/media_bloc.dart';
@@ -15,9 +17,15 @@ import '../../bloc/player statics bloc/player_attributes_bloc.dart';
 import '../../bloc/transfert history bloc/transfer_history_bloc.dart';
 
 class PlayerStatsScreen extends StatefulWidget {
-  late int playerId;
+  final String playerName;
 
-  PlayerStatsScreen({super.key, required this.playerId});
+  final int playerId;
+
+  const PlayerStatsScreen({
+    super.key,
+    required this.playerId,
+    String? playerName,
+  }) : playerName = playerName ?? '';
 
   @override
   State<PlayerStatsScreen> createState() => _PlayerStatsScreenState();
@@ -30,8 +38,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   @override
   void initState() {
     super.initState();
-    widget.playerId = 159665;
-    _refreshData();
+    // Delay data fetching until the widget tree is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshData();
+    });
   }
 
   Future<void> _refreshData() async {
@@ -61,39 +71,70 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+
           children: [
-            Text(
-              'Player Statistics',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: const Color(0xFFF1D778)),
+            Container(
+              width: 110.w,
+              height: 110.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey.shade800, // Fallback color
+              ),
+              child: ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl:
+                      'https://img.sofascore.com/api/v1/player/${widget.playerId}/image',
+                  placeholder:
+                      (context, url) => Shimmer.fromColors(
+                        baseColor: Colors.grey.shade300,
+                        highlightColor: Colors.grey.shade100,
+                        child: Container(
+                          width: 110.w,
+                          height: 110.w,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(55.w),
+                          ),
+                        ),
+                      ),
+                  errorWidget: (context, url, error) {
+                    print(
+                      'Error loading player ${widget.playerId} image: $error',
+                    );
+                    return Icon(
+                      Icons.person,
+                      size: 60.w,
+                      color: Colors.grey.shade600,
+                    );
+                  },
+                  fit: BoxFit.cover,
+                  width: 110.w,
+                  height: 110.w,
+                  cacheKey: widget.playerId.toString(),
+                ),
+              ),
             ),
-            Text(
-              '#${widget.playerId}',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+            SizedBox(width: 25.w),
+            ReusableText(
+              text: widget.playerName,
+              textSize: 130.sp,
+              textColor: const Color(0xFFF1D778),
+              textFontWeight: FontWeight.w700,
             ),
           ],
         ),
         flexibleSpace: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [const Color(0xFFF3D07E), const Color(0xFF33353B)],
+              colors: [Color(0xFFF3D07E), Color(0xFF33353B)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
         elevation: 6,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFFF1D778)),
-            onPressed: _refreshData,
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refreshData,
@@ -101,6 +142,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         backgroundColor: const Color(0xFF33353B),
         child: CustomScrollView(
           controller: _scrollController,
+          cacheExtent: 1000, // Cache offscreen items for better performance
           slivers: [
             _buildStatsSummary(),
             _buildPerformanceSection(),
@@ -113,13 +155,19 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     );
   }
 
+  // Stats Summary Section
   Widget _buildStatsSummary() => SliverPadding(
     padding: const EdgeInsets.all(16),
     sliver: SliverToBoxAdapter(
       child: BlocBuilder<PlayerAttributesBloc, PlayerAttributesState>(
+        buildWhen:
+            (previous, current) =>
+                current is PlayerAttributesLoading ||
+                current is PlayerAttributesError ||
+                current is PlayerAttributesLoaded,
         builder: (context, state) {
           if (state is PlayerAttributesLoading) {
-            return ShimmerLoading(width: double.infinity, height: 300);
+            return const ShimmerLoading(width: double.infinity, height: 300);
           }
           if (state is PlayerAttributesError) {
             return _buildErrorWidget(state.message);
@@ -136,52 +184,57 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     ),
   );
 
+  // Performance Trend Section with Line Chart
   Widget _buildPerformanceSection() => SliverPadding(
     padding: const EdgeInsets.symmetric(horizontal: 16),
     sliver: SliverToBoxAdapter(
       child: BlocBuilder<LastYearSummaryBloc, LastYearSummaryState>(
+        buildWhen:
+            (previous, current) =>
+                current is LastYearSummaryLoading ||
+                current is LastYearSummaryError ||
+                current is LastYearSummaryLoaded,
         builder:
-            (context, state) => Card(
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: const Color(0xFFF3D07E).withOpacity(0.3),
+            (context, state) => ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Card(
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Color(0xFFF3D07E), width: 0.3),
                 ),
-              ),
-              color: const Color(0xFF33353B).withOpacity(0.1),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Performance Trend',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFF1D778),
+                color: const Color(0xFF33353B).withOpacity(0.1),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Performance Trend',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFF1D778),
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.info_outline,
-                            color: Color(0xFFF1D778),
-                            size: 20,
+                          IconButton(
+                            icon: const Icon(
+                              Icons.info_outline,
+                              color: Color(0xFFF1D778),
+                              size: 20,
+                            ),
+                            onPressed: () => _showPerformanceInfo(context),
                           ),
-                          onPressed: () => _showPerformanceInfo(context),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 200,
-                      child: _buildEnhancedLineChart(state),
-                    ),
-                  ],
+                        ],
+                      ),
+                      SizedBox(
+                        height: 200,
+                        child: ClipRect(child: _buildEnhancedLineChart(state)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -231,15 +284,14 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               sideTitles: SideTitles(
                 showTitles: true,
                 reservedSize: 40,
-                getTitlesWidget: (value, meta) {
-                  return Text(
-                    value.toInt().toString(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFF1D778),
+                getTitlesWidget:
+                    (value, meta) => Text(
+                      value.toInt().toString(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFF1D778),
+                      ),
                     ),
-                  );
-                },
               ),
             ),
             bottomTitles: AxisTitles(
@@ -252,12 +304,8 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                     final date = sortedSummary[index].date;
                     if (date != null) {
                       return SideTitleWidget(
-                        meta: meta, // Make sure to pass this from TitleMeta
-                        fitInside: SideTitleFitInsideData.fromTitleMeta(
-                          meta,
-                          enabled: true, // Enable fit inside
-                          distanceFromEdge: 6, // Maintain some spacing
-                        ),
+                        //   axisSide: meta.axisSide,
+                        meta: meta,
                         child: Text(
                           DateFormat('MM/yy').format(date),
                           style: const TextStyle(fontSize: 10),
@@ -324,39 +372,29 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                 show: true,
                 color: const Color(0xFFF3D07E).withOpacity(0.15),
               ),
-              dotData: FlDotData(
-                show: true,
-                getDotPainter: (
-                  FlSpot spot,
-                  double xPercentage,
-                  LineChartBarData barData,
-                  int index,
-                ) {
-                  return FlDotCirclePainter(
-                    radius: 4,
-                    color: const Color(0xFFF1D778),
-                    strokeWidth: 2,
-                    strokeColor: Colors.white,
-                  );
-                },
-              ),
             ),
           ],
         ),
       );
     }
-    return ShimmerLoading(width: double.infinity, height: 200);
+    return const ShimmerLoading(width: double.infinity, height: 200);
   }
 
+  // National Team Stats Section
   Widget _buildNationalTeamSection() => SliverPadding(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     sliver: BlocBuilder<NationalTeamStatsBloc, NationalTeamStatsState>(
+      buildWhen:
+          (previous, current) =>
+              current is NationalTeamStatsLoading ||
+              current is NationalTeamStatsError ||
+              current is NationalTeamStatsLoaded,
       builder: (context, state) {
         if (state is NationalTeamStatsLoading) {
-          return SliverToBoxAdapter(child: ShimmerLoading(height: 150));
+          return const SliverToBoxAdapter(child: ShimmerLoading(height: 150));
         }
         if (state is NationalTeamStatsError) {
-          return SliverToBoxAdapter(child: _buildErrorWidget(state.message));
+          return _buildErrorWidget(state.message);
         }
         if (state is NationalTeamStatsLoaded) {
           return SliverToBoxAdapter(
@@ -369,8 +407,8 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                   color: const Color(0xFFF1D778),
                 ),
                 StatItem(
-                  Icons.emoji_events,
-                  'Caps',
+                  FontAwesomeIcons.personRunning,
+                  'Appearences',
                   state.stats.appearances?.toString() ?? '-',
                   color: const Color(0xFFF1D778),
                 ),
@@ -397,15 +435,21 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     ),
   );
 
+  // Transfer History Section
   Widget _buildTransferHistory() => SliverPadding(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     sliver: BlocBuilder<TransferHistoryBloc, TransferHistoryState>(
+      buildWhen:
+          (previous, current) =>
+              current is TransferHistoryLoading ||
+              current is TransferHistoryError ||
+              current is TransferHistoryLoaded,
       builder: (context, state) {
         if (state is TransferHistoryLoading) {
-          return SliverToBoxAdapter(child: ShimmerLoading(height: 100));
+          return const SliverToBoxAdapter(child: ShimmerLoading(height: 100));
         }
         if (state is TransferHistoryError) {
-          return SliverToBoxAdapter(child: _buildErrorWidget(state.message));
+          return _buildErrorWidget(state.message);
         }
         if (state is TransferHistoryLoaded) {
           if (state.transfers.isEmpty) {
@@ -427,6 +471,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                 isLast: index == state.transfers.length - 1,
               ),
               childCount: state.transfers.length,
+              semanticIndexOffset: 2,
             ),
           );
         }
@@ -435,15 +480,21 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     ),
   );
 
+  // Media Section
   Widget _buildMediaSection() => SliverPadding(
     padding: const EdgeInsets.all(16),
     sliver: BlocBuilder<MediaBloc, MediaState>(
+      buildWhen:
+          (previous, current) =>
+              current is MediaLoading ||
+              current is MediaError ||
+              current is MediaLoaded,
       builder: (context, state) {
         if (state is MediaLoading) {
           return SliverToBoxAdapter(child: ShimmerGridLoading());
         }
         if (state is MediaError) {
-          return SliverToBoxAdapter(child: _buildErrorWidget(state.message));
+          return _buildErrorWidget(state.message);
         }
         if (state is MediaLoaded) {
           if (state.media.isEmpty) {
@@ -465,11 +516,15 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               childAspectRatio: 1,
             ),
             delegate: SliverChildBuilderDelegate(
-              (context, index) => MediaThumbnail(
-                media: state.media[index],
-                onTap: () => _showMediaPreview(context, state.media[index]),
+              (context, index) => ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: MediaThumbnail(
+                  media: state.media[index],
+                  onTap: () => _showMediaPreview(context, state.media[index]),
+                ),
               ),
               childCount: state.media.length,
+              semanticIndexOffset: 2,
             ),
           );
         }
@@ -478,15 +533,16 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     ),
   );
 
-  Widget _buildErrorWidget(String message) {
-    return Padding(
+  // Utility Widgets and Methods
+  Widget _buildErrorWidget(String message) => SliverToBoxAdapter(
+    child: Padding(
       padding: const EdgeInsets.all(8.0),
       child: Text(
-        message,
+        'Error: $message',
         style: const TextStyle(color: Color(0xFFF1D778), fontSize: 14),
       ),
-    );
-  }
+    ),
+  );
 
   void _showPerformanceInfo(BuildContext context) {
     showDialog(
@@ -579,6 +635,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   }
 }
 
+// Supporting Widgets
 class AnimatedStatsCard extends StatelessWidget {
   final PlayerAttributesEntity attributes;
   final ValueNotifier<bool> expanded;
@@ -607,20 +664,22 @@ class AnimatedStatsCard extends StatelessWidget {
       onTap: () => expanded.value = !expanded.value,
       child: ValueListenableBuilder<bool>(
         valueListenable: expanded,
-        builder:
-            (context, isExpanded, child) => AnimatedContainer(
+        builder: (context, isExpanded, child) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [const Color(0xFFF3D07E), const Color(0xFF33353B)],
+                  colors: [Color(0xFFF3D07E), Color(0xFF33353B)],
                 ),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
-                    color: const Color(0xFF33353B).withOpacity(0.2),
+                    color: Color(0xFF33353B),
                     blurRadius: 10,
                     spreadRadius: 2,
                   ),
@@ -631,80 +690,78 @@ class AnimatedStatsCard extends StatelessWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                    children: const [
                       Text(
                         'Attributes Radar',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFFF1D778),
+                          color: Color(0xFFF1D778),
                         ),
                       ),
-                      Icon(
-                        isExpanded ? Icons.expand_less : Icons.expand_more,
-                        color: const Color(0xFFF1D778),
-                      ),
+                      Icon(Icons.expand_more, color: Color(0xFFF1D778)),
                     ],
                   ),
                   if (isExpanded)
                     SizedBox(
                       height: 250,
-                      child: RadarChart(
-                        RadarChartData(
-                          radarBackgroundColor: Colors.transparent,
-                          radarBorderData: BorderSide(
-                            color: const Color(0xFFF3D07E).withOpacity(0.5),
-                          ),
-                          gridBorderData: BorderSide(
-                            color: const Color(0xFFF1D778).withOpacity(0.3),
-                          ),
-                          titleTextStyle: const TextStyle(
-                            color: Color(0xFFF1D778),
-                            fontSize: 14,
-                          ),
-                          tickCount: 5,
-                          ticksTextStyle: const TextStyle(
-                            color: Color(0xFFF3D07E),
-                            fontSize: 10,
-                          ),
-                          dataSets: [
-                            RadarDataSet(
-                              fillColor: const Color(
-                                0xFFF1D778,
-                              ).withOpacity(0.15),
-                              borderColor: const Color(0xFFF3D07E),
-                              borderWidth: 2,
-                              entryRadius: 2,
-                              dataEntries:
-                                  data
-                                      .map((value) => RadarEntry(value: value))
-                                      .toList(),
+                      child: ClipRect(
+                        child: RadarChart(
+                          RadarChartData(
+                            radarBackgroundColor: Colors.transparent,
+                            radarBorderData: const BorderSide(
+                              color: Color(0xFFF3D07E),
+                              width: 0.5,
                             ),
-                          ],
-                          radarShape: RadarShape.polygon,
-                          titlePositionPercentageOffset: 0.2,
-                          getTitle: (index, angle) {
-                            final titles = [
-                              'Attacking',
-                              'Technical',
-                              'Tactical',
-                              'Defending',
-                              'Creativity',
-                            ];
-                            return RadarChartTitle(
-                              text: titles[index],
-                              // textStyle: const TextStyle(
-                              //   color: Color(0xFFF1D778),
-                              // ),
-                            );
-                          },
+                            gridBorderData: const BorderSide(
+                              color: Color(0xFFF1D778),
+                              width: 0.3,
+                            ),
+                            titleTextStyle: const TextStyle(
+                              color: Color(0xFFF1D778),
+                              fontSize: 14,
+                            ),
+                            tickCount: 5,
+                            ticksTextStyle: const TextStyle(
+                              color: Color(0xFFF3D07E),
+                              fontSize: 10,
+                            ),
+                            dataSets: [
+                              RadarDataSet(
+                                fillColor: const Color(
+                                  0xFFF1D778,
+                                ).withOpacity(0.15),
+                                borderColor: const Color(0xFFF3D07E),
+                                borderWidth: 2,
+                                entryRadius: 2,
+                                dataEntries:
+                                    data
+                                        .map(
+                                          (value) => RadarEntry(value: value),
+                                        )
+                                        .toList(),
+                              ),
+                            ],
+                            radarShape: RadarShape.polygon,
+                            titlePositionPercentageOffset: 0.2,
+                            getTitle: (index, angle) {
+                              final titles = [
+                                'Attacking',
+                                'Technical',
+                                'Tactical',
+                                'Defending',
+                                'Creativity',
+                              ];
+                              return RadarChartTitle(text: titles[index]);
+                            },
+                          ),
                         ),
                       ),
                     ),
                 ],
               ),
             ),
+          );
+        },
       ),
     );
   }
@@ -727,41 +784,31 @@ class TransferTimelineItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(left: 24),
       padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(
-            color: const Color(0xFFF3D07E).withOpacity(0.5),
-            width: 2,
-          ),
-        ),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFFF3D07E), width: 2)),
       ),
       child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFFF3D07E).withOpacity(0.2),
-          ),
-          alignment: Alignment.center,
-          child: const Icon(Icons.swap_horiz, color: Color(0xFFF1D778)),
+        leading: const Icon(
+          Icons.swap_horiz,
+          color: Color(0xFFF1D778),
+          size: 30,
         ),
         title: RichText(
           text: TextSpan(
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: const TextStyle(fontSize: 16),
             children: [
               TextSpan(
                 text: transfer.fromTeam?.name ?? 'Unknown Team',
-                style: TextStyle(
-                  color: Colors.grey.shade400,
+                style: const TextStyle(
+                  color: Colors.grey,
                   decoration: TextDecoration.lineThrough,
                 ),
               ),
               const TextSpan(text: ' → '),
               TextSpan(
                 text: transfer.toTeam?.name ?? 'Unknown Team',
-                style: TextStyle(
-                  color: const Color(0xFFF1D778),
+                style: const TextStyle(
+                  color: Color(0xFFF1D778),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -775,7 +822,7 @@ class TransferTimelineItem extends StatelessWidget {
               transfer.date != null
                   ? DateFormat('MMM yyyy').format(transfer.date!)
                   : 'N/A',
-              style: TextStyle(fontSize: 12, color: const Color(0xFFF3D07E)),
+              style: const TextStyle(fontSize: 12, color: Color(0xFFF3D07E)),
             ),
             if (transfer.fee != null)
               Chip(
@@ -830,17 +877,13 @@ class StatItem extends StatelessWidget {
         children: [
           Icon(icon, size: 28, color: color),
           const SizedBox(height: 8),
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: color),
-          ),
+          Text(title, style: TextStyle(color: color, fontSize: 12)),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+            style: TextStyle(
               color: color,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -882,6 +925,7 @@ class MediaThumbnail extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           fit: StackFit.expand,
+          clipBehavior: Clip.hardEdge,
           children: [
             CachedNetworkImage(
               imageUrl: media.thumbnailUrl ?? '',
@@ -890,6 +934,8 @@ class MediaThumbnail extends StatelessWidget {
                   (_, __, ___) => Container(
                     color: const Color(0xFF33353B).withOpacity(0.3),
                   ),
+              fadeInDuration: const Duration(milliseconds: 200),
+              fadeOutDuration: const Duration(milliseconds: 200),
             ),
             Center(
               child: Icon(
@@ -938,11 +984,14 @@ class ShimmerGridLoading extends StatelessWidget {
       crossAxisSpacing: 8,
       mainAxisSpacing: 8,
       childAspectRatio: 1,
-      children: List.generate(
-        6,
-        (index) =>
-            ShimmerLoading(width: double.infinity, height: double.infinity),
-      ),
+      children: const [
+        ShimmerLoading(width: double.infinity, height: double.infinity),
+        ShimmerLoading(width: double.infinity, height: double.infinity),
+        ShimmerLoading(width: double.infinity, height: double.infinity),
+        ShimmerLoading(width: double.infinity, height: double.infinity),
+        ShimmerLoading(width: double.infinity, height: double.infinity),
+        ShimmerLoading(width: double.infinity, height: double.infinity),
+      ],
     );
   }
 }

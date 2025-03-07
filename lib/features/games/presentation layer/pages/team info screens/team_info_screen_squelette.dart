@@ -103,6 +103,7 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                               height:
                                   45, // Increase height for better visibility
                             ), // Increased spacing
+                            SizedBox(width: 20.w),
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.center,

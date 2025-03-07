@@ -45,10 +45,6 @@ class _StandingScreenState extends State<StandingScreen> {
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 20.h),
         child: Container(
-          height:
-              context.read<StandingBloc>().state is StandingsSuccess
-                  ? null
-                  : MediaQuery.of(context).size.height * 0.8,
           decoration: BoxDecoration(
             color: const Color(0xff161d1f),
             borderRadius: BorderRadius.circular(55.r),

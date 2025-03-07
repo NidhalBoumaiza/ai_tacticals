@@ -23,7 +23,6 @@ import 'features/games/presentation layer/bloc/national team bloc/national_team_
 import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
 import 'features/games/presentation layer/bloc/transfert history bloc/transfer_history_bloc.dart';
 import 'features/games/presentation layer/pages/bottom app bar screens/home_screen_squelette.dart';
-import 'features/games/presentation layer/pages/player info screen/player_info_screen.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
 
@@ -83,7 +82,7 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             ),
-            home: PlayerStatsScreen(playerId: 5545),
+            home: screen,
             translations: AppTranslations(),
             darkTheme: ThemeData.dark(),
             themeMode: ThemeMode.system,

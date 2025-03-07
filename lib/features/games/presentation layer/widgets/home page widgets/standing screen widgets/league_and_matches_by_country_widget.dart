@@ -69,10 +69,10 @@ class _LeaguesAndMatchesByCountryWidgetState
             decoration: BoxDecoration(
               color: const Color(0xff161d1f),
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12.r),
-                topRight: Radius.circular(12.r),
-                bottomLeft: _isExpanded ? Radius.zero : Radius.circular(12.r),
-                bottomRight: _isExpanded ? Radius.zero : Radius.circular(12.r),
+                topLeft: Radius.circular(25.r),
+                topRight: Radius.circular(25.r),
+                bottomLeft: _isExpanded ? Radius.zero : Radius.circular(25.r),
+                bottomRight: _isExpanded ? Radius.zero : Radius.circular(25.r),
               ),
             ),
             child: Row(
