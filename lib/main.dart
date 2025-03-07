@@ -18,11 +18,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/auth/presentation%20layer/pages/starter_screen.dart';
 import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
+import 'features/games/presentation layer/bloc/match details bloc/match_details_bloc.dart';
 import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
 import 'features/games/presentation layer/bloc/national team bloc/national_team_stats_bloc.dart';
 import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
 import 'features/games/presentation layer/bloc/transfert history bloc/transfer_history_bloc.dart';
 import 'features/games/presentation layer/pages/bottom app bar screens/home_screen_squelette.dart';
+import 'features/games/presentation layer/pages/match details screen/match_details_screen.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
 
@@ -71,6 +73,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (create) => di.sl<LastYearSummaryBloc>()),
         BlocProvider(create: (create) => di.sl<TransferHistoryBloc>()),
         BlocProvider(create: (create) => di.sl<MediaBloc>()),
+        BlocProvider(create: (context) => di.sl<MatchDetailsBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),
@@ -82,7 +85,7 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             ),
-            home: screen,
+            home: MatchDetailsScreen(matchId: 12764332),
             translations: AppTranslations(),
             darkTheme: ThemeData.dark(),
             themeMode: ThemeMode.system,

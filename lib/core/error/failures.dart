@@ -36,3 +36,8 @@ class UnauthorizedFailure extends Failure {
   @override
   String get message => 'unauthorized_failure_message'.tr;
 }
+
+class TimeoutFailure extends Failure {
+  @override
+  String get message => 'timeout_failure_message'.tr; // Add this to your translations
+}

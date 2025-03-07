@@ -1,5 +1,3 @@
-// ignore_for_file: override_on_non_overriding_member
-
 import 'package:equatable/equatable.dart';
 
 /// A general server-related exception with a message.
@@ -47,6 +45,16 @@ class UnauthorizedException extends Equatable implements Exception {
   final String message;
 
   const UnauthorizedException([this.message = 'Unauthorized access']);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+/// An exception thrown when an API call times out.
+class TimeoutException extends Equatable implements Exception {
+  final String message;
+
+  const TimeoutException([this.message = 'Request timed out']);
 
   @override
   List<Object?> get props => [message];
