@@ -3,7 +3,9 @@ import 'package:analysis_ai/features/auth/presentation%20layer/bloc/login_bloc/l
 import 'package:analysis_ai/features/auth/presentation%20layer/bloc/signup_bloc/signup_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/countries_bloc/countries_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/leagues_bloc/leagues_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/manager%20bloc/manager_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/matches_bloc/matches_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/player%20per%20match%20bloc/player_per_match_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/players_bloc/players_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/standing%20bloc/standing_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/stats%20bloc/stats_bloc.dart';
@@ -24,7 +26,7 @@ import 'features/games/presentation layer/bloc/national team bloc/national_team_
 import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
 import 'features/games/presentation layer/bloc/transfert history bloc/transfer_history_bloc.dart';
 import 'features/games/presentation layer/pages/bottom app bar screens/home_screen_squelette.dart';
-import 'features/games/presentation layer/pages/match details screen/match_details_squelette_screen.dart';
+import 'features/games/presentation layer/pages/match details screen/one_match_squad_screen.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
 
@@ -74,6 +76,8 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (create) => di.sl<TransferHistoryBloc>()),
         BlocProvider(create: (create) => di.sl<MediaBloc>()),
         BlocProvider(create: (context) => di.sl<MatchDetailsBloc>()),
+        BlocProvider(create: (context) => di.sl<PlayerPerMatchBloc>()),
+        BlocProvider(create: (context) => di.sl<ManagerBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),
@@ -85,7 +89,7 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             ),
-            home: screen,
+            home: MatchLineupsScreen(matchId: 12764332),
             translations: AppTranslations(),
             darkTheme: ThemeData.dark(),
             themeMode: ThemeMode.system,

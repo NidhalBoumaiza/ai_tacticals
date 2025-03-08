@@ -12,6 +12,10 @@ class PlayerPerMatchEntity {
   final int dateOfBirthTimestamp;
   final Map<String, dynamic> proposedMarketValueRaw;
   final Map<String, dynamic> fieldTranslations;
+  final int teamId; // New field
+  final int shirtNumber; // New field
+  final bool substitute; // New field
+  final Map<String, dynamic>? statistics; // New field
 
   PlayerPerMatchEntity({
     required this.name,
@@ -27,5 +31,9 @@ class PlayerPerMatchEntity {
     required this.dateOfBirthTimestamp,
     required this.proposedMarketValueRaw,
     required this.fieldTranslations,
+    required this.teamId,
+    required this.shirtNumber,
+    required this.substitute,
+    this.statistics,
   });
 }
