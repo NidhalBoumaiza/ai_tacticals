@@ -35,14 +35,21 @@ class MatchEventEntity {
     required this.startTimestamp,
   });
 
-  factory MatchEventEntity.fromJson(Map<String, dynamic> json) {
+  factory MatchEventEntity.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      throw const FormatException(
+        'Null JSON provided to MatchEventEntity.fromJson',
+      );
+    }
     return MatchEventEntity(
       tournament: TournamentEntity.fromJson(json['tournament']),
       season: SeasonEntity.fromJson(json['season']),
       roundInfo: RoundInfoEntity.fromJson(json['roundInfo']),
       status: StatusEntity.fromJson(json['status']),
-      winnerCode: json['winnerCode'],
-      attendance: json['attendance'],
+      winnerCode: json['winnerCode'] ?? 0,
+      // Provide a default value
+      attendance: json['attendance'] ?? 0,
+      // Provide a default value
       venue: VenueEntity.fromJson(json['venue']),
       referee: RefereeEntity.fromJson(json['referee']),
       homeTeam: TeamEntity.fromJson(json['homeTeam']),
@@ -50,8 +57,9 @@ class MatchEventEntity {
       homeScore: ScoreEntity.fromJson(json['homeScore']),
       awayScore: ScoreEntity.fromJson(json['awayScore']),
       time: TimeEntity.fromJson(json['time']),
-      id: json['id'],
-      startTimestamp: json['startTimestamp'],
+      id: json['id'] ?? 0,
+      // Provide a default value
+      startTimestamp: json['startTimestamp'] ?? 0, // Provide a default value
     );
   }
 

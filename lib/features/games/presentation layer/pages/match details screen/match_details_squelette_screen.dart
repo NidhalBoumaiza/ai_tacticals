@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../core/widgets/reusable_text.dart';
 import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+import 'one_match_squad_screen.dart';
 import 'one_match_statics_screen.dart';
 
 class MatchDetailsSqueletteScreen extends StatefulWidget {
@@ -216,7 +217,7 @@ class _MatchDetailsSqueletteScreenState
                 homeShortName: widget.homeShortName,
                 awayShortName: widget.awayShortName,
               ),
-              Container(child: Center(child: Text("Lineups"))),
+              MatchLineupsScreen(matchId: widget.matchId),
             ],
           ),
         ),
