@@ -156,7 +156,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                       return GestureDetector(
                         onTap: () {
                           context.read<SeasonsCubit>().getSeasons(league.id);
-                          _showSeasonsDialog(context, league.id!, league.name!);
+                          //   _showSeasonsDialog(context, league.id!, league.name!);
                         },
                         child: Container(
                           height: 105.h,
@@ -178,6 +178,49 @@ class _LeaguesAndMatchesByCountryWidgetState
                                   textFontWeight: FontWeight.w400,
                                   textColor: const Color(0xffececee),
                                 ),
+                              ),
+                              BlocConsumer<SeasonsCubit, SeasonsState>(
+                                listener: (context, state) {
+                                  if (state is SeasonsError) {
+                                    showErrorSnackBar(
+                                      context,
+                                      "Error while loading seasons",
+                                    );
+                                  } else if (state is SeasonsLoaded) {
+                                    print(
+                                      "Seasons loaded: ${state.seasons.length}",
+                                    );
+                                    WidgetsBinding.instance.addPostFrameCallback(
+                                      (_) {
+                                        Navigator.pop(context); // Close dialog
+                                        PersistentNavBarNavigator.pushNewScreen(
+                                          context,
+                                          screen: LeagueInfosSqueletteScreen(
+                                            leagueId: league.id!,
+                                            leagueName: league.name!,
+                                            seasons: state.seasons,
+                                          ),
+                                          withNavBar: false,
+                                          pageTransitionAnimation:
+                                              PageTransitionAnimation
+                                                  .slideRight,
+                                        );
+                                      },
+                                    );
+                                  }
+                                },
+                                builder: (context, state) {
+                                  return state is SeasonsLoading
+                                      ? SizedBox(
+                                        width: 35.sp,
+                                        height: 35.sp,
+                                        child: CircularProgressIndicator(
+                                          color: const Color(0xffececee),
+                                          strokeWidth: 2.0,
+                                        ),
+                                      )
+                                      : SizedBox.shrink();
+                                },
                               ),
                             ],
                           ),

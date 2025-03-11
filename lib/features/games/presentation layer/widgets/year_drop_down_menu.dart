@@ -1,3 +1,5 @@
+// features/games/presentation layer/widgets/year_drop_down_menu.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -5,8 +7,10 @@ import '../../domain layer/entities/season_entity.dart';
 
 class YearDropdownMenu extends StatefulWidget {
   final List<SeasonEntity> seasons;
+  final Function(int)
+  onYearChanged; // Callback to notify parent of season change
 
-  YearDropdownMenu({required this.seasons});
+  const YearDropdownMenu({required this.seasons, required this.onYearChanged});
 
   @override
   _YearDropdownMenuState createState() => _YearDropdownMenuState();
@@ -38,9 +42,16 @@ class _YearDropdownMenuState extends State<YearDropdownMenu> {
         ),
         underline: Container(),
         onChanged: (String? newValue) {
-          setState(() {
-            selectedYear = newValue;
-          });
+          if (newValue != null) {
+            setState(() {
+              selectedYear = newValue;
+            });
+            // Find the seasonId for the selected year and notify the parent
+            final selectedSeason = widget.seasons.firstWhere(
+              (season) => season.year == newValue,
+            );
+            widget.onYearChanged(selectedSeason.id);
+          }
         },
         items:
             years.map<DropdownMenuItem<String>>((String value) {

@@ -61,6 +61,8 @@ class OneMatchStatsRepositoryImpl implements OneMatchStatsRepository {
           duration: const Duration(seconds: 3),
         );
         return Left(TimeoutFailure());
+      } on ServerMessageException {
+        return Left(ServerMessageFailure("No data available for this match"));
       }
     } else {
       try {

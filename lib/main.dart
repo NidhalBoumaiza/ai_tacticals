@@ -5,6 +5,7 @@ import 'package:analysis_ai/features/games/presentation%20layer/bloc/countries_b
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/leagues_bloc/leagues_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/manager%20bloc/manager_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/matches_bloc/matches_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/player%20match%20stats%20bloc/player_match_stats_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/player%20per%20match%20bloc/player_per_match_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/players_bloc/players_bloc.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/bloc/standing%20bloc/standing_bloc.dart';
@@ -19,6 +20,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'features/auth/presentation%20layer/pages/starter_screen.dart';
+import 'features/games/presentation layer/bloc/home match bloc/home_matches_bloc.dart';
 import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
 import 'features/games/presentation layer/bloc/match details bloc/match_details_bloc.dart';
 import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
@@ -77,6 +79,8 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<MatchDetailsBloc>()),
         BlocProvider(create: (context) => di.sl<PlayerPerMatchBloc>()),
         BlocProvider(create: (context) => di.sl<ManagerBloc>()),
+        BlocProvider(create: (context) => di.sl<PlayerMatchStatsBloc>()),
+        BlocProvider(create: (context) => di.sl<HomeMatchesBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),

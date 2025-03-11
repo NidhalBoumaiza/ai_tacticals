@@ -1,4 +1,3 @@
-// lib/features/matches/data/repositories/matches_repository_impl.dart
 import 'package:analysis_ai/core/network/network_info.dart';
 import 'package:dartz/dartz.dart';
 
@@ -48,6 +47,29 @@ class MatchesRepositoryImpl implements MatchesRepository {
           uniqueTournamentId,
           seasonId,
         );
+        return Right(localMatches);
+      } on EmptyCacheException {
+        return Left(OfflineFailure());
+      }
+    }
+  }
+
+  @override
+  Future<Either<Failure, MatchEventsPerTeamEntity>> getHomeMatches(
+    String date,
+  ) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final remoteMatches = await remoteDataSource.getHomeMatches(date);
+        final entity = _convertToEntity(remoteMatches);
+        await localDataSource.cacheHomeMatches(entity, date);
+        return Right(entity);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      try {
+        final localMatches = await localDataSource.getLastHomeMatches(date);
         return Right(localMatches);
       } on EmptyCacheException {
         return Left(OfflineFailure());

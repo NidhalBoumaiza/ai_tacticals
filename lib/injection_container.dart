@@ -29,6 +29,8 @@ import 'features/games/data layer/data sources/one match details/one_match_local
 import 'features/games/data layer/data sources/one match details/one_match_remote_data_source_impl.dart';
 import 'features/games/data layer/data sources/player details/player_details_local_data_source.dart';
 import 'features/games/data layer/data sources/player details/player_details_remote_data_source.dart';
+import 'features/games/data layer/data sources/player match stats/player_match_stats_local_data_source.dart';
+import 'features/games/data layer/data sources/player match stats/player_match_stats_remote_data_source.dart';
 import 'features/games/data layer/data sources/players/player_local_data_source.dart';
 import 'features/games/data layer/data sources/players/players_remote_data_source.dart';
 import 'features/games/data layer/data sources/standing/standing_local_data_source.dart';
@@ -40,6 +42,7 @@ import 'features/games/data layer/repositories/league_repository_impl.dart';
 import 'features/games/data layer/repositories/matches_repository_impl.dart';
 import 'features/games/data layer/repositories/one_match_stats_repository_impl.dart';
 import 'features/games/data layer/repositories/player_details_repository_impl.dart';
+import 'features/games/data layer/repositories/player_match_stats_repository_impl.dart';
 import 'features/games/data layer/repositories/players_repository_impl.dart';
 import 'features/games/data layer/repositories/standing_repository_impl.dart';
 import 'features/games/data layer/repositories/statics_repository_impl.dart';
@@ -47,25 +50,30 @@ import 'features/games/domain layer/repositories/games_repository.dart';
 import 'features/games/domain layer/repositories/matches_repository.dart';
 import 'features/games/domain layer/repositories/one_match_stats_repository.dart';
 import 'features/games/domain layer/repositories/player_details_repository.dart';
+import 'features/games/domain layer/repositories/player_match_stats_repository.dart';
 import 'features/games/domain layer/repositories/statics_repository.dart';
 import 'features/games/domain layer/usecases/get _last_year_summary_use_case.dart';
 import 'features/games/domain layer/usecases/get_all_countries_use_case.dart';
 import 'features/games/domain layer/usecases/get_all_players_infos_use_case.dart';
+import 'features/games/domain layer/usecases/get_home_matches_use_case.dart';
 import 'features/games/domain layer/usecases/get_leagues_by_country_use_case.dart';
 import 'features/games/domain layer/usecases/get_matches_by_team_use_case.dart';
 import 'features/games/domain layer/usecases/get_media_use_case.dart';
 import 'features/games/domain layer/usecases/get_national_team_stats_use_case.dart';
 import 'features/games/domain layer/usecases/get_player_attributes_use_case.dart';
+import 'features/games/domain layer/usecases/get_player_match_stats.dart';
 import 'features/games/domain layer/usecases/get_season_use_case.dart';
 import 'features/games/domain layer/usecases/get_standing_use_case.dart';
 import 'features/games/domain layer/usecases/get_statics_use_case.dart';
 import 'features/games/domain layer/usecases/get_transfert_history_use_case.dart';
 import 'features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
+import 'features/games/presentation layer/bloc/home match bloc/home_matches_bloc.dart';
 import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
 import 'features/games/presentation layer/bloc/manager bloc/manager_bloc.dart';
 import 'features/games/presentation layer/bloc/match details bloc/match_details_bloc.dart';
 import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
 import 'features/games/presentation layer/bloc/national team bloc/national_team_stats_bloc.dart';
+import 'features/games/presentation layer/bloc/player match stats bloc/player_match_stats_bloc.dart';
 import 'features/games/presentation layer/bloc/player per match bloc/player_per_match_bloc.dart';
 import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
 import 'features/games/presentation layer/bloc/players_bloc/players_bloc.dart';
@@ -108,7 +116,7 @@ Future<void> init() async {
     () => PlayerPerMatchBloc(repository: sl()),
   ); // Added PlayerPerMatchBloc
   sl.registerFactory(() => ManagerBloc(repository: sl())); // Added ManagerBloc
-
+  sl.registerFactory(() => PlayerMatchStatsBloc(getPlayerMatchStats: sl()));
   // Use Cases
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));
@@ -120,14 +128,15 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetAllPlayersInfos(sl()));
   sl.registerLazySingleton(() => GetTeamStatsUseCAse(sl()));
   sl.registerLazySingleton(() => GetMatchDetailsUseCase(sl()));
-
+  sl.registerLazySingleton(() => GetPlayerMatchStats(sl()));
+  sl.registerFactory(() => HomeMatchesBloc(getHomeMatchesUseCase: sl()));
   // New Player Use Cases
   sl.registerLazySingleton(() => GetPlayerAttributesUseCase(sl()));
   sl.registerLazySingleton(() => GetNationalTeamStatsUseCase(sl()));
   sl.registerLazySingleton(() => GetLastYearSummaryUseCase(sl()));
   sl.registerLazySingleton(() => GetTransferHistoryUseCase(sl()));
   sl.registerLazySingleton(() => GetMediaUseCase(sl()));
-
+  sl.registerLazySingleton(() => GetHomeMatchesUseCase(sl()));
   // Repositories
   sl.registerLazySingleton<UserRepository>(
     () => UserRepositoryImpl(
@@ -195,6 +204,14 @@ Future<void> init() async {
 
   sl.registerLazySingleton<PlayerDetailsRepository>(
     () => PlayerDetailsRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+      networkInfo: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton<PlayerMatchStatsRepository>(
+    () => PlayerMatchStatsRepositoryImpl(
       remoteDataSource: sl(),
       localDataSource: sl(),
       networkInfo: sl(),
@@ -271,6 +288,14 @@ Future<void> init() async {
 
   sl.registerLazySingleton<PlayerDetailsLocalDataSource>(
     () => PlayerDetailsLocalDataSourceImpl(),
+  );
+
+  sl.registerLazySingleton<PlayerMatchStatsRemoteDataSource>(
+    () => PlayerMatchStatsRemoteDataSourceImpl(client: sl()),
+  );
+
+  sl.registerLazySingleton<PlayerMatchStatsLocalDataSource>(
+    () => PlayerMatchStatsLocalDataSourceImpl(sharedPreferences: sl()),
   );
 
   // Core

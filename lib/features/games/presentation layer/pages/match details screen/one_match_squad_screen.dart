@@ -1,3 +1,4 @@
+import 'package:analysis_ai/features/games/presentation%20layer/pages/match%20details%20screen/player_stats_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -351,8 +352,8 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
       } else if (playersInZone == 2) {
         xOffset =
             minPadding +
-            (index % playersInZone) * (availableWidth / 10) -
-            12 -
+            (index % playersInZone) * (availableWidth / 2.5) -
+            -100 -
             leftShift;
       } else if (playersInZone == 3) {
         xOffset =
@@ -374,42 +375,59 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
       top: yOffset,
       child: Column(
         children: [
-          Container(
-            width: 100.w,
-            height: 100.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.grey.shade800, // Fallback color
-            ),
-            child: ClipOval(
-              child: CachedNetworkImage(
-                imageUrl:
-                    'https://img.sofascore.com/api/v1/player/${player.id}/image',
-                placeholder:
-                    (context, url) => Shimmer.fromColors(
-                      baseColor: Colors.grey.shade300,
-                      highlightColor: Colors.grey.shade100,
-                      child: Container(
-                        width: 110.w,
-                        height: 110.w,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(55.w),
+          GestureDetector(
+            onTap: () {
+              if (player.id != null) {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true, // Allows full-screen modal
+                  backgroundColor: Colors.transparent,
+                  builder:
+                      (context) => PlayerStatsModal(
+                        matchId: widget.matchId,
+                        playerId: player.id!,
+                        playerName: player.name ?? 'Unknown Player',
+                      ),
+                );
+              }
+            },
+            child: Container(
+              width: 100.w,
+              height: 100.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey.shade800, // Fallback color
+              ),
+              child: ClipOval(
+                child: CachedNetworkImage(
+                  imageUrl:
+                      'https://img.sofascore.com/api/v1/player/${player.id}/image',
+                  placeholder:
+                      (context, url) => Shimmer.fromColors(
+                        baseColor: Colors.grey.shade300,
+                        highlightColor: Colors.grey.shade100,
+                        child: Container(
+                          width: 110.w,
+                          height: 110.w,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(55.w),
+                          ),
                         ),
                       ),
-                    ),
-                errorWidget: (context, url, error) {
-                  print('Error loading player ${player.id} image: $error');
-                  return Icon(
-                    Icons.person,
-                    size: 60.w,
-                    color: Colors.grey.shade600,
-                  );
-                },
-                fit: BoxFit.cover,
-                width: 110.w,
-                height: 110.w,
-                cacheKey: player.id.toString(),
+                  errorWidget: (context, url, error) {
+                    print('Error loading player ${player.id} image: $error');
+                    return Icon(
+                      Icons.person,
+                      size: 60.w,
+                      color: Colors.grey.shade600,
+                    );
+                  },
+                  fit: BoxFit.cover,
+                  width: 110.w,
+                  height: 110.w,
+                  cacheKey: player.id.toString(),
+                ),
               ),
             ),
           ),
@@ -565,125 +583,144 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     List<PlayerPerMatchEntity> subs,
     Color color,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return GestureDetector(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        if (subs.isEmpty)
-          const Text('No substitutes available')
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: subs.length,
-            itemBuilder: (context, index) {
-              return _buildPlayerRow(subs[index], color);
-            },
-          ),
-      ],
+          const SizedBox(height: 8),
+          if (subs.isEmpty)
+            const Text('No substitutes available')
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: subs.length,
+              itemBuilder: (context, index) {
+                return _buildPlayerRow(subs[index], color);
+              },
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildPlayerRow(PlayerPerMatchEntity player, Color teamColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Container(
-                  width: 110.w,
-                  height: 110.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.grey.shade800, // Fallback color
-                  ),
-                  child: ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl:
-                          'https://img.sofascore.com/api/v1/player/${player.id}/image',
-                      placeholder:
-                          (context, url) => Shimmer.fromColors(
-                            baseColor: Colors.grey.shade300,
-                            highlightColor: Colors.grey.shade100,
-                            child: Container(
-                              width: 110.w,
-                              height: 110.w,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(55.w),
+    return GestureDetector(
+      onTap: () {
+        if (player.id != null) {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true, // Allows full-screen modal
+            backgroundColor: Colors.transparent,
+            builder:
+                (context) => PlayerStatsModal(
+                  matchId: widget.matchId,
+                  playerId: player.id!,
+                  playerName: player.name ?? 'Unknown Player',
+                ),
+          );
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 110.w,
+                    height: 110.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.grey.shade800, // Fallback color
+                    ),
+                    child: ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl:
+                            'https://img.sofascore.com/api/v1/player/${player.id}/image',
+                        placeholder:
+                            (context, url) => Shimmer.fromColors(
+                              baseColor: Colors.grey.shade300,
+                              highlightColor: Colors.grey.shade100,
+                              child: Container(
+                                width: 110.w,
+                                height: 110.w,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(55.w),
+                                ),
                               ),
                             ),
-                          ),
-                      errorWidget: (context, url, error) {
-                        print(
-                          'Error loading player ${player.id} image: $error',
-                        );
-                        return Icon(
-                          Icons.person,
-                          size: 60.w,
-                          color: Colors.grey.shade600,
-                        );
-                      },
-                      fit: BoxFit.cover,
-                      width: 110.w,
-                      height: 110.w,
-                      cacheKey: player.id.toString(),
+                        errorWidget: (context, url, error) {
+                          print(
+                            'Error loading player ${player.id} image: $error',
+                          );
+                          return Icon(
+                            Icons.person,
+                            size: 60.w,
+                            color: Colors.grey.shade600,
+                          );
+                        },
+                        fit: BoxFit.cover,
+                        width: 110.w,
+                        height: 110.w,
+                        cacheKey: player.id.toString(),
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(width: 45.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ReusableText(
-                        text: player.name ?? 'N/A',
-                        textSize: 100.sp,
-                        textColor: const Color(0xffe4e9ea),
-                        textFontWeight: FontWeight.w700,
-                      ),
-                      SizedBox(height: 5.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: player.jerseyNumber != null ? 45.w : 60.w,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                ReusableText(
-                                  text:
-                                      player.jerseyNumber != null
-                                          ? player.jerseyNumber.toString()
-                                          : "N/A",
-                                  textSize: 90.sp,
-                                  textColor: Colors.white,
-                                  textAlign: TextAlign.end,
-                                ),
-                              ],
+                  SizedBox(width: 45.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ReusableText(
+                          text: player.name ?? 'N/A',
+                          textSize: 100.sp,
+                          textColor: const Color(0xffe4e9ea),
+                          textFontWeight: FontWeight.w700,
+                        ),
+                        SizedBox(height: 5.h),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: player.jerseyNumber != null ? 45.w : 60.w,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  ReusableText(
+                                    text:
+                                        player.jerseyNumber != null
+                                            ? player.jerseyNumber.toString()
+                                            : "N/A",
+                                    textSize: 90.sp,
+                                    textColor: Colors.white,
+                                    textAlign: TextAlign.end,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

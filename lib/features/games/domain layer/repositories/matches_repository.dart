@@ -8,4 +8,6 @@ abstract class MatchesRepository {
     int uniqueTournamentId,
     int seasonId,
   );
+
+  Future<Either<Failure, MatchEventsPerTeamEntity>> getHomeMatches(String date);
 }

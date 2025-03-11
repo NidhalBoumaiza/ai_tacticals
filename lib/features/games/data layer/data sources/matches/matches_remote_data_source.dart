@@ -1,4 +1,3 @@
-// lib/features/matches/data/datasources/matches_remote_data_source.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -13,6 +12,8 @@ abstract class MatchesRemoteDataSource {
     int uniqueTournamentId,
     int seasonId,
   );
+
+  Future<List<MatchEventModel>> getHomeMatches(String date);
 }
 
 class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
@@ -69,6 +70,43 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
       throw OfflineException('No Internet connection');
     } catch (e) {
       print('Error in getMatchesPerTeam: $e');
+      throw ServerException('An unexpected error occurred: $e');
+    }
+  }
+
+  @override
+  Future<List<MatchEventModel>> getHomeMatches(String date) async {
+    final url = Uri.parse(
+      'https://www.sofascore.com/api/v1/sport/football/scheduled-events/$date',
+    );
+
+    try {
+      final response = await client
+          .get(url, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 12));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final events = json['events'] as List<dynamic>?;
+
+        if (events == null || events.isEmpty) {
+          return [];
+        }
+
+        return events
+            .map((e) => MatchEventModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw ServerException(
+          'Failed to load home matches: ${response.statusCode}',
+        );
+      }
+    } on TimeoutException {
+      throw ServerMessageException('Request timed out');
+    } on SocketException {
+      throw OfflineException('No Internet connection');
+    } catch (e) {
+      print('Error in getHomeMatches: $e');
       throw ServerException('An unexpected error occurred: $e');
     }
   }

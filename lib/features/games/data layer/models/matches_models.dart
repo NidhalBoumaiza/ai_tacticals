@@ -10,7 +10,8 @@ class MatchEventsPerTeamModel {
 
   factory MatchEventsPerTeamModel.fromJson(Map<String, dynamic> json) {
     print('Parsing MatchEventsPerTeamModel: $json');
-    final events = json['tournamentTeamEvents'] as Map<String, dynamic>?;
+    late dynamic events = json['tournamentTeamEvents'] as Map<String, dynamic>?;
+    events ??= json['events'] as Map<String, dynamic>?;
     print('Events: $events');
 
     final Map<String, List<MatchEventModel>> parsedEvents = {};

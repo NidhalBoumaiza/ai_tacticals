@@ -141,6 +141,8 @@ class _SquadScreenState extends State<SquadScreen> {
   }
 
   Widget _buildPlayerRow(PlayerEntityy player) {
+    print("******************************");
+    print(player);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -203,7 +205,7 @@ class _SquadScreenState extends State<SquadScreen> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         SizedBox(
-                          width: player.shirtNumber != null ? 45.w : 60.w,
+                          width: player.shirtNumber != null ? 50.w : 65.w,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
@@ -211,6 +213,8 @@ class _SquadScreenState extends State<SquadScreen> {
                                 text:
                                     player.shirtNumber != null
                                         ? player.shirtNumber.toString()
+                                        : player.jerseyNumber != null
+                                        ? player.jerseyNumber!
                                         : "N/A",
                                 textSize: 90.sp,
                                 textColor: Colors.white,

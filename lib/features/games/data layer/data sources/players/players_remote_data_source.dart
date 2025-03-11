@@ -30,7 +30,9 @@ class PlayersRemoteDataSourceImpl implements PlayersRemoteDataSource {
           .timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
+        print('response.body: ${response.body}');
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+        print('jsonData: ${jsonData['players'][0]['player']['jerseyNumber']}');
         final playersList = jsonData['players'] as List<dynamic>;
         return playersList
             .map(

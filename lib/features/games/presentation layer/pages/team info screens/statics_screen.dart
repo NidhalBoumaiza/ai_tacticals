@@ -53,11 +53,17 @@ class _StatsScreenState extends State<StatsScreen> {
           return _buildStatsContent(state.stats);
         } else if (state is StatsError) {
           return Center(
-            child: ReusableText(
-              text: state.message,
-              textSize: 100.sp,
-              textColor: Colors.red,
-              textFontWeight: FontWeight.w600,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset("assets/images/Empty.png"),
+                ReusableText(
+                  text: "No Data Found For This ",
+                  textSize: 120.sp,
+                  textColor: Colors.white,
+                  textFontWeight: FontWeight.w900,
+                ),
+              ],
             ),
           );
         }
