@@ -1,27 +1,28 @@
-// lib/features/matches/data/models/matches_models.dart
 import '../../domain layer/entities/league_entity.dart';
 import '../../domain layer/entities/matches_entities.dart';
 import '../../domain layer/entities/team_standing _entity.dart';
 
 class MatchEventsPerTeamModel {
   final Map<String, List<MatchEventModel>>? tournamentTeamEvents;
+  final List<MatchEventModel>? events;
 
-  MatchEventsPerTeamModel({this.tournamentTeamEvents});
+  MatchEventsPerTeamModel({this.tournamentTeamEvents, this.events});
 
   factory MatchEventsPerTeamModel.fromJson(Map<String, dynamic> json) {
     print('Parsing MatchEventsPerTeamModel: $json');
-    late dynamic events = json['tournamentTeamEvents'] as Map<String, dynamic>?;
-    events ??= json['events'] as Map<String, dynamic>?;
-    print('Events: $events');
 
-    final Map<String, List<MatchEventModel>> parsedEvents = {};
-    if (events != null) {
-      events.forEach((outerKey, innerMap) {
+    // Handle "tournamentTeamEvents" (Map<String, dynamic>)
+    final tournamentTeamEventsData =
+        json['tournamentTeamEvents'] as Map<String, dynamic>?;
+    Map<String, List<MatchEventModel>>? parsedTournamentTeamEvents;
+    if (tournamentTeamEventsData != null) {
+      parsedTournamentTeamEvents = {};
+      tournamentTeamEventsData.forEach((outerKey, innerMap) {
         print('Processing outer key: $outerKey with value: $innerMap');
         if (innerMap is Map<String, dynamic>) {
           innerMap.forEach((teamId, matchList) {
             print('Mapping team $teamId with match list: $matchList');
-            parsedEvents[teamId] =
+            parsedTournamentTeamEvents![teamId] =
                 (matchList as List<dynamic>?)?.map((e) {
                   print('Parsing match event: $e');
                   return MatchEventModel.fromJson(e as Map<String, dynamic>);
@@ -32,11 +33,45 @@ class MatchEventsPerTeamModel {
       });
     }
 
+    // Handle "events" (List<dynamic>)
+    final eventsData = json['events'] as List<dynamic>?;
+    List<MatchEventModel>? parsedEvents;
+    if (eventsData != null) {
+      parsedEvents =
+          eventsData.map((e) {
+            print('Parsing match event: $e');
+            return MatchEventModel.fromJson(e as Map<String, dynamic>);
+          }).toList();
+    }
+
+    print('Parsed TournamentTeamEvents: $parsedTournamentTeamEvents');
     print('Parsed Events: $parsedEvents');
-    return MatchEventsPerTeamModel(tournamentTeamEvents: parsedEvents);
+    return MatchEventsPerTeamModel(
+      tournamentTeamEvents: parsedTournamentTeamEvents,
+      events: parsedEvents,
+    );
   }
 
   MatchEventsPerTeamEntity toEntity() {
+    // If "events" is present, group by team ID (homeTeam or awayTeam) for consistency
+    if (events != null && events!.isNotEmpty) {
+      final Map<String, List<MatchEventEntity>> groupedByTeam = {};
+      for (var match in events!) {
+        final homeTeamId = match.homeTeam?.id.toString();
+        final awayTeamId = match.awayTeam?.id.toString();
+        final matchEntity = match.toEntity();
+
+        if (homeTeamId != null) {
+          groupedByTeam.putIfAbsent(homeTeamId, () => []).add(matchEntity);
+        }
+        if (awayTeamId != null) {
+          groupedByTeam.putIfAbsent(awayTeamId, () => []).add(matchEntity);
+        }
+      }
+      return MatchEventsPerTeamEntity(tournamentTeamEvents: groupedByTeam);
+    }
+
+    // If "tournamentTeamEvents" is present, convert directly
     return MatchEventsPerTeamEntity(
       tournamentTeamEvents: tournamentTeamEvents?.map(
         (key, value) => MapEntry(key, value.map((e) => e.toEntity()).toList()),
@@ -49,6 +84,7 @@ class MatchEventsPerTeamModel {
       'tournamentTeamEvents': tournamentTeamEvents?.map(
         (key, value) => MapEntry(key, value.map((e) => e.toJson()).toList()),
       ),
+      'events': events?.map((e) => e.toJson()).toList(),
     };
   }
 }
@@ -359,7 +395,6 @@ class ScoreModel {
   }
 }
 
-// Add toJson to dependent entities if not already present
 extension TeamStandingEntityExtension on TeamStandingEntity {
   Map<String, dynamic> toJson() {
     return {

@@ -10,4 +10,10 @@ abstract class MatchesRepository {
   );
 
   Future<Either<Failure, MatchEventsPerTeamEntity>> getHomeMatches(String date);
+
+  Future<Either<Failure, List<MatchEventEntity>>> getMatchesPerRound(
+    int leagueId,
+    int seasonId,
+    int round,
+  );
 }

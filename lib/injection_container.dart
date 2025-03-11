@@ -58,6 +58,7 @@ import 'features/games/domain layer/usecases/get_all_players_infos_use_case.dart
 import 'features/games/domain layer/usecases/get_home_matches_use_case.dart';
 import 'features/games/domain layer/usecases/get_leagues_by_country_use_case.dart';
 import 'features/games/domain layer/usecases/get_matches_by_team_use_case.dart';
+import 'features/games/domain layer/usecases/get_matches_per_round_use_case.dart';
 import 'features/games/domain layer/usecases/get_media_use_case.dart';
 import 'features/games/domain layer/usecases/get_national_team_stats_use_case.dart';
 import 'features/games/domain layer/usecases/get_player_attributes_use_case.dart';
@@ -71,6 +72,7 @@ import 'features/games/presentation layer/bloc/home match bloc/home_matches_bloc
 import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
 import 'features/games/presentation layer/bloc/manager bloc/manager_bloc.dart';
 import 'features/games/presentation layer/bloc/match details bloc/match_details_bloc.dart';
+import 'features/games/presentation layer/bloc/matches per round bloc/matches_per_round_bloc.dart';
 import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
 import 'features/games/presentation layer/bloc/national team bloc/national_team_stats_bloc.dart';
 import 'features/games/presentation layer/bloc/player match stats bloc/player_match_stats_bloc.dart';
@@ -117,7 +119,10 @@ Future<void> init() async {
   ); // Added PlayerPerMatchBloc
   sl.registerFactory(() => ManagerBloc(repository: sl())); // Added ManagerBloc
   sl.registerFactory(() => PlayerMatchStatsBloc(getPlayerMatchStats: sl()));
-  // Use Cases
+
+  sl.registerFactory(() => HomeMatchesBloc(getHomeMatchesUseCase: sl()));
+  sl.registerFactory(() => MatchesPerRoundBloc(getMatchesPerRound: sl()));
+  //********************** Use Cases **********************//
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));
   sl.registerLazySingleton(() => GetAllCountriesUseCase(sl()));
@@ -129,7 +134,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetTeamStatsUseCAse(sl()));
   sl.registerLazySingleton(() => GetMatchDetailsUseCase(sl()));
   sl.registerLazySingleton(() => GetPlayerMatchStats(sl()));
-  sl.registerFactory(() => HomeMatchesBloc(getHomeMatchesUseCase: sl()));
+  sl.registerLazySingleton(() => GetMatchesPerRound(sl()));
   // New Player Use Cases
   sl.registerLazySingleton(() => GetPlayerAttributesUseCase(sl()));
   sl.registerLazySingleton(() => GetNationalTeamStatsUseCase(sl()));

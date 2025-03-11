@@ -30,15 +30,19 @@ class OneMatchStaticsScreen extends StatefulWidget {
 
 class _OneMatchStaticsScreenState extends State<OneMatchStaticsScreen> {
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    context.read<MatchDetailsBloc>().add(
+      GetMatchDetailsEvent(matchId: widget.matchId),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocBuilder<MatchDetailsBloc, MatchDetailsState>(
       builder: (context, state) {
-        if (state is MatchDetailsInitial) {
-          BlocProvider.of<MatchDetailsBloc>(
-            context,
-          ).add(GetMatchDetailsEvent(matchId: widget.matchId));
-          return const SizedBox.shrink();
-        } else if (state is MatchDetailsLoading) {
+        if (state is MatchDetailsLoading) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFFF3D07E)),
           );
@@ -46,9 +50,17 @@ class _OneMatchStaticsScreenState extends State<OneMatchStaticsScreen> {
           return MatchDetailsContent(matchDetails: state.matchDetails);
         } else if (state is MatchDetailsError) {
           return Center(
-            child: Text(
-              state.message,
-              style: const TextStyle(color: Color(0xFFF3D07E), fontSize: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset("assets/images/Empty.png"),
+                ReusableText(
+                  text: "No Data Found For This ",
+                  textSize: 120.sp,
+                  textColor: Colors.white,
+                  textFontWeight: FontWeight.w900,
+                ),
+              ],
             ),
           );
         }

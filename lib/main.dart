@@ -23,6 +23,7 @@ import 'features/auth/presentation%20layer/pages/starter_screen.dart';
 import 'features/games/presentation layer/bloc/home match bloc/home_matches_bloc.dart';
 import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
 import 'features/games/presentation layer/bloc/match details bloc/match_details_bloc.dart';
+import 'features/games/presentation layer/bloc/matches per round bloc/matches_per_round_bloc.dart';
 import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
 import 'features/games/presentation layer/bloc/national team bloc/national_team_stats_bloc.dart';
 import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
@@ -81,6 +82,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<ManagerBloc>()),
         BlocProvider(create: (context) => di.sl<PlayerMatchStatsBloc>()),
         BlocProvider(create: (context) => di.sl<HomeMatchesBloc>()),
+        BlocProvider(create: (context) => di.sl<MatchesPerRoundBloc>()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),

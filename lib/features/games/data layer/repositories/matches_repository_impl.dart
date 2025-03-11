@@ -77,6 +77,43 @@ class MatchesRepositoryImpl implements MatchesRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, List<MatchEventEntity>>> getMatchesPerRound(
+    int leagueId,
+    int seasonId,
+    int round,
+  ) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final remoteMatches = await remoteDataSource.getMatchesPerRound(
+          leagueId,
+          seasonId,
+          round,
+        );
+        await localDataSource.cacheMatchesPerRound(
+          remoteMatches,
+          leagueId,
+          seasonId,
+          round,
+        );
+        return Right(remoteMatches.map((model) => model.toEntity()).toList());
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      try {
+        final localMatches = await localDataSource.getLastMatchesPerRound(
+          leagueId,
+          seasonId,
+          round,
+        );
+        return Right(localMatches);
+      } on EmptyCacheException {
+        return Left(OfflineFailure());
+      }
+    }
+  }
+
   MatchEventsPerTeamEntity _convertToEntity(List<MatchEventModel> matches) {
     final Map<String, List<MatchEventModel>> groupedMatches = {};
     for (var match in matches) {

@@ -11,6 +11,7 @@ import '../../bloc/matches_bloc/matches_bloc.dart';
 import '../../bloc/standing bloc/standing_bloc.dart';
 import '../../widgets/year_drop_down_menu.dart';
 import 'matches_by_team_screen.dart';
+import 'matches_per_round_screen.dart';
 
 class LeagueInfosSqueletteScreen extends StatefulWidget {
   final int leagueId;
@@ -37,9 +38,12 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
-    selectedSeasonId = widget.seasons[0].id; // Default to the first season
-    // Dispatch initial events for the default season
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: 0,
+    ); // Updated to 3 tabs
+    selectedSeasonId = widget.seasons[0].id;
     context.read<StandingBloc>().add(
       GetStanding(leagueId: widget.leagueId, seasonId: selectedSeasonId),
     );
@@ -61,7 +65,6 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
     setState(() {
       selectedSeasonId = newSeasonId;
     });
-    // Dispatch new events to update the data for the selected season
     context.read<StandingBloc>().add(
       GetStanding(leagueId: widget.leagueId, seasonId: selectedSeasonId),
     );
@@ -77,7 +80,7 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: DefaultTabController(
-        length: 2,
+        length: 3, // Updated to 3
         child: NestedScrollView(
           headerSliverBuilder: (context, value) {
             return [
@@ -102,31 +105,22 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        Row(
+                        SizedBox(width: 120.w),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            SizedBox(width: 120.w),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ReusableText(
-                                      text: widget.leagueName,
-                                      textSize: 120.sp,
-                                      textFontWeight: FontWeight.w600,
-                                      textColor: Colors.white,
-                                    ),
-                                    YearDropdownMenu(
-                                      seasons: widget.seasons,
-                                      onYearChanged: _onYearChanged,
-                                    ),
-                                    SizedBox(height: 50.h),
-                                  ],
-                                ),
-                              ],
+                            ReusableText(
+                              text: widget.leagueName,
+                              textSize: 120.sp,
+                              textFontWeight: FontWeight.w600,
+                              textColor: Colors.white,
                             ),
+                            YearDropdownMenu(
+                              seasons: widget.seasons,
+                              onYearChanged: _onYearChanged,
+                            ),
+                            SizedBox(height: 50.h),
                           ],
                         ),
                       ],
@@ -142,7 +136,6 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                     labelPadding: EdgeInsets.symmetric(horizontal: 0.w),
                     tabs: [
                       Tab(
-                        iconMargin: EdgeInsets.zero,
                         child: ReusableText(
                           text: 'Standings',
                           textSize: 120.sp,
@@ -153,6 +146,14 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                       Tab(
                         child: ReusableText(
                           text: 'Matches',
+                          textSize: 120.sp,
+                          textFontWeight: FontWeight.w600,
+                          textColor: Colors.white,
+                        ),
+                      ),
+                      Tab(
+                        child: ReusableText(
+                          text: 'Rounds',
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.white,
@@ -175,6 +176,11 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
               GamesPerRoundScreen(
                 leagueName: widget.leagueName,
                 uniqueTournamentId: widget.leagueId,
+                seasonId: selectedSeasonId,
+              ),
+              MatchesPerRoundScreen(
+                leagueName: widget.leagueName,
+                leagueId: widget.leagueId,
                 seasonId: selectedSeasonId,
               ),
             ],

@@ -214,14 +214,30 @@ class _LeaguesAndMatchesByCountryWidgetState
             builder: (context, state) {
               if (state is SeasonsLoading) {
                 return Container(
-                  height: 200.h,
-                  width: 300.w, // Adjust the width to make it rectangular
+                  height: 200.h, // Height of the outer Container
+                  width: 200.h, // Width of the outer Container
                   child: AlertDialog(
                     backgroundColor: AppColor.primaryColor,
-                    contentPadding: EdgeInsets.all(16.h),
-                    content: Lottie.asset(
-                      'assets/lottie/animationBallLoading.json',
-                      height: 220.h,
+                    contentPadding: EdgeInsets.zero,
+                    // Remove default padding to control size precisely
+                    insetPadding: EdgeInsets.zero,
+                    // Remove extra padding around the dialog
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        10.r,
+                      ), // Optional: adjust border radius
+                    ),
+                    content: SizedBox(
+                      height: 200.h,
+                      // Explicit height for the content
+                      width: 200.h,
+                      // Explicit width for the content (makes it rectangular)
+                      child: Lottie.asset(
+                        'assets/lottie/animationBallLoading.json',
+                        fit:
+                            BoxFit
+                                .contain, // Ensure the Lottie animation fits within the bounds
+                      ),
                     ),
                   ),
                 );

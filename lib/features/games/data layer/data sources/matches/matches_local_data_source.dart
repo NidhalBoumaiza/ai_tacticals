@@ -21,6 +21,19 @@ abstract class MatchesLocalDataSource {
   Future<MatchEventsPerTeamEntity> getLastHomeMatches(String date);
 
   Future<void> cacheHomeMatches(MatchEventsPerTeamEntity matches, String date);
+
+  Future<List<MatchEventEntity>> getLastMatchesPerRound(
+    int leagueId,
+    int seasonId,
+    int round,
+  );
+
+  Future<void> cacheMatchesPerRound(
+    List<MatchEventModel> matches,
+    int leagueId,
+    int seasonId,
+    int round,
+  );
 }
 
 class MatchesLocalDataSourceImpl implements MatchesLocalDataSource {
@@ -30,6 +43,7 @@ class MatchesLocalDataSourceImpl implements MatchesLocalDataSource {
 
   static const String cacheKeyPrefix = 'MATCHES_PER_TEAM_';
   static const String homeCacheKeyPrefix = 'HOME_MATCHES_';
+  static const String roundCacheKeyPrefix = 'MATCHES_PER_ROUND_';
 
   @override
   Future<MatchEventsPerTeamEntity> getLastMatchesPerTeam(
@@ -182,6 +196,40 @@ class MatchesLocalDataSourceImpl implements MatchesLocalDataSource {
       ),
     );
     final jsonString = jsonEncode(model.toJson());
+    await sharedPreferences.setString(key, jsonString);
+  }
+
+  @override
+  Future<List<MatchEventEntity>> getLastMatchesPerRound(
+    int leagueId,
+    int seasonId,
+    int round,
+  ) async {
+    final key = '$roundCacheKeyPrefix${leagueId}_$seasonId$round';
+    final jsonString = sharedPreferences.getString(key);
+
+    if (jsonString != null) {
+      final json = jsonDecode(jsonString) as List<dynamic>;
+      return json
+          .map(
+            (e) =>
+                MatchEventModel.fromJson(e as Map<String, dynamic>).toEntity(),
+          )
+          .toList();
+    } else {
+      throw EmptyCacheException("No cache found for round $round");
+    }
+  }
+
+  @override
+  Future<void> cacheMatchesPerRound(
+    List<MatchEventModel> matches,
+    int leagueId,
+    int seasonId,
+    int round,
+  ) async {
+    final key = '$roundCacheKeyPrefix${leagueId}_$seasonId$round';
+    final jsonString = jsonEncode(matches.map((e) => e.toJson()).toList());
     await sharedPreferences.setString(key, jsonString);
   }
 }

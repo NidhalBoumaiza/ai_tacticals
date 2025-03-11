@@ -1,11 +1,15 @@
 import 'package:analysis_ai/features/games/domain%20layer/entities/team_standing%20_entity.dart';
+import 'package:equatable/equatable.dart';
 
 import 'league_entity.dart';
 
-class MatchEventsPerTeamEntity {
+class MatchEventsPerTeamEntity extends Equatable {
   final Map<String, List<MatchEventEntity>>? tournamentTeamEvents;
 
   const MatchEventsPerTeamEntity({this.tournamentTeamEvents});
+
+  @override
+  List<Object?> get props => [tournamentTeamEvents];
 }
 
 class MatchEventEntity {
