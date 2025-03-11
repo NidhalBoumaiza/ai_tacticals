@@ -3,8 +3,10 @@ import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:lottie/lottie.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
+import '../../../../../../core/app_colors.dart';
 import '../../../bloc/leagues_bloc/leagues_bloc.dart';
 import '../../../cubit/seasons cubit/seasons_cubit.dart';
 import '../../../pages/league info screens/league_infos_squelette_screen.dart';
@@ -156,7 +158,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                       return GestureDetector(
                         onTap: () {
                           context.read<SeasonsCubit>().getSeasons(league.id);
-                          //   _showSeasonsDialog(context, league.id!, league.name!);
+                          _showSeasonsDialog(context, league.id!, league.name!);
                         },
                         child: Container(
                           height: 105.h,
@@ -178,49 +180,6 @@ class _LeaguesAndMatchesByCountryWidgetState
                                   textFontWeight: FontWeight.w400,
                                   textColor: const Color(0xffececee),
                                 ),
-                              ),
-                              BlocConsumer<SeasonsCubit, SeasonsState>(
-                                listener: (context, state) {
-                                  if (state is SeasonsError) {
-                                    showErrorSnackBar(
-                                      context,
-                                      "Error while loading seasons",
-                                    );
-                                  } else if (state is SeasonsLoaded) {
-                                    print(
-                                      "Seasons loaded: ${state.seasons.length}",
-                                    );
-                                    WidgetsBinding.instance.addPostFrameCallback(
-                                      (_) {
-                                        Navigator.pop(context); // Close dialog
-                                        PersistentNavBarNavigator.pushNewScreen(
-                                          context,
-                                          screen: LeagueInfosSqueletteScreen(
-                                            leagueId: league.id!,
-                                            leagueName: league.name!,
-                                            seasons: state.seasons,
-                                          ),
-                                          withNavBar: false,
-                                          pageTransitionAnimation:
-                                              PageTransitionAnimation
-                                                  .slideRight,
-                                        );
-                                      },
-                                    );
-                                  }
-                                },
-                                builder: (context, state) {
-                                  return state is SeasonsLoading
-                                      ? SizedBox(
-                                        width: 35.sp,
-                                        height: 35.sp,
-                                        child: CircularProgressIndicator(
-                                          color: const Color(0xffececee),
-                                          strokeWidth: 2.0,
-                                        ),
-                                      )
-                                      : SizedBox.shrink();
-                                },
                               ),
                             ],
                           ),
@@ -254,13 +213,15 @@ class _LeaguesAndMatchesByCountryWidgetState
             },
             builder: (context, state) {
               if (state is SeasonsLoading) {
-                return AlertDialog(
-                  contentPadding: EdgeInsets.all(16.h),
-                  content: SizedBox(
-                    width: 100.w,
-                    height: 100.h,
-                    child: const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2.0),
+                return Container(
+                  height: 200.h,
+                  width: 300.w, // Adjust the width to make it rectangular
+                  child: AlertDialog(
+                    backgroundColor: AppColor.primaryColor,
+                    contentPadding: EdgeInsets.all(16.h),
+                    content: Lottie.asset(
+                      'assets/lottie/animationBallLoading.json',
+                      height: 220.h,
                     ),
                   ),
                 );
