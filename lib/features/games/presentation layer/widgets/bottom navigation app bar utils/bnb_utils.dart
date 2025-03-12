@@ -15,7 +15,7 @@ List<Widget> buildScreens() {
 List<PersistentBottomNavBarItem> navBarsItems() {
   return [
     PersistentBottomNavBarItem(
-      icon: Icon(FontAwesomeIcons.clock, size: 25),
+      icon: Icon(FontAwesomeIcons.futbol, size: 25),
       title: ("Matchs"),
       activeColorPrimary: AppColor.primaryColor,
       inactiveColorPrimary: CupertinoColors.systemGrey,

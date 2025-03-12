@@ -1,17 +1,20 @@
 import 'dart:async';
 
+import 'package:analysis_ai/core/app_colors.dart';
+import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart'; // Add this package
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../domain layer/entities/matches_entities.dart';
 import '../../bloc/home match bloc/home_matches_bloc.dart';
 import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+import '../match details screen/match_details_squelette_screen.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -54,6 +57,15 @@ class _MatchesScreenState extends State<MatchesScreen> {
     341,
   ];
 
+  // Custom cache manager for longer retention and larger size
+  static final CustomCacheManager _cacheManager = CustomCacheManager(
+    Config(
+      'teamLogosCache',
+      stalePeriod: const Duration(days: 30), // Cache for 30 days
+      maxNrOfCacheObjects: 500, // Increase cache size for more logos
+    ),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +80,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
         _fetchLiveUpdates(_selectedDate);
       }
     });
+
+    // Preload images for priority leagues
+    _preloadPriorityImages();
   }
 
   @override
@@ -91,6 +106,32 @@ class _MatchesScreenState extends State<MatchesScreen> {
     context.read<HomeMatchesBloc>().add(
       FetchLiveMatchUpdates(date: formattedDate),
     );
+  }
+
+  // Preload images for priority league matches
+  Future<void> _preloadPriorityImages() async {
+    if (!mounted) return;
+
+    final state = context.read<HomeMatchesBloc>().state;
+    if (state is HomeMatchesLoaded) {
+      final matches =
+          state.matches.tournamentTeamEvents?.values
+              .expand((m) => m)
+              .toList() ??
+          [];
+      final priorityMatches = matches.where(
+        (match) => priorityLeagueIds.contains(match.tournament?.id),
+      );
+
+      for (final match in priorityMatches) {
+        final homeUrl =
+            "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small";
+        final awayUrl =
+            "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small";
+        await _cacheManager.downloadFile(homeUrl); // Preload home team logo
+        await _cacheManager.downloadFile(awayUrl); // Preload away team logo
+      }
+    }
   }
 
   String _getMatchStatus(MatchEventEntity match) {
@@ -138,21 +179,21 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
     return GestureDetector(
       onTap: () {
-        // navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-        //   context,
-        //   MatchDetailsSqueletteScreen(
-        //     matchId: match.id!,
-        //     homeTeamId: match.homeTeam!.id.toString(),
-        //     awayTeamId: match.awayTeam!.id.toString(),
-        //     homeShortName: match.homeTeam!.shortName!,
-        //     awayShortName: match.awayTeam!.shortName!,
-        //     leagueName: match.tournament?.name ?? 'Unknown League',
-        //     matchDate: date!,
-        //     matchStatus: status,
-        //     homeScore: match.homeScore?.current ?? 0,
-        //     awayScore: match.awayScore?.current ?? 0,
-        //   ),
-        // );
+        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+          context,
+          MatchDetailsSqueletteScreen(
+            matchId: match.id!,
+            homeTeamId: match.homeTeam!.id.toString(),
+            awayTeamId: match.awayTeam!.id.toString(),
+            homeShortName: match.homeTeam!.shortName!,
+            awayShortName: match.awayTeam!.shortName!,
+            leagueName: match.tournament?.name ?? 'Unknown League',
+            matchDate: date!,
+            matchStatus: status,
+            homeScore: match.homeScore?.current ?? 0,
+            awayScore: match.awayScore?.current ?? 0,
+          ),
+        );
       },
       child: Container(
         padding: EdgeInsets.all(20.w),
@@ -244,15 +285,15 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   CachedNetworkImage(
                     imageUrl:
                         "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small",
+                    cacheManager: _cacheManager,
+                    // Use custom cache manager
+                    fadeInDuration: Duration(milliseconds: 300),
+                    // Smooth transition
                     placeholder:
-                        (context, url) => Shimmer.fromColors(
-                          baseColor: Colors.grey.shade300,
-                          highlightColor: Colors.grey.shade100,
-                          child: Container(
-                            width: 60.w,
-                            height: 60.w,
-                            color: Colors.grey.shade300,
-                          ),
+                        (context, url) => Container(
+                          width: 50.w,
+                          height: 50.w,
+                          color: Colors.grey.shade300, // Simple placeholder
                         ),
                     errorWidget: (context, url, error) => Icon(Icons.error),
                     fit: BoxFit.cover,
@@ -316,15 +357,15 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   CachedNetworkImage(
                     imageUrl:
                         "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small",
+                    cacheManager: _cacheManager,
+                    // Use custom cache manager
+                    fadeInDuration: Duration(milliseconds: 300),
+                    // Smooth transition
                     placeholder:
-                        (context, url) => Shimmer.fromColors(
-                          baseColor: Colors.grey.shade300,
-                          highlightColor: Colors.grey.shade100,
-                          child: Container(
-                            width: 50.w,
-                            height: 50.w,
-                            color: Colors.grey.shade300,
-                          ),
+                        (context, url) => Container(
+                          width: 50.w,
+                          height: 50.w,
+                          color: Colors.grey.shade300, // Simple placeholder
                         ),
                     errorWidget: (context, url, error) => Icon(Icons.error),
                     fit: BoxFit.cover,
@@ -343,13 +384,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
   List<Widget> _buildMatchSection(List<MatchEventEntity> matches) {
     final groupedMatches = _groupMatchesByLeague(matches);
 
-    // Separate priority leagues and others
     final priorityLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
     final otherLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
 
     groupedMatches.entries.forEach((entry) {
-      final leagueId =
-          entry.value.first.tournament?.id; // Use first match's tournament ID
+      final leagueId = entry.value.first.tournament?.id;
       if (leagueId != null && priorityLeagueIds.contains(leagueId)) {
         priorityLeagues.add(entry);
       } else {
@@ -357,7 +396,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
       }
     });
 
-    // Sort priority leagues by their order in priorityLeagueIds
     priorityLeagues.sort((a, b) {
       final aId = a.value.first.tournament?.id ?? 0;
       final bId = b.value.first.tournament?.id ?? 0;
@@ -366,10 +404,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
       return aIndex.compareTo(bIndex);
     });
 
-    // Sort other leagues alphabetically by name
     otherLeagues.sort((a, b) => a.key.compareTo(b.key));
 
-    // Combine the lists: Priority leagues first, then others
     final sortedLeagues = [...priorityLeagues, ...otherLeagues];
 
     return sortedLeagues.map((entry) {
@@ -418,9 +454,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
         backgroundColor: const Color(0xFF33353B),
         title: ReusableText(
           text: 'Matches',
-          textSize: 120.sp,
-          textColor: Colors.white,
-          textFontWeight: FontWeight.w600,
+          textSize: 140.sp,
+          textColor: AppColor.primaryColor,
+          textFontWeight: FontWeight.w800,
         ),
         centerTitle: true,
         actions: [
@@ -428,13 +464,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
             icon: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(Icons.calendar_today, color: Colors.white),
+                Icon(Icons.calendar_today, color: AppColor.primaryColor),
                 Positioned(
                   bottom: 10.h,
                   child: ReusableText(
                     text: _selectedDate.day.toString(),
                     textSize: 60.sp,
-                    textColor: Colors.white,
+                    textColor: AppColor.primaryColor,
                     textFontWeight: FontWeight.bold,
                   ),
                 ),
@@ -448,8 +484,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
           ),
           IconButton(
             icon: Icon(
-              _showLiveMatchesOnly ? Icons.filter_list : Icons.filter_list_off,
-              color: Colors.white,
+              _showLiveMatchesOnly
+                  ? Icons.watch_later
+                  : Icons.watch_later_outlined,
+              color: AppColor.primaryColor,
             ),
             onPressed: () {
               setState(() {
@@ -574,4 +612,11 @@ extension IterableIndexed<T> on Iterable<T> {
       yield f(index++, item);
     }
   }
+}
+
+// Custom cache manager class
+class CustomCacheManager extends CacheManager {
+  CustomCacheManager(Config config) : super(config);
+
+  static const key = 'teamLogosCache';
 }
