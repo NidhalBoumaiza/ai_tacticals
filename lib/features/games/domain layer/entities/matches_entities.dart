@@ -27,6 +27,7 @@ class MatchEventEntity {
   final int? startTimestamp;
   final String? slug;
   final bool? finalResultOnly;
+  final bool? isLive;
 
   const MatchEventEntity({
     this.tournament,
@@ -42,6 +43,7 @@ class MatchEventEntity {
     this.startTimestamp,
     this.slug,
     this.finalResultOnly,
+    this.isLive,
   });
 }
 

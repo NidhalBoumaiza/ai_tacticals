@@ -86,6 +86,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
     return sortedLeagues.map((entry) {
       final leagueName = entry.key;
       final leagueMatches = entry.value;
+
+      if (leagueName == "UEFA Champions League, Knockout Phase") {
+        print("*************************************************************");
+      }
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,11 +110,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   width: 80.w,
                 ),
                 SizedBox(width: 10.w),
-                ReusableText(
-                  text: leagueName,
-                  textSize: 110.sp,
-                  textColor: Colors.white,
-                  textFontWeight: FontWeight.w700,
+                Expanded(
+                  child: ReusableText(
+                    text: leagueName,
+                    textSize: 110.sp,
+                    textColor: Colors.white,
+                    textFontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),

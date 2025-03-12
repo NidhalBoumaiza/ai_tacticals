@@ -45,13 +45,16 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200.h &&
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    print('Scroll: current=$currentScroll, max=$maxScroll');
+    if (currentScroll >= maxScroll - 200.h &&
         context.read<MatchesPerRoundBloc>().state is MatchesPerRoundLoaded) {
       final currentState =
           context.read<MatchesPerRoundBloc>().state as MatchesPerRoundLoaded;
       if (!currentState.isLoadingMore) {
         _currentRound++;
+        print('Scrolling: Fetching round $_currentRound');
         context.read<MatchesPerRoundBloc>().add(
           FetchMatchesPerRound(
             leagueId: widget.leagueId,
@@ -59,6 +62,8 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
             round: _currentRound,
           ),
         );
+      } else {
+        print('Already loading more, skipping fetch for round $_currentRound');
       }
     }
   }

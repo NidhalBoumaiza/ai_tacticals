@@ -103,6 +103,7 @@ class MatchEventModel {
   final int? startTimestamp;
   final String? slug;
   final bool? finalResultOnly;
+  final bool? isLive; // New field to indicate if the match is live
 
   MatchEventModel({
     this.tournament,
@@ -118,28 +119,38 @@ class MatchEventModel {
     this.startTimestamp,
     this.slug,
     this.finalResultOnly,
+    this.isLive,
   });
 
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
     print('Parsing MatchEventModel with JSON: $json');
     try {
+      final tournamentData = json['tournament'] as Map<String, dynamic>?;
+      LeagueEntity? tournamentEntity;
+      if (tournamentData != null) {
+        final uniqueTournamentData =
+            tournamentData['uniqueTournament'] as Map<String, dynamic>?;
+        tournamentEntity = LeagueEntity(
+          id:
+              uniqueTournamentData != null
+                  ? uniqueTournamentData['id']
+                      as int? // Use uniqueTournament.id (e.g., 7)
+                  : tournamentData['id'] as int?, // Fallback to tournament.id
+          name:
+              tournamentData['name']
+                  as String?, // Keep the original tournament.name
+        );
+      }
+
+      final statusData = json['status'] as Map<String, dynamic>?;
+      final statusType = statusData?['type'] as String?;
+      final isLive =
+          statusType == 'inprogress'; // Infer isLive from status.type
+
       return MatchEventModel(
-        tournament:
-            json['tournament'] != null
-                ? LeagueEntity(
-                  id:
-                      (json['tournament'] as Map<String, dynamic>?)?['id']
-                          as int?,
-                  name:
-                      (json['tournament'] as Map<String, dynamic>?)?['name']
-                          as String?,
-                )
-                : null,
+        tournament: tournamentEntity,
         customId: json['customId'] as String?,
-        status:
-            json['status'] != null
-                ? StatusModel.fromJson(json['status'] as Map<String, dynamic>)
-                : null,
+        status: statusData != null ? StatusModel.fromJson(statusData) : null,
         winnerCode: json['winnerCode'] as int?,
         homeTeam:
             json['homeTeam'] != null
@@ -260,6 +271,7 @@ class MatchEventModel {
         startTimestamp: json['startTimestamp'] as int?,
         slug: json['slug'] as String?,
         finalResultOnly: json['finalResultOnly'] as bool?,
+        isLive: isLive, // Set the new isLive field
       );
     } catch (e) {
       print('Error in MatchEventModel.fromJson: $e');
@@ -282,6 +294,7 @@ class MatchEventModel {
       startTimestamp: startTimestamp,
       slug: slug,
       finalResultOnly: finalResultOnly,
+      isLive: isLive, // Pass isLive to the entity
     );
   }
 
@@ -321,6 +334,7 @@ class MatchEventModel {
       'startTimestamp': startTimestamp,
       'slug': slug,
       'finalResultOnly': finalResultOnly,
+      'isLive': isLive, // Include isLive in JSON output
     };
   }
 }

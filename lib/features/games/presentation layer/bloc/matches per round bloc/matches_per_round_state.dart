@@ -1,11 +1,10 @@
-// lib/features/games/presentation/bloc/matches_per_round_bloc/matches_per_round_state.dart
 part of 'matches_per_round_bloc.dart';
 
 abstract class MatchesPerRoundState extends Equatable {
   const MatchesPerRoundState();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class MatchesPerRoundInitial extends MatchesPerRoundState {}
@@ -36,7 +35,7 @@ class MatchesPerRoundLoaded extends MatchesPerRoundState {
   }
 
   @override
-  List<Object> get props => [matches, currentRound, isLoadingMore];
+  List<Object?> get props => [matches, currentRound, isLoadingMore];
 }
 
 class MatchesPerRoundError extends MatchesPerRoundState {
@@ -45,5 +44,5 @@ class MatchesPerRoundError extends MatchesPerRoundState {
   const MatchesPerRoundError({required this.message});
 
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [message];
 }

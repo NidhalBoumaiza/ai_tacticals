@@ -67,25 +67,6 @@ class _LeagueScreenState extends State<LeagueScreen> {
                   ),
                 ),
                 SizedBox(width: 765.w),
-                Icon(
-                  FontAwesomeIcons.calendar,
-                  size: 50.sp,
-                  color: Colors.white,
-                ),
-                SizedBox(width: 65.w),
-                GestureDetector(
-                  onTap: () {
-                    SharedPreferences.getInstance().then((prefs) {
-                      final token = prefs.getString('TOKEN');
-                      print(token);
-                    });
-                  },
-                  child: Icon(
-                    FontAwesomeIcons.magnifyingGlass,
-                    size: 50.sp,
-                    color: Colors.white,
-                  ),
-                ),
               ],
             ),
           ),

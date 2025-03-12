@@ -25,9 +25,14 @@ class MatchesPerRoundBloc
       'Fetching matches: leagueId=${event.leagueId}, seasonId=${event.seasonId}, round=${event.round}',
     );
 
-    // Always emit loading state for a new fetch
-    print('Emitting MatchesPerRoundLoading');
-    emit(MatchesPerRoundLoading());
+    if (state is MatchesPerRoundInitial || event.isRefresh) {
+      print('Emitting MatchesPerRoundLoading');
+      emit(MatchesPerRoundLoading());
+    } else if (state is MatchesPerRoundLoaded) {
+      final currentState = state as MatchesPerRoundLoaded;
+      print('Setting isLoadingMore to true for round ${event.round}');
+      emit(currentState.copyWith(isLoadingMore: true));
+    }
 
     final result = await getMatchesPerRound(
       leagueId: event.leagueId,
@@ -41,29 +46,32 @@ class MatchesPerRoundBloc
         emit(MatchesPerRoundError(message: mapFailureToMessage(failure)));
       },
       (matches) {
-        print('Fetch succeeded: ${matches.length} matches');
+        print(
+          'Fetch succeeded: ${matches.length} matches for round ${event.round}',
+        );
         try {
           if (state is MatchesPerRoundLoading ||
               state is MatchesPerRoundInitial ||
               event.isRefresh) {
-            print('Emitting initial MatchesPerRoundLoaded');
+            print(
+              'Emitting initial MatchesPerRoundLoaded with round ${event.round}',
+            );
             emit(
               MatchesPerRoundLoaded(
                 matches: {event.round: matches},
                 currentRound: event.round,
+                isLoadingMore: false,
               ),
             );
           } else if (state is MatchesPerRoundLoaded) {
             final currentState = state as MatchesPerRoundLoaded;
-            if (currentState.isLoadingMore) {
-              print('Already loading more, skipping');
-              return;
-            }
             final updatedMatches = Map<int, List<MatchEventEntity>>.from(
               currentState.matches,
             );
             updatedMatches[event.round] = matches;
-            print('Emitting updated MatchesPerRoundLoaded');
+            print(
+              'Emitting updated MatchesPerRoundLoaded with ${updatedMatches.keys.length} rounds',
+            );
             emit(
               currentState.copyWith(
                 matches: updatedMatches,
@@ -79,4 +87,4 @@ class MatchesPerRoundBloc
       },
     );
   }
-} // lib/features/games/presentation/bloc/matches_per_round_bloc/matches_per_round_bloc.dart
+}
