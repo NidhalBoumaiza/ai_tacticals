@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +12,6 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../domain layer/entities/matches_entities.dart';
 import '../../bloc/home match bloc/home_matches_bloc.dart';
 import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
-import '../match details screen/match_details_squelette_screen.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -32,13 +30,28 @@ class _MatchesScreenState extends State<MatchesScreen> {
   Timer? _liveUpdateTimer;
   late ScrollController _scrollController;
 
-  // Define the Big Five leagues (case-insensitive partial matches)
-  static const List<String> bigFiveLeagues = [
-    'uefa champions league',
-    'premier league',
-    'la liga',
-    'serie a',
-    'bundesliga',
+  // Define priority league IDs
+  static const List<int> priorityLeagueIds = [
+    17, // e.g., UEFA Champions League
+    7, // e.g., Premier League
+    679, // e.g., La Liga
+    17015, // e.g., Serie A
+    465, // e.g., Bundesliga
+    27,
+    10783,
+    19,
+    21,
+    1054,
+    35,
+    34,
+    8,
+    329,
+    213,
+    984,
+    1682,
+    23,
+    328,
+    341,
   ];
 
   @override
@@ -125,21 +138,21 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
     return GestureDetector(
       onTap: () {
-        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-          context,
-          MatchDetailsSqueletteScreen(
-            matchId: match.id!,
-            homeTeamId: match.homeTeam!.id.toString(),
-            awayTeamId: match.awayTeam!.id.toString(),
-            homeShortName: match.homeTeam!.shortName!,
-            awayShortName: match.awayTeam!.shortName!,
-            leagueName: match.tournament?.name ?? 'Unknown League',
-            matchDate: date!,
-            matchStatus: status,
-            homeScore: match.homeScore?.current ?? 0,
-            awayScore: match.awayScore?.current ?? 0,
-          ),
-        );
+        // navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+        //   context,
+        //   MatchDetailsSqueletteScreen(
+        //     matchId: match.id!,
+        //     homeTeamId: match.homeTeam!.id.toString(),
+        //     awayTeamId: match.awayTeam!.id.toString(),
+        //     homeShortName: match.homeTeam!.shortName!,
+        //     awayShortName: match.awayTeam!.shortName!,
+        //     leagueName: match.tournament?.name ?? 'Unknown League',
+        //     matchDate: date!,
+        //     matchStatus: status,
+        //     homeScore: match.homeScore?.current ?? 0,
+        //     awayScore: match.awayScore?.current ?? 0,
+        //   ),
+        // );
       },
       child: Container(
         padding: EdgeInsets.all(20.w),
@@ -330,39 +343,34 @@ class _MatchesScreenState extends State<MatchesScreen> {
   List<Widget> _buildMatchSection(List<MatchEventEntity> matches) {
     final groupedMatches = _groupMatchesByLeague(matches);
 
-    // Separate Big Five and other leagues
-    final bigFive = <MapEntry<String, List<MatchEventEntity>>>[];
+    // Separate priority leagues and others
+    final priorityLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
     final otherLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
 
     groupedMatches.entries.forEach((entry) {
-      final leagueNameLower = entry.key.toLowerCase();
-      if (bigFiveLeagues.any(
-        (bigLeague) => leagueNameLower.contains(bigLeague),
-      )) {
-        bigFive.add(entry);
+      final leagueId =
+          entry.value.first.tournament?.id; // Use first match's tournament ID
+      if (leagueId != null && priorityLeagueIds.contains(leagueId)) {
+        priorityLeagues.add(entry);
       } else {
         otherLeagues.add(entry);
       }
     });
 
-    // Sort Big Five leagues by predefined order (if desired) or alphabetically
-    bigFive.sort((a, b) {
-      final aIndex = bigFiveLeagues.indexWhere(
-        (league) => a.key.toLowerCase().contains(league),
-      );
-      final bIndex = bigFiveLeagues.indexWhere(
-        (league) => b.key.toLowerCase().contains(league),
-      );
-      return aIndex.compareTo(
-        bIndex,
-      ); // Maintains order from bigFiveLeagues list
+    // Sort priority leagues by their order in priorityLeagueIds
+    priorityLeagues.sort((a, b) {
+      final aId = a.value.first.tournament?.id ?? 0;
+      final bId = b.value.first.tournament?.id ?? 0;
+      final aIndex = priorityLeagueIds.indexOf(aId);
+      final bIndex = priorityLeagueIds.indexOf(bId);
+      return aIndex.compareTo(bIndex);
     });
 
-    // Sort other leagues alphabetically
+    // Sort other leagues alphabetically by name
     otherLeagues.sort((a, b) => a.key.compareTo(b.key));
 
-    // Combine the lists: Big Five first, then others
-    final sortedLeagues = [...bigFive, ...otherLeagues];
+    // Combine the lists: Priority leagues first, then others
+    final sortedLeagues = [...priorityLeagues, ...otherLeagues];
 
     return sortedLeagues.map((entry) {
       final leagueName = entry.key;
