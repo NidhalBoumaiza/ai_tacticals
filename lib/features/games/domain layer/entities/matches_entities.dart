@@ -28,6 +28,47 @@ class MatchEventEntity {
   final String? slug;
   final bool? finalResultOnly;
   final bool? isLive;
+  final TimeEntity? time; // Added TimeEntity field
+
+  // Computed property to get the current live minutes played
+  int? get currentLiveMinutes {
+    if (startTimestamp == null || status?.type != "inprogress")
+      return null; // Only for live matches
+    final now =
+        DateTime.now().millisecondsSinceEpoch ~/
+        1000; // Current time in seconds
+    final elapsedSeconds = now - startTimestamp!;
+    final totalMinutes = (elapsedSeconds / 60).floor();
+
+    if (time?.currentPeriodStartTimestamp != null) {
+      final periodElapsedSeconds = now - time!.currentPeriodStartTimestamp!;
+      final periodMinutes = (periodElapsedSeconds / 60).floor();
+      final timeSinceStart =
+          (time!.currentPeriodStartTimestamp! - startTimestamp!) ~/ 60;
+
+      if (timeSinceStart >= 45) {
+        // Second half
+        final baseMinutes =
+            45 + (time?.injuryTime1 ?? 0); // First half duration
+        return baseMinutes + periodMinutes;
+      } else {
+        // First half
+        return totalMinutes;
+      }
+    }
+
+    // Fallback: Use total time if period info is missing
+    final firstHalfMax = 45 + (time?.injuryTime1 ?? 0);
+    final fullTimeMax =
+        90 + (time?.injuryTime1 ?? 0) + (time?.injuryTime2 ?? 0);
+    if (totalMinutes <= firstHalfMax) {
+      return totalMinutes; // First half
+    } else if (totalMinutes <= fullTimeMax) {
+      return totalMinutes; // Second half
+    } else {
+      return fullTimeMax; // Cap at full time
+    }
+  }
 
   const MatchEventEntity({
     this.tournament,
@@ -44,10 +85,10 @@ class MatchEventEntity {
     this.slug,
     this.finalResultOnly,
     this.isLive,
+    this.time,
   });
 }
 
-// lib/features/matches/domain/entities/status_entity.dart
 class StatusEntity {
   final int? code;
   final String? description;
@@ -56,7 +97,6 @@ class StatusEntity {
   const StatusEntity({this.code, this.description, this.type});
 }
 
-// lib/features/matches/domain/entities/score_entity.dart
 class ScoreEntity {
   final int? current;
   final int? display;
@@ -70,5 +110,17 @@ class ScoreEntity {
     this.period1,
     this.period2,
     this.normaltime,
+  });
+}
+
+class TimeEntity {
+  final int? injuryTime1; // Injury time for first half
+  final int? injuryTime2; // Injury time for second half
+  final int? currentPeriodStartTimestamp;
+
+  const TimeEntity({
+    this.injuryTime1,
+    this.injuryTime2,
+    this.currentPeriodStartTimestamp,
   });
 }

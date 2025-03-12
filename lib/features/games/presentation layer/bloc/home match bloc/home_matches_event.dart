@@ -9,8 +9,18 @@ abstract class HomeMatchesEvent extends Equatable {
 
 class FetchHomeMatches extends HomeMatchesEvent {
   final String date;
+  final bool isInitial;
 
-  FetchHomeMatches({required this.date});
+  FetchHomeMatches({required this.date, this.isInitial = false});
+
+  @override
+  List<Object?> get props => [date, isInitial];
+}
+
+class FetchLiveMatchUpdates extends HomeMatchesEvent {
+  final String date;
+
+  FetchLiveMatchUpdates({required this.date});
 
   @override
   List<Object?> get props => [date];

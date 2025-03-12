@@ -14,6 +14,9 @@ class HomeMatchesBloc extends Bloc<HomeMatchesEvent, HomeMatchesState> {
   HomeMatchesBloc({required this.getHomeMatchesUseCase})
     : super(HomeMatchesInitial()) {
     on<FetchHomeMatches>(_onFetchHomeMatches);
+    on<FetchLiveMatchUpdates>(
+      _onFetchLiveMatchUpdates,
+    ); // Add handler for live updates
   }
 
   Future<void> _onFetchHomeMatches(
@@ -32,5 +35,24 @@ class HomeMatchesBloc extends Bloc<HomeMatchesEvent, HomeMatchesState> {
         emit(HomeMatchesLoaded(matches: matches));
       },
     );
+  }
+
+  Future<void> _onFetchLiveMatchUpdates(
+    FetchLiveMatchUpdates event,
+    Emitter<HomeMatchesState> emit,
+  ) async {
+    // Only update if already loaded to avoid unnecessary loading states
+    if (state is HomeMatchesLoaded) {
+      final failureOrMatches = await getHomeMatchesUseCase(event.date);
+      failureOrMatches.fold(
+        (failure) {
+          print('Live update failed: ${mapFailureToMessage(failure)}');
+          // Don't emit error state, keep current state
+        },
+        (matches) {
+          emit(HomeMatchesLoaded(matches: matches));
+        },
+      );
+    }
   }
 }

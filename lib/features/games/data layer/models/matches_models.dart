@@ -11,7 +11,6 @@ class MatchEventsPerTeamModel {
   factory MatchEventsPerTeamModel.fromJson(Map<String, dynamic> json) {
     print('Parsing MatchEventsPerTeamModel: $json');
 
-    // Handle "tournamentTeamEvents" (Map<String, dynamic>)
     final tournamentTeamEventsData =
         json['tournamentTeamEvents'] as Map<String, dynamic>?;
     Map<String, List<MatchEventModel>>? parsedTournamentTeamEvents;
@@ -33,7 +32,6 @@ class MatchEventsPerTeamModel {
       });
     }
 
-    // Handle "events" (List<dynamic>)
     final eventsData = json['events'] as List<dynamic>?;
     List<MatchEventModel>? parsedEvents;
     if (eventsData != null) {
@@ -53,7 +51,6 @@ class MatchEventsPerTeamModel {
   }
 
   MatchEventsPerTeamEntity toEntity() {
-    // If "events" is present, group by team ID (homeTeam or awayTeam) for consistency
     if (events != null && events!.isNotEmpty) {
       final Map<String, List<MatchEventEntity>> groupedByTeam = {};
       for (var match in events!) {
@@ -71,7 +68,6 @@ class MatchEventsPerTeamModel {
       return MatchEventsPerTeamEntity(tournamentTeamEvents: groupedByTeam);
     }
 
-    // If "tournamentTeamEvents" is present, convert directly
     return MatchEventsPerTeamEntity(
       tournamentTeamEvents: tournamentTeamEvents?.map(
         (key, value) => MapEntry(key, value.map((e) => e.toEntity()).toList()),
@@ -103,7 +99,45 @@ class MatchEventModel {
   final int? startTimestamp;
   final String? slug;
   final bool? finalResultOnly;
-  final bool? isLive; // New field to indicate if the match is live
+  final bool? isLive;
+  final TimeModel? time;
+
+  int? get currentLiveMinutes {
+    if (startTimestamp == null || !isLive!)
+      return null; // Only for live matches
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final elapsedSeconds = now - startTimestamp!;
+    final totalMinutes = (elapsedSeconds / 60).floor();
+
+    if (time?.currentPeriodStartTimestamp != null) {
+      final periodElapsedSeconds = now - time!.currentPeriodStartTimestamp!;
+      final periodMinutes = (periodElapsedSeconds / 60).floor();
+      final timeSinceStart =
+          (time!.currentPeriodStartTimestamp! - startTimestamp!) ~/ 60;
+
+      if (timeSinceStart >= 45) {
+        // Second half
+        final baseMinutes =
+            45 + (time?.injuryTime1 ?? 0); // First half duration
+        return baseMinutes + periodMinutes;
+      } else {
+        // First half
+        return totalMinutes;
+      }
+    }
+
+    // Fallback: Use total time if period info is missing
+    final firstHalfMax = 45 + (time?.injuryTime1 ?? 0);
+    final fullTimeMax =
+        90 + (time?.injuryTime1 ?? 0) + (time?.injuryTime2 ?? 0);
+    if (totalMinutes <= firstHalfMax) {
+      return totalMinutes; // First half
+    } else if (totalMinutes <= fullTimeMax) {
+      return totalMinutes; // Second half
+    } else {
+      return fullTimeMax; // Cap at full time
+    }
+  }
 
   MatchEventModel({
     this.tournament,
@@ -120,6 +154,7 @@ class MatchEventModel {
     this.slug,
     this.finalResultOnly,
     this.isLive,
+    this.time,
   });
 
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
@@ -133,19 +168,15 @@ class MatchEventModel {
         tournamentEntity = LeagueEntity(
           id:
               uniqueTournamentData != null
-                  ? uniqueTournamentData['id']
-                      as int? // Use uniqueTournament.id (e.g., 7)
-                  : tournamentData['id'] as int?, // Fallback to tournament.id
-          name:
-              tournamentData['name']
-                  as String?, // Keep the original tournament.name
+                  ? uniqueTournamentData['id'] as int?
+                  : tournamentData['id'] as int?,
+          name: tournamentData['name'] as String?,
         );
       }
 
       final statusData = json['status'] as Map<String, dynamic>?;
       final statusType = statusData?['type'] as String?;
-      final isLive =
-          statusType == 'inprogress'; // Infer isLive from status.type
+      final isLive = statusType == 'inprogress';
 
       return MatchEventModel(
         tournament: tournamentEntity,
@@ -267,11 +298,16 @@ class MatchEventModel {
                 ? ScoreModel.fromJson(json['awayScore'] as Map<String, dynamic>)
                 : null,
         hasXg: json['hasXg'] as bool?,
+        // Note: Not in JSON, might be unused
         id: json['id'] as int?,
         startTimestamp: json['startTimestamp'] as int?,
         slug: json['slug'] as String?,
         finalResultOnly: json['finalResultOnly'] as bool?,
-        isLive: isLive, // Set the new isLive field
+        isLive: isLive,
+        time:
+            json['time'] != null
+                ? TimeModel.fromJson(json['time'] as Map<String, dynamic>)
+                : null,
       );
     } catch (e) {
       print('Error in MatchEventModel.fromJson: $e');
@@ -294,7 +330,8 @@ class MatchEventModel {
       startTimestamp: startTimestamp,
       slug: slug,
       finalResultOnly: finalResultOnly,
-      isLive: isLive, // Pass isLive to the entity
+      isLive: isLive,
+      time: time?.toEntity(),
     );
   }
 
@@ -334,7 +371,8 @@ class MatchEventModel {
       'startTimestamp': startTimestamp,
       'slug': slug,
       'finalResultOnly': finalResultOnly,
-      'isLive': isLive, // Include isLive in JSON output
+      'isLive': isLive,
+      'time': time?.toJson(),
     };
   }
 }
@@ -405,6 +443,42 @@ class ScoreModel {
       'period1': period1,
       'period2': period2,
       'normaltime': normaltime,
+    };
+  }
+}
+
+class TimeModel {
+  final int? injuryTime1;
+  final int? injuryTime2;
+  final int? currentPeriodStartTimestamp;
+
+  TimeModel({
+    this.injuryTime1,
+    this.injuryTime2,
+    this.currentPeriodStartTimestamp,
+  });
+
+  factory TimeModel.fromJson(Map<String, dynamic> json) {
+    return TimeModel(
+      injuryTime1: json['injuryTime1'] as int?,
+      injuryTime2: json['injuryTime2'] as int?,
+      currentPeriodStartTimestamp: json['currentPeriodStartTimestamp'] as int?,
+    );
+  }
+
+  TimeEntity toEntity() {
+    return TimeEntity(
+      injuryTime1: injuryTime1,
+      injuryTime2: injuryTime2,
+      currentPeriodStartTimestamp: currentPeriodStartTimestamp,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'injuryTime1': injuryTime1,
+      'injuryTime2': injuryTime2,
+      'currentPeriodStartTimestamp': currentPeriodStartTimestamp,
     };
   }
 }
