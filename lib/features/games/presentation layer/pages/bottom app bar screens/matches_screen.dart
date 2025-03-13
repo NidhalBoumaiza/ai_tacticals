@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:analysis_ai/core/app_colors.dart';
-import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +13,6 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../domain layer/entities/matches_entities.dart';
 import '../../bloc/home match bloc/home_matches_bloc.dart';
 import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
-import '../match details screen/match_details_squelette_screen.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -177,206 +175,187 @@ class _MatchesScreenState extends State<MatchesScreen> {
             : null;
     final status = _getMatchStatus(match);
 
-    return GestureDetector(
-      onTap: () {
-        navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-          context,
-          MatchDetailsSqueletteScreen(
-            matchId: match.id!,
-            homeTeamId: match.homeTeam!.id.toString(),
-            awayTeamId: match.awayTeam!.id.toString(),
-            homeShortName: match.homeTeam!.shortName!,
-            awayShortName: match.awayTeam!.shortName!,
-            leagueName: match.tournament?.name ?? 'Unknown League',
-            matchDate: date!,
-            matchStatus: status,
-            homeScore: match.homeScore?.current ?? 0,
-            awayScore: match.awayScore?.current ?? 0,
-          ),
-        );
-      },
-      child: Container(
-        padding: EdgeInsets.all(20.w),
-        decoration: BoxDecoration(
-          color: const Color(0xff161d1f),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        margin: EdgeInsets.only(bottom: 12.h),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 180.w,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
-                    selector: (state) {
-                      if (state is HomeMatchesLoaded) {
-                        final updatedMatch = state
-                            .matches
-                            .tournamentTeamEvents
-                            ?.values
-                            .expand((matches) => matches)
-                            .firstWhere(
-                              (m) => m.id == match.id,
-                              orElse: () => match,
-                            );
-                        final isLive = updatedMatch?.isLive ?? false;
-                        final currentMinutes = updatedMatch?.currentLiveMinutes;
-                        if (isLive && currentMinutes != null) {
-                          return "$currentMinutes'";
-                        }
-                        return date != null
-                            ? "${DateFormat('MMM d').format(date)} ${date.hour}:${date.minute.toString().padLeft(2, '0')}"
-                            : "N/A";
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: const Color(0xff161d1f),
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      margin: EdgeInsets.only(bottom: 12.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 180.w,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
+                  selector: (state) {
+                    if (state is HomeMatchesLoaded) {
+                      final updatedMatch = state
+                          .matches
+                          .tournamentTeamEvents
+                          ?.values
+                          .expand((matches) => matches)
+                          .firstWhere(
+                            (m) => m.id == match.id,
+                            orElse: () => match,
+                          );
+                      final isLive = updatedMatch?.isLive ?? false;
+                      final currentMinutes = updatedMatch?.currentLiveMinutes;
+                      if (isLive && currentMinutes != null) {
+                        return "$currentMinutes'";
                       }
                       return date != null
                           ? "${DateFormat('MMM d').format(date)} ${date.hour}:${date.minute.toString().padLeft(2, '0')}"
                           : "N/A";
-                    },
-                    builder: (context, timeText) {
-                      return ReusableText(
-                        text: timeText,
-                        textSize: 90.sp,
-                        textColor:
-                            match.isLive ?? false ? Colors.red : Colors.white,
-                      );
-                    },
-                  ),
-                  BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
-                    selector: (state) {
-                      if (state is HomeMatchesLoaded) {
-                        final updatedMatch = state
-                            .matches
-                            .tournamentTeamEvents
-                            ?.values
-                            .expand((matches) => matches)
-                            .firstWhere(
-                              (m) => m.id == match.id,
-                              orElse: () => match,
-                            );
-                        return _getMatchStatus(updatedMatch!);
-                      }
-                      return status;
-                    },
-                    builder: (context, statusText) {
-                      return statusText.isNotEmpty
-                          ? ReusableText(
-                            text: statusText,
-                            textSize: 80.sp,
-                            textColor:
-                                statusText == 'LIVE' ? Colors.red : Colors.grey,
-                            textFontWeight: FontWeight.bold,
-                          )
-                          : const SizedBox.shrink();
-                    },
-                  ),
-                ],
-              ),
+                    }
+                    return date != null
+                        ? "${DateFormat('MMM d').format(date)} ${date.hour}:${date.minute.toString().padLeft(2, '0')}"
+                        : "N/A";
+                  },
+                  builder: (context, timeText) {
+                    return ReusableText(
+                      text: timeText,
+                      textSize: 90.sp,
+                      textColor:
+                          match.isLive ?? false ? Colors.red : Colors.white,
+                    );
+                  },
+                ),
+                BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
+                  selector: (state) {
+                    if (state is HomeMatchesLoaded) {
+                      final updatedMatch = state
+                          .matches
+                          .tournamentTeamEvents
+                          ?.values
+                          .expand((matches) => matches)
+                          .firstWhere(
+                            (m) => m.id == match.id,
+                            orElse: () => match,
+                          );
+                      return _getMatchStatus(updatedMatch!);
+                    }
+                    return status;
+                  },
+                  builder: (context, statusText) {
+                    return statusText.isNotEmpty
+                        ? ReusableText(
+                          text: statusText,
+                          textSize: 80.sp,
+                          textColor:
+                              statusText == 'LIVE' ? Colors.red : Colors.grey,
+                          textFontWeight: FontWeight.bold,
+                        )
+                        : const SizedBox.shrink();
+                  },
+                ),
+              ],
             ),
-            SizedBox(width: 7.w),
-            Container(width: 2.w, height: 80.h, color: Colors.grey.shade600),
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  SizedBox(width: 20.w),
-                  CachedNetworkImage(
-                    imageUrl:
-                        "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small",
-                    cacheManager: _cacheManager,
-                    // Use custom cache manager
-                    fadeInDuration: Duration(milliseconds: 300),
-                    // Smooth transition
-                    placeholder:
-                        (context, url) => Container(
-                          width: 50.w,
-                          height: 50.w,
-                          color: Colors.grey.shade300, // Simple placeholder
-                        ),
-                    errorWidget: (context, url, error) => Icon(Icons.error),
-                    fit: BoxFit.cover,
-                    width: 50.w,
-                    height: 50.w,
+          ),
+          SizedBox(width: 7.w),
+          Container(width: 2.w, height: 80.h, color: Colors.grey.shade600),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(width: 20.w),
+                CachedNetworkImage(
+                  imageUrl:
+                      "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small",
+                  cacheManager: _cacheManager,
+                  // Use custom cache manager
+                  fadeInDuration: Duration(milliseconds: 300),
+                  // Smooth transition
+                  placeholder:
+                      (context, url) => Container(
+                        width: 50.w,
+                        height: 50.w,
+                        color: Colors.grey.shade300, // Simple placeholder
+                      ),
+                  errorWidget: (context, url, error) => Icon(Icons.error),
+                  fit: BoxFit.cover,
+                  width: 50.w,
+                  height: 50.w,
+                ),
+                SizedBox(width: 10.w),
+                SizedBox(
+                  width: 250.w,
+                  child: ReusableText(
+                    text: match.homeTeam?.shortName ?? "Unknown",
+                    textSize: 100.sp,
+                    textColor: Colors.white,
+                    textFontWeight: FontWeight.w600,
                   ),
-                  SizedBox(width: 10.w),
-                  SizedBox(
-                    width: 250.w,
-                    child: ReusableText(
-                      text: match.homeTeam?.shortName ?? "Unknown",
-                      textSize: 100.sp,
-                      textColor: Colors.white,
-                      textFontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(width: 20.w),
-                  BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
-                    selector: (state) {
-                      if (state is HomeMatchesLoaded) {
-                        final updatedMatch = state
-                            .matches
-                            .tournamentTeamEvents
-                            ?.values
-                            .expand((matches) => matches)
-                            .firstWhere(
-                              (m) => m.id == match.id,
-                              orElse: () => match,
-                            );
-                        return updatedMatch?.homeScore?.current == null &&
-                                updatedMatch?.awayScore?.current == null
-                            ? "VS"
-                            : '${updatedMatch?.homeScore?.current ?? "-"} - ${updatedMatch?.awayScore?.current ?? "-"}';
-                      }
-                      return match.homeScore?.current == null &&
-                              match.awayScore?.current == null
+                ),
+                SizedBox(width: 20.w),
+                BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
+                  selector: (state) {
+                    if (state is HomeMatchesLoaded) {
+                      final updatedMatch = state
+                          .matches
+                          .tournamentTeamEvents
+                          ?.values
+                          .expand((matches) => matches)
+                          .firstWhere(
+                            (m) => m.id == match.id,
+                            orElse: () => match,
+                          );
+                      return updatedMatch?.homeScore?.current == null &&
+                              updatedMatch?.awayScore?.current == null
                           ? "VS"
-                          : '${match.homeScore?.current ?? "-"} - ${match.awayScore?.current ?? "-"}';
-                    },
-                    builder: (context, scoreText) {
-                      return ReusableText(
-                        text: scoreText,
-                        textSize: 100.sp,
-                        textColor:
-                            match.isLive ?? false ? Colors.red : Colors.white,
-                        textFontWeight: FontWeight.w600,
-                      );
-                    },
-                  ),
-                  SizedBox(width: 20.w),
-                  SizedBox(
-                    width: 260.w,
-                    child: ReusableText(
-                      text: match.awayTeam?.shortName ?? "Unknown",
+                          : '${updatedMatch?.homeScore?.current ?? "-"} - ${updatedMatch?.awayScore?.current ?? "-"}';
+                    }
+                    return match.homeScore?.current == null &&
+                            match.awayScore?.current == null
+                        ? "VS"
+                        : '${match.homeScore?.current ?? "-"} - ${match.awayScore?.current ?? "-"}';
+                  },
+                  builder: (context, scoreText) {
+                    return ReusableText(
+                      text: scoreText,
                       textSize: 100.sp,
-                      textColor: Colors.white,
+                      textColor:
+                          match.isLive ?? false ? Colors.red : Colors.white,
                       textFontWeight: FontWeight.w600,
-                    ),
+                    );
+                  },
+                ),
+                SizedBox(width: 20.w),
+                SizedBox(
+                  width: 260.w,
+                  child: ReusableText(
+                    text: match.awayTeam?.shortName ?? "Unknown",
+                    textSize: 100.sp,
+                    textColor: Colors.white,
+                    textFontWeight: FontWeight.w600,
                   ),
-                  SizedBox(width: 10.w),
-                  CachedNetworkImage(
-                    imageUrl:
-                        "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small",
-                    cacheManager: _cacheManager,
-                    // Use custom cache manager
-                    fadeInDuration: Duration(milliseconds: 300),
-                    // Smooth transition
-                    placeholder:
-                        (context, url) => Container(
-                          width: 50.w,
-                          height: 50.w,
-                          color: Colors.grey.shade300, // Simple placeholder
-                        ),
-                    errorWidget: (context, url, error) => Icon(Icons.error),
-                    fit: BoxFit.cover,
-                    width: 50.w,
-                    height: 50.w,
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(width: 10.w),
+                CachedNetworkImage(
+                  imageUrl:
+                      "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small",
+                  cacheManager: _cacheManager,
+                  // Use custom cache manager
+                  fadeInDuration: Duration(milliseconds: 300),
+                  // Smooth transition
+                  placeholder:
+                      (context, url) => Container(
+                        width: 50.w,
+                        height: 50.w,
+                        color: Colors.grey.shade300, // Simple placeholder
+                      ),
+                  errorWidget: (context, url, error) => Icon(Icons.error),
+                  fit: BoxFit.cover,
+                  width: 50.w,
+                  height: 50.w,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
