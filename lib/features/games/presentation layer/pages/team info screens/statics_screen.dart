@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart'; // Added for translations
+import 'package:get/get.dart';
 
 import '../../../../../core/widgets/reusable_text.dart';
 import '../../../domain layer/entities/statics_entity.dart';
@@ -60,54 +60,63 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   String _formatStat(dynamic value) {
-    if (value == null) return 'na'.tr; // Translated fallback
+    if (value == null) return 'na'.tr;
     if (value is double) return value.toStringAsFixed(1);
     return value.toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<StatsBloc, StatsState>(
-      builder: (context, state) {
-        // Check cache first
-        if (_statsBloc.isStatsCached(
-          widget.teamId,
-          widget.tournamentId,
-          widget.seasonId,
-        )) {
-          final cachedStats =
-              _statsBloc.getCachedStats(
-                widget.teamId,
-                widget.tournamentId,
-                widget.seasonId,
-              )!;
-          return _buildStatsContent(cachedStats);
-        }
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: BlocBuilder<StatsBloc, StatsState>(
+        builder: (context, state) {
+          if (_statsBloc.isStatsCached(
+            widget.teamId,
+            widget.tournamentId,
+            widget.seasonId,
+          )) {
+            final cachedStats =
+                _statsBloc.getCachedStats(
+                  widget.teamId,
+                  widget.tournamentId,
+                  widget.seasonId,
+                )!;
+            return _buildStatsContent(cachedStats);
+          }
 
-        if (state is StatsLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          );
-        } else if (state is StatsLoaded) {
-          return _buildStatsContent(state.stats);
-        } else if (state is StatsError) {
+          if (state is StatsLoading) {
+            return Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            );
+          } else if (state is StatsLoaded) {
+            return _buildStatsContent(state.stats);
+          } else if (state is StatsError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset("assets/images/Empty.png"),
+                  ReusableText(
+                    text: 'no_data_found_for_this'.tr,
+                    textSize: 120.sp,
+                    textColor: Theme.of(context).colorScheme.onSurface,
+                    textFontWeight: FontWeight.w900,
+                  ),
+                ],
+              ),
+            );
+          }
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset("assets/images/Empty.png"),
-                ReusableText(
-                  text: 'no_data_found_for_this'.tr, // Translated
-                  textSize: 120.sp,
-                  textColor: Colors.white,
-                  textFontWeight: FontWeight.w900,
-                ),
-              ],
+            child: Text(
+              'no_stats_available'.tr,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
           );
-        }
-        return Center(child: Text('no_stats_available'.tr)); // Translated
-      },
+        },
+      ),
     );
   }
 
@@ -161,8 +170,15 @@ class _StatsScreenState extends State<StatsScreen> {
     return Container(
       margin: EdgeInsets.only(bottom: 30.h),
       decoration: BoxDecoration(
-        color: const Color(0xff1E2629),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).shadowColor.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 25.w),
@@ -170,9 +186,9 @@ class _StatsScreenState extends State<StatsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ReusableText(
-              text: title, // Already translated
+              text: title,
               textSize: 110.sp,
-              textColor: Colors.white,
+              textColor: Theme.of(context).colorScheme.onSurface,
               textFontWeight: FontWeight.w700,
             ),
             SizedBox(height: 25.h),
@@ -189,7 +205,7 @@ class _StatsScreenState extends State<StatsScreen> {
               itemBuilder: (context, index) {
                 final entry = stats[index];
                 return _buildStatItem(
-                  label: entry.keys.first, // Already translated
+                  label: entry.keys.first,
                   value: entry.values.first,
                 );
               },
@@ -203,15 +219,14 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget _buildStatItem({required String label, required dynamic value}) {
     final displayValue =
         value == null
-            ? 'na'
-                .tr // Translated fallback
+            ? 'na'.tr
             : value is double
             ? '${value.toStringAsFixed(1)}%'
             : value.toString();
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xff161D1F),
+        color: Theme.of(context).colorScheme.surfaceVariant,
         borderRadius: BorderRadius.circular(12.r),
       ),
       padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 18.h),
@@ -220,16 +235,18 @@ class _StatsScreenState extends State<StatsScreen> {
         children: [
           Flexible(
             child: ReusableText(
-              text: label, // Already translated
+              text: label,
               textSize: 100.sp,
-              textColor: Colors.white70,
+              textColor: Theme.of(
+                context,
+              ).colorScheme.onSurface.withOpacity(0.7),
               textFontWeight: FontWeight.w500,
             ),
           ),
           ReusableText(
-            text: displayValue, // Dynamic value with translated fallback
+            text: displayValue,
             textSize: 110.sp,
-            textColor: Colors.white,
+            textColor: Theme.of(context).colorScheme.onSurface,
             textFontWeight: FontWeight.w700,
           ),
         ],

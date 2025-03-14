@@ -7,6 +7,7 @@ import '../../../../../core/utils/map_failure_to_message.dart';
 import '../../../domain layer/usecases/signup_usecase.dart';
 
 part 'signup_event.dart';
+
 part 'signup_state.dart';
 
 class SignupBloc extends Bloc<SignupEvent, SignupState> {
@@ -23,7 +24,6 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
   ) async {
     emit(SignupLoading());
     final failureOrUser = await signup(event.user);
-    print('failureOrUser: $failureOrUser');
     failureOrUser.fold(
       (failure) => emit(SignupError(message: mapFailureToMessage(failure))),
       (user) => emit(SignupSuccess()),

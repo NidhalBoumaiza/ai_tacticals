@@ -1,3 +1,4 @@
+// matches_per_round_screen.dart
 import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:analysis_ai/features/games/domain%20layer/entities/matches_entities.dart';
@@ -35,7 +36,6 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
   void initState() {
     super.initState();
     _matchesBloc = context.read<MatchesPerRoundBloc>();
-    print('MatchesPerRoundScreen initState: Initializing round $_currentRound');
     _initializeData();
     _scrollController.addListener(_onScroll);
   }
@@ -69,13 +69,11 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
   void _onScroll() {
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
-    print('Scroll: current=$currentScroll, max=$maxScroll');
     if (currentScroll >= maxScroll - 200.h &&
         _matchesBloc.state is MatchesPerRoundLoaded) {
       final currentState = _matchesBloc.state as MatchesPerRoundLoaded;
       if (!currentState.isLoadingMore) {
         _currentRound++;
-        print('Scrolling: Fetching round $_currentRound');
         if (!_matchesBloc.isRoundCached(
           widget.leagueId,
           widget.seasonId,
@@ -88,11 +86,7 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
               round: _currentRound,
             ),
           );
-        } else {
-          print('Round $_currentRound already cached, skipping fetch');
         }
-      } else {
-        print('Already loading more, skipping fetch for round $_currentRound');
       }
     }
   }
@@ -122,30 +116,37 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<MatchesPerRoundBloc, MatchesPerRoundState>(
-      builder: (context, state) {
-        // Check cache first and initialize with cached data if available
-        final cachedMatches = _matchesBloc.getCachedMatches(
-          widget.leagueId,
-          widget.seasonId,
-        );
-        if (state is MatchesPerRoundInitial &&
-            cachedMatches != null &&
-            cachedMatches.isNotEmpty) {
-          return _buildMatchesContent(cachedMatches);
-        }
-
-        if (state is MatchesPerRoundLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
+    return Scaffold(
+      backgroundColor:
+          Theme.of(context).scaffoldBackgroundColor, // Theme-based background
+      body: BlocBuilder<MatchesPerRoundBloc, MatchesPerRoundState>(
+        builder: (context, state) {
+          // Check cache first and initialize with cached data if available
+          final cachedMatches = _matchesBloc.getCachedMatches(
+            widget.leagueId,
+            widget.seasonId,
           );
-        } else if (state is MatchesPerRoundLoaded) {
-          return _buildMatchesContent(state.matches);
-        } else if (state is MatchesPerRoundError) {
-          return Center(child: Image.asset("assets/images/Empty.png"));
-        }
-        return Container();
-      },
+          if (state is MatchesPerRoundInitial &&
+              cachedMatches != null &&
+              cachedMatches.isNotEmpty) {
+            return _buildMatchesContent(cachedMatches);
+          }
+
+          if (state is MatchesPerRoundLoading) {
+            return Center(
+              child: CircularProgressIndicator(
+                color:
+                    Theme.of(context).colorScheme.primary, // Theme-based color
+              ),
+            );
+          } else if (state is MatchesPerRoundLoaded) {
+            return _buildMatchesContent(state.matches);
+          } else if (state is MatchesPerRoundError) {
+            return Center(child: Image.asset("assets/images/Empty.png"));
+          }
+          return Container();
+        },
+      ),
     );
   }
 
@@ -153,9 +154,12 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
     if (matchesByRound.isEmpty) {
       return Center(
         child: ReusableText(
-          text: 'no_matches_available_generic'.tr, // Translated
+          text: 'no_matches_available_generic'.tr,
           textSize: 100.sp,
-          textColor: Colors.white,
+          textColor:
+              Theme.of(
+                context,
+              ).textTheme.bodyLarge!.color!, // Theme-based color
           textFontWeight: FontWeight.w600,
         ),
       );
@@ -181,7 +185,10 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                       horizontal: 15.w,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade800,
+                      color:
+                          Theme.of(
+                            context,
+                          ).colorScheme.surface, // Theme-based surface
                       borderRadius: BorderRadius.vertical(
                         top: Radius.circular(12.r),
                       ),
@@ -189,7 +196,10 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                     child: ReusableText(
                       text: 'round'.tr.replaceAll('{number}', round.toString()),
                       textSize: 110.sp,
-                      textColor: Colors.white,
+                      textColor:
+                          Theme.of(
+                            context,
+                          ).textTheme.bodyLarge!.color!, // Theme-based color
                       textFontWeight: FontWeight.w700,
                     ),
                   ),
@@ -228,7 +238,10 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                         child: Container(
                           padding: EdgeInsets.all(20.w),
                           decoration: BoxDecoration(
-                            color: const Color(0xff161d1f),
+                            color:
+                                Theme.of(context)
+                                    .colorScheme
+                                    .surfaceVariant, // Theme-based variant
                             borderRadius: BorderRadius.vertical(
                               bottom: Radius.circular(12.r),
                             ),
@@ -248,13 +261,20 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                                               ? "${date.day}.${date.month}.${date.year}"
                                               : "N/A",
                                       textSize: 90.sp,
-                                      textColor: Colors.white,
+                                      textColor:
+                                          Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium!
+                                              .color!, // Theme-based color
                                     ),
                                     if (status.isNotEmpty)
                                       ReusableText(
                                         text: status,
                                         textSize: 80.sp,
-                                        textColor: Colors.grey,
+                                        textColor:
+                                            Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant, // Theme-based color
                                       ),
                                   ],
                                 ),
@@ -263,7 +283,8 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                               Container(
                                 width: 2.w,
                                 height: 80.h,
-                                color: Colors.grey.shade600,
+                                color: Theme.of(context).colorScheme.onSurface
+                                    .withOpacity(0.5), // Theme-based divider
                               ),
                               Expanded(
                                 child: Row(
@@ -279,7 +300,11 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                                           match.homeTeam?.shortName ??
                                           "Unknown",
                                       textSize: 100.sp,
-                                      textColor: Colors.white,
+                                      textColor:
+                                          Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge!
+                                              .color!, // Theme-based color
                                       textFontWeight: FontWeight.w600,
                                     ),
                                     SizedBox(width: 20.w),
@@ -287,7 +312,11 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                                       text:
                                           '${match.homeScore?.current ?? "-"} - ${match.awayScore?.current ?? "-"}',
                                       textSize: 100.sp,
-                                      textColor: Colors.white,
+                                      textColor:
+                                          Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge!
+                                              .color!, // Theme-based color
                                       textFontWeight: FontWeight.w600,
                                     ),
                                     SizedBox(width: 20.w),
@@ -298,7 +327,11 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                                             match.awayTeam?.shortName ??
                                             "Unknown",
                                         textSize: 100.sp,
-                                        textColor: Colors.white,
+                                        textColor:
+                                            Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge!
+                                                .color!, // Theme-based color
                                         textFontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -320,10 +353,15 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
             }).toList(),
             if (_matchesBloc.state is MatchesPerRoundLoaded &&
                 (_matchesBloc.state as MatchesPerRoundLoaded).isLoadingMore)
-              const Padding(
-                padding: EdgeInsets.all(20.0),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
                 child: Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: CircularProgressIndicator(
+                    color:
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary, // Theme-based color
+                  ),
                 ),
               ),
           ],

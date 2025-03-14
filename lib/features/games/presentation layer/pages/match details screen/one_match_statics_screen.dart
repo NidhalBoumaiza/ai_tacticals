@@ -48,7 +48,6 @@ class _OneMatchStaticsScreenState extends State<OneMatchStaticsScreen> {
   }
 
   void _initializeMatchData() {
-    // Check if data is already cached first
     if (matchDetailsBloc.isMatchCached(widget.matchId)) {
       final cachedMatch = matchDetailsBloc.getCachedMatch(widget.matchId);
       if (cachedMatch != null &&
@@ -56,14 +55,12 @@ class _OneMatchStaticsScreenState extends State<OneMatchStaticsScreen> {
         matchDetailsBloc.add(GetMatchDetailsEvent(matchId: widget.matchId));
       }
     } else {
-      // Only fetch if not in cache
       matchDetailsBloc.add(GetMatchDetailsEvent(matchId: widget.matchId));
     }
   }
 
   @override
   void dispose() {
-    // Don't close the bloc here since it's provided by dependency injection
     super.dispose();
   }
 
@@ -71,51 +68,63 @@ class _OneMatchStaticsScreenState extends State<OneMatchStaticsScreen> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: matchDetailsBloc,
-      child: BlocConsumer<MatchDetailsBloc, MatchDetailsState>(
-        listener: (context, state) {
-          if (state is MatchDetailsError) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
-          }
-        },
-        builder: (context, state) {
-          // Always check cache first
-          if (matchDetailsBloc.isMatchCached(widget.matchId)) {
-            final cachedMatch =
-                matchDetailsBloc.getCachedMatch(widget.matchId)!;
-            return MatchDetailsContent(matchDetails: cachedMatch);
-          }
-
-          if (state is MatchDetailsLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFFF3D07E)),
-            );
-          }
-
-          if (state is MatchDetailsLoaded) {
-            return MatchDetailsContent(matchDetails: state.matchDetails);
-          }
-
-          if (state is MatchDetailsError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset("assets/images/Empty.png"),
-                  ReusableText(
-                    text: 'no_data_found'.tr,
-                    textSize: 120.sp,
-                    textColor: Colors.white,
-                    textFontWeight: FontWeight.w900,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: BlocConsumer<MatchDetailsBloc, MatchDetailsState>(
+          listener: (context, state) {
+            if (state is MatchDetailsError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    state.message,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
-                ],
-              ),
-            );
-          }
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                ),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (matchDetailsBloc.isMatchCached(widget.matchId)) {
+              final cachedMatch =
+                  matchDetailsBloc.getCachedMatch(widget.matchId)!;
+              return MatchDetailsContent(matchDetails: cachedMatch);
+            }
 
-          return const SizedBox.shrink();
-        },
+            if (state is MatchDetailsLoading) {
+              return Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              );
+            }
+
+            if (state is MatchDetailsLoaded) {
+              return MatchDetailsContent(matchDetails: state.matchDetails);
+            }
+
+            if (state is MatchDetailsError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset("assets/images/Empty.png"),
+                    ReusableText(
+                      text: 'no_data_found'.tr,
+                      textSize: 120.sp,
+                      textColor: Theme.of(context).colorScheme.onSurface,
+                      textFontWeight: FontWeight.w900,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return const SizedBox.shrink();
+          },
+        ),
       ),
     );
   }
@@ -133,9 +142,8 @@ class MatchDetailsContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(height: 20.h),
-          // Statistics
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 17),
+            padding: EdgeInsets.symmetric(horizontal: 17.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -143,19 +151,18 @@ class MatchDetailsContent extends StatelessWidget {
                   text: 'match_statistics'.tr,
                   textSize: 150.sp,
                   textFontWeight: FontWeight.w900,
-                  textColor: const Color(0xFFF3D07E),
+                  textColor: Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 ...matchDetails.statistics
                     .where((stat) => stat.period == 'ALL')
                     .expand((stat) => stat.groups)
-                    .map((group) => _buildStatsGroup(group)),
+                    .map((group) => _buildStatsGroup(group, context)),
               ],
             ),
           ),
-          // Match Info
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -163,25 +170,29 @@ class MatchDetailsContent extends StatelessWidget {
                   text: 'match_information'.tr,
                   textSize: 150.sp,
                   textFontWeight: FontWeight.w900,
-                  textColor: const Color(0xFFF3D07E),
+                  textColor: Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 _buildInfoRow(
+                  context,
                   'tournament'.tr,
                   matchDetails.tournamentName,
                   Icons.emoji_events,
                 ),
                 _buildInfoRow(
+                  context,
                   'venue'.tr,
                   matchDetails.venueName,
                   Icons.location_on,
                 ),
                 _buildInfoRow(
+                  context,
                   'referee'.tr,
                   matchDetails.refereeName,
                   Icons.person,
                 ),
                 _buildInfoRow(
+                  context,
                   'date'.tr,
                   DateFormat(
                     'dd MMM yyyy, HH:mm',
@@ -196,25 +207,30 @@ class MatchDetailsContent extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, IconData icon) {
+  Widget _buildInfoRow(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFFF1D778), size: 20),
-          const SizedBox(width: 8),
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
+          SizedBox(width: 8.w),
           ReusableText(
             text: '$label: ',
             textSize: 110.sp,
             textFontWeight: FontWeight.w900,
-            textColor: const Color(0xFFF3D07E),
+            textColor: Theme.of(context).colorScheme.primary,
           ),
           Expanded(
             child: ReusableText(
               text: value,
               textSize: 110.sp,
               textFontWeight: FontWeight.w900,
-              textColor: const Color(0xFFF3D07E),
+              textColor: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],
@@ -222,17 +238,20 @@ class MatchDetailsContent extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsGroup(StatisticsGroup group) {
+  Widget _buildStatsGroup(StatisticsGroup group, BuildContext context) {
     return Card(
-      color: const Color(0xFF33353B).withOpacity(0.9),
       elevation: 4,
-      margin: const EdgeInsets.only(bottom: 12),
+      color: Theme.of(context).colorScheme.surface,
+      margin: EdgeInsets.only(bottom: 12.h),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFF3D07E), width: 0.5),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+          width: 0.5,
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -240,19 +259,19 @@ class MatchDetailsContent extends StatelessWidget {
               text: group.groupName,
               textSize: 125.sp,
               textFontWeight: FontWeight.w900,
-              textColor: const Color(0xFFF3D07E),
+              textColor: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 12),
-            ...group.items.map((item) => _buildStatsItem(item)),
+            SizedBox(height: 12.h),
+            ...group.items.map((item) => _buildStatsItem(item, context)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatsItem(StatisticsItem item) {
+  Widget _buildStatsItem(StatisticsItem item, BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Row(
         children: [
           Expanded(
@@ -263,8 +282,8 @@ class MatchDetailsContent extends StatelessWidget {
               textFontWeight: FontWeight.w900,
               textColor:
                   item.compareCode == 1
-                      ? const Color(0xFFF3D07E)
-                      : Colors.white,
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
             ),
           ),
           Expanded(
@@ -273,7 +292,7 @@ class MatchDetailsContent extends StatelessWidget {
               text: item.name,
               textSize: 110.sp,
               textFontWeight: FontWeight.w900,
-              textColor: Colors.white,
+              textColor: Theme.of(context).colorScheme.onSurface,
               textAlign: TextAlign.center,
             ),
           ),
@@ -285,8 +304,8 @@ class MatchDetailsContent extends StatelessWidget {
               textFontWeight: FontWeight.w900,
               textColor:
                   item.compareCode == 2
-                      ? const Color(0xFFF3D07E)
-                      : Colors.white,
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurface,
               textAlign: TextAlign.right,
             ),
           ),

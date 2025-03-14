@@ -1,4 +1,3 @@
-// lib/features/standings/presentation_layer/widgets/standing_line_widget.dart
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +6,7 @@ import 'package:shimmer/shimmer.dart';
 
 class StandingLineWidget extends StatelessWidget {
   final int position;
-  final Color positionColor; // New parameter for position color
+  final Color positionColor;
   final int teamId;
   final String teamName;
   final int played;
@@ -41,7 +40,7 @@ class StandingLineWidget extends StatelessWidget {
               child: ReusableText(
                 text: position.toString(),
                 textSize: 90.sp,
-                textColor: Color(0xffe7eaec), // Use dynamic color
+                textColor: Theme.of(context).colorScheme.onSurface,
                 textFontWeight: FontWeight.w800,
               ),
             ),
@@ -53,32 +52,30 @@ class StandingLineWidget extends StatelessWidget {
                 "https://img.sofascore.com/api/v1/team/$teamId/image/small",
             placeholder:
                 (context, url) => Shimmer.fromColors(
-                  baseColor: Colors.grey.shade300,
-                  highlightColor: Colors.grey.shade100,
+                  baseColor: Theme.of(context).colorScheme.surface,
+                  highlightColor: Theme.of(context).colorScheme.surfaceVariant,
                   child: Container(
                     width: 25.w,
                     height: 25.w,
-                    color: Colors.grey.shade300,
+                    color: Theme.of(context).colorScheme.surface,
                   ),
                 ),
-            errorWidget: (context, url, error) {
-              print(
-                'Error loading image: $error',
-              ); // Debugging: Print the error
-              return Icon(Icons.error);
-            },
+            errorWidget:
+                (context, url, error) => Icon(
+                  Icons.error,
+                  color: Theme.of(context).colorScheme.error,
+                ),
             fit: BoxFit.cover,
             width: 25,
-
+            height: 25,
             cacheKey: teamId.toString(),
-            height: 25, // Increase height for better visibility
           ),
           SizedBox(
             width: 440.w,
             child: ReusableText(
               text: "  $teamName",
               textSize: 100.sp,
-              textColor: Colors.white,
+              textColor: Theme.of(context).colorScheme.onSurface,
               textFontWeight: FontWeight.w400,
             ),
           ),
@@ -87,7 +84,7 @@ class StandingLineWidget extends StatelessWidget {
             child: ReusableText(
               text: played.toString(),
               textSize: 100.sp,
-              textColor: Colors.white,
+              textColor: Theme.of(context).colorScheme.onSurface,
               textFontWeight: FontWeight.w400,
             ),
           ),
@@ -96,7 +93,7 @@ class StandingLineWidget extends StatelessWidget {
             child: ReusableText(
               text: difference.toString(),
               textSize: 100.sp,
-              textColor: Colors.white,
+              textColor: Theme.of(context).colorScheme.onSurface,
               textFontWeight: FontWeight.w400,
             ),
           ),
@@ -105,7 +102,7 @@ class StandingLineWidget extends StatelessWidget {
             child: ReusableText(
               text: points.toString(),
               textSize: 100.sp,
-              textColor: Colors.white,
+              textColor: Theme.of(context).colorScheme.onSurface,
               textFontWeight: FontWeight.w400,
             ),
           ),

@@ -75,7 +75,6 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
     } on SocketException {
       throw OfflineException('No Internet connection');
     } catch (e) {
-      print('Error in getMatchesPerTeam: $e');
       throw ServerException('An unexpected error occurred: $e');
     }
   }
@@ -112,7 +111,6 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
     } on SocketException {
       throw OfflineException('No Internet connection');
     } catch (e) {
-      print('Error in getHomeMatches: $e');
       throw ServerException('An unexpected error occurred: $e');
     }
   }
@@ -125,16 +123,13 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
     final url = Uri.parse(
       'https://www.sofascore.com/api/v1/unique-tournament/$leagueId/season/$seasonId/events/round/$round',
     );
-    print('Fetching URL: $url');
     try {
       final response = await client
           .get(url, headers: {'Accept': 'application/json'})
           .timeout(const Duration(seconds: 12));
-      print('Response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final events = json['events'] as List<dynamic>? ?? [];
-        print('Parsed ${events.length} events');
         return events
             .map((e) => MatchEventModel.fromJson(e as Map<String, dynamic>))
             .toList();
@@ -144,7 +139,6 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
         );
       }
     } catch (e) {
-      print('Error in getMatchesPerRound: $e');
       throw ServerException('An unexpected error occurred: $e');
     }
   }

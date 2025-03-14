@@ -19,6 +19,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/app_themes.dart';
+import 'core/cubit/theme cubit/theme_cubit.dart';
 import 'features/auth/presentation%20layer/pages/starter_screen.dart';
 import 'features/games/presentation layer/bloc/home match bloc/home_matches_bloc.dart';
 import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
@@ -38,44 +40,38 @@ void main() async {
   WidgetsBinding.instance.addObserver(observer);
   SharedPreferences prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('TOKEN');
-  Widget screen;
-  if (token != null && token.isNotEmpty) {
-    print('Token: $token');
-    screen = HomeScreenSquelette();
-  } else {
-    screen = StarterScreen();
-  }
-  // await dotenv.load(fileName: ".env");
-  // await dotenv.load(fileName: ".env");
+  Widget screen =
+      token != null && token.isNotEmpty
+          ? HomeScreenSquelette()
+          : StarterScreen();
   runApp(MyApp(screen: screen));
 }
 
 class MyApp extends StatelessWidget {
   final Widget screen;
 
-  MyApp({super.key, required this.screen});
+  const MyApp({super.key, required this.screen});
 
   @override
   Widget build(BuildContext context) {
-    print(screen);
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (create) => di.sl<BnvCubit>()..changeIndex(0)),
-        BlocProvider(create: (create) => di.sl<LoginBloc>()),
-        BlocProvider(create: (create) => di.sl<SignupBloc>()),
-        BlocProvider(create: (create) => di.sl<CountriesBloc>()),
-        BlocProvider(create: (create) => di.sl<LeaguesBloc>()),
-        BlocProvider(create: (create) => di.sl<StandingBloc>()),
-        BlocProvider(create: (create) => di.sl<SeasonsCubit>()),
-        BlocProvider(create: (create) => di.sl<MatchesBloc>()),
-        BlocProvider(create: (create) => di.sl<PlayersBloc>()),
-        BlocProvider(create: (create) => di.sl<StatsBloc>()),
-        // New Player Blocs
-        BlocProvider(create: (create) => di.sl<PlayerAttributesBloc>()),
-        BlocProvider(create: (create) => di.sl<NationalTeamStatsBloc>()),
-        BlocProvider(create: (create) => di.sl<LastYearSummaryBloc>()),
-        BlocProvider(create: (create) => di.sl<TransferHistoryBloc>()),
-        BlocProvider(create: (create) => di.sl<MediaBloc>()),
+        BlocProvider(create: (context) => ThemeCubit()), // Single instance
+        BlocProvider(create: (context) => di.sl<BnvCubit>()..changeIndex(0)),
+        BlocProvider(create: (context) => di.sl<LoginBloc>()),
+        BlocProvider(create: (context) => di.sl<SignupBloc>()),
+        BlocProvider(create: (context) => di.sl<CountriesBloc>()),
+        BlocProvider(create: (context) => di.sl<LeaguesBloc>()),
+        BlocProvider(create: (context) => di.sl<StandingBloc>()),
+        BlocProvider(create: (context) => di.sl<SeasonsCubit>()),
+        BlocProvider(create: (context) => di.sl<MatchesBloc>()),
+        BlocProvider(create: (context) => di.sl<PlayersBloc>()),
+        BlocProvider(create: (context) => di.sl<StatsBloc>()),
+        BlocProvider(create: (context) => di.sl<PlayerAttributesBloc>()),
+        BlocProvider(create: (context) => di.sl<NationalTeamStatsBloc>()),
+        BlocProvider(create: (context) => di.sl<LastYearSummaryBloc>()),
+        BlocProvider(create: (context) => di.sl<TransferHistoryBloc>()),
+        BlocProvider(create: (context) => di.sl<MediaBloc>()),
         BlocProvider(create: (context) => di.sl<PlayerPerMatchBloc>()),
         BlocProvider(create: (context) => di.sl<ManagerBloc>()),
         BlocProvider(create: (context) => di.sl<PlayerMatchStatsBloc>()),
@@ -87,17 +83,19 @@ class MyApp extends StatelessWidget {
         minTextAdapt: true,
         splitScreenMode: true,
         builder: (_, child) {
-          return GetMaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            ),
-            home: screen,
-            translations: AppTranslations(),
-            darkTheme: ThemeData.dark(),
-            themeMode: ThemeMode.system,
-            locale: const Locale('fr', 'FR'),
-            fallbackLocale: const Locale('fr', 'FR'),
+          return BlocBuilder<ThemeCubit, ThemeMode>(
+            builder: (context, themeMode) {
+              return GetMaterialApp(
+                debugShowCheckedModeBanner: false,
+                theme: AppThemes.lightTheme,
+                darkTheme: AppThemes.darkTheme,
+                themeMode: themeMode,
+                home: screen,
+                translations: AppTranslations(),
+                locale: const Locale('fr', 'FR'),
+                fallbackLocale: const Locale('fr', 'FR'),
+              );
+            },
           );
         },
       ),
@@ -111,7 +109,6 @@ class AppLifecycleObserver with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       CachedNetworkImage.evictFromCache('', cacheKey: "flag");
-      print('Cache cleared on app close');
     }
   }
 }

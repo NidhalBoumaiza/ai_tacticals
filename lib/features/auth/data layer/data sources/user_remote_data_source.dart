@@ -64,7 +64,6 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
 
   @override
   Future<UserModel> signUp(UserModel userModel) async {
-    debugPrint('userModel: $userModel');
     try {
       final response = await client
           .post(
@@ -78,7 +77,6 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
             }),
           )
           .timeout(const Duration(seconds: 12)); // Timeout after 10 seconds
-      debugPrint('response: ${response.body}');
       if (response.statusCode == 201) {
         final responseBody = jsonDecode(response.body);
         final userJson = responseBody['user'];

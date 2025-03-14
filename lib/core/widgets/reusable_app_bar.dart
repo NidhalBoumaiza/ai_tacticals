@@ -2,7 +2,6 @@ import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-
 class ReusableAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String pageName;
   final Color? textColor;
@@ -27,10 +26,7 @@ class ReusableAppBar extends StatelessWidget implements PreferredSizeWidget {
       preferredSize: Size.fromHeight(kToolbarHeight),
       child: AppBar(
         leading: IconButton(
-          icon: Icon(
-            leadingIcon ?? Icons.arrow_back,
-            color: Colors.white,
-          ),
+          icon: Icon(leadingIcon ?? Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -42,7 +38,7 @@ class ReusableAppBar extends StatelessWidget implements PreferredSizeWidget {
           textColor: textColor ?? Colors.white,
           textFontWeight: textFontWeight ?? FontWeight.w800,
         ),
-        backgroundColor: appBarColor ,
+        backgroundColor: appBarColor,
       ),
     );
   }

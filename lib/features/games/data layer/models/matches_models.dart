@@ -9,21 +9,16 @@ class MatchEventsPerTeamModel {
   MatchEventsPerTeamModel({this.tournamentTeamEvents, this.events});
 
   factory MatchEventsPerTeamModel.fromJson(Map<String, dynamic> json) {
-    print('Parsing MatchEventsPerTeamModel: $json');
-
     final tournamentTeamEventsData =
         json['tournamentTeamEvents'] as Map<String, dynamic>?;
     Map<String, List<MatchEventModel>>? parsedTournamentTeamEvents;
     if (tournamentTeamEventsData != null) {
       parsedTournamentTeamEvents = {};
       tournamentTeamEventsData.forEach((outerKey, innerMap) {
-        print('Processing outer key: $outerKey with value: $innerMap');
         if (innerMap is Map<String, dynamic>) {
           innerMap.forEach((teamId, matchList) {
-            print('Mapping team $teamId with match list: $matchList');
             parsedTournamentTeamEvents![teamId] =
                 (matchList as List<dynamic>?)?.map((e) {
-                  print('Parsing match event: $e');
                   return MatchEventModel.fromJson(e as Map<String, dynamic>);
                 }).toList() ??
                 [];
@@ -37,13 +32,10 @@ class MatchEventsPerTeamModel {
     if (eventsData != null) {
       parsedEvents =
           eventsData.map((e) {
-            print('Parsing match event: $e');
             return MatchEventModel.fromJson(e as Map<String, dynamic>);
           }).toList();
     }
 
-    print('Parsed TournamentTeamEvents: $parsedTournamentTeamEvents');
-    print('Parsed Events: $parsedEvents');
     return MatchEventsPerTeamModel(
       tournamentTeamEvents: parsedTournamentTeamEvents,
       events: parsedEvents,
@@ -158,7 +150,6 @@ class MatchEventModel {
   });
 
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
-    print('Parsing MatchEventModel with JSON: $json');
     try {
       final tournamentData = json['tournament'] as Map<String, dynamic>?;
       LeagueEntity? tournamentEntity;
@@ -310,7 +301,6 @@ class MatchEventModel {
                 : null,
       );
     } catch (e) {
-      print('Error in MatchEventModel.fromJson: $e');
       rethrow;
     }
   }

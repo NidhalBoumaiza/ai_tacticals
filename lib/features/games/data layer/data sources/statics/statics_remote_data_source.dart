@@ -36,14 +36,9 @@ class StatsRemoteDataSourceImpl implements StatsRemoteDataSource {
     }
 
     try {
-      print(
-        "*****************************************************************",
-      );
-      print(response.body);
       final jsonMap = json.decode(response.body);
       return StatsModel.fromJson(jsonMap);
     } catch (e) {
-      print("yoooooooooooooooooooooooh");
       throw ServerException(" Error in parsing data ");
     }
   }

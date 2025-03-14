@@ -1,4 +1,3 @@
-// lib/features/standings/presentation_layer/widgets/leagues_and_matches_by_country_widget.dart
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,7 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
-import '../../../../../../core/app_colors.dart';
 import '../../../bloc/leagues_bloc/leagues_bloc.dart';
 import '../../../cubit/seasons cubit/seasons_cubit.dart';
 import '../../../pages/league info screens/league_infos_squelette_screen.dart';
@@ -45,9 +43,15 @@ class _LeaguesAndMatchesByCountryWidgetState
   }
 
   void showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+      ),
+    );
   }
 
   @override
@@ -69,13 +73,20 @@ class _LeaguesAndMatchesByCountryWidgetState
             height: 125.h,
             padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 25.w),
             decoration: BoxDecoration(
-              color: const Color(0xff161d1f),
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(25.r),
                 topRight: Radius.circular(25.r),
                 bottomLeft: _isExpanded ? Radius.zero : Radius.circular(25.r),
                 bottomRight: _isExpanded ? Radius.zero : Radius.circular(25.r),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).shadowColor.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
@@ -89,7 +100,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                         text: widget.countryName,
                         textSize: 110.sp,
                         textFontWeight: FontWeight.w500,
-                        textColor: const Color(0xffececee),
+                        textColor: Theme.of(context).colorScheme.onSurface,
                       ),
                     ],
                   ),
@@ -103,7 +114,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                             width: 35.sp,
                             height: 35.sp,
                             child: CircularProgressIndicator(
-                              color: const Color(0xffececee),
+                              color: Theme.of(context).colorScheme.onSurface,
                               strokeWidth: 2.0,
                             ),
                           ),
@@ -113,7 +124,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                     }
                     return Icon(
                       _isExpanded ? Icons.expand_less : Icons.expand_more,
-                      color: const Color(0xffececee),
+                      color: Theme.of(context).colorScheme.onSurface,
                       size: 80.sp,
                     );
                   },
@@ -129,11 +140,14 @@ class _LeaguesAndMatchesByCountryWidgetState
             } else if (state is LeaguesError && _isExpanded) {
               return Container(
                 padding: EdgeInsets.all(8.h),
-                color: const Color(0xff161d1f),
+                color: Theme.of(context).colorScheme.surface,
                 child: Center(
                   child: Text(
                     state.message,
-                    style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ),
               );
@@ -143,7 +157,7 @@ class _LeaguesAndMatchesByCountryWidgetState
                 curve: Curves.easeInOut,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xff161d1f),
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(10.r),
                       bottomRight: Radius.circular(10.r),
@@ -178,7 +192,8 @@ class _LeaguesAndMatchesByCountryWidgetState
                                   text: league.name!,
                                   textSize: 100.sp,
                                   textFontWeight: FontWeight.w400,
-                                  textColor: const Color(0xffececee),
+                                  textColor:
+                                      Theme.of(context).colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -214,37 +229,28 @@ class _LeaguesAndMatchesByCountryWidgetState
             builder: (context, state) {
               if (state is SeasonsLoading) {
                 return Container(
-                  height: 200.h, // Height of the outer Container
-                  width: 200.h, // Width of the outer Container
+                  height: 200.h,
+                  width: 200.h,
                   child: AlertDialog(
-                    backgroundColor: AppColor.primaryColor,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     contentPadding: EdgeInsets.zero,
-                    // Remove default padding to control size precisely
                     insetPadding: EdgeInsets.zero,
-                    // Remove extra padding around the dialog
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        10.r,
-                      ), // Optional: adjust border radius
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
                     content: SizedBox(
                       height: 200.h,
-                      // Explicit height for the content
                       width: 200.h,
-                      // Explicit width for the content (makes it rectangular)
                       child: Lottie.asset(
                         'assets/lottie/animationBallLoading.json',
-                        fit:
-                            BoxFit
-                                .contain, // Ensure the Lottie animation fits within the bounds
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
                 );
               } else if (state is SeasonsLoaded) {
-                print("Seasons loaded: ${state.seasons.length}");
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  Navigator.pop(dialogContext); // Close dialog
+                  Navigator.pop(dialogContext);
                   PersistentNavBarNavigator.pushNewScreen(
                     context,
                     screen: LeagueInfosSqueletteScreen(
@@ -258,7 +264,17 @@ class _LeaguesAndMatchesByCountryWidgetState
                 });
                 return const SizedBox.shrink();
               } else if (state is SeasonsError) {
-                return AlertDialog(content: Center(child: Text(state.message)));
+                return AlertDialog(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  content: Center(
+                    child: Text(
+                      state.message,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                );
               }
               return const SizedBox.shrink();
             },

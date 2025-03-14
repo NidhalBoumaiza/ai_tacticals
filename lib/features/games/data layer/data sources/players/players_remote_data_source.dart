@@ -19,7 +19,6 @@ class PlayersRemoteDataSourceImpl implements PlayersRemoteDataSource {
 
   @override
   Future<List<PlayerModel>> getPlayers(int teamId) async {
-    print('teamId: $teamId');
     final url = Uri.parse(
       'https://www.sofascore.com/api/v1/team/$teamId/players',
     );
@@ -30,9 +29,7 @@ class PlayersRemoteDataSourceImpl implements PlayersRemoteDataSource {
           .timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
-        print('response.body: ${response.body}');
         final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-        print('jsonData: ${jsonData['players'][0]['player']['jerseyNumber']}');
         final playersList = jsonData['players'] as List<dynamic>;
         return playersList
             .map(
@@ -41,7 +38,6 @@ class PlayersRemoteDataSourceImpl implements PlayersRemoteDataSource {
             )
             .toList();
       } else {
-        print('Player load failed: ${response.statusCode}');
         throw ServerException('Player load failed: ${response.statusCode}');
       }
     } on TimeoutException {

@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/cubit/theme cubit/theme_cubit.dart';
 import 'core/network/network_info.dart';
 import 'features/auth/data layer/data sources/user_remote_data_source.dart';
 import 'features/auth/data layer/repositories/user_repository_impl.dart';
@@ -124,6 +125,7 @@ Future<void> init() async {
 
   sl.registerFactory(() => HomeMatchesBloc(getHomeMatchesUseCase: sl()));
   sl.registerFactory(() => MatchesPerRoundBloc(getMatchesPerRound: sl()));
+  sl.registerLazySingleton(() => ThemeCubit());
   //********************** Use Cases **********************//
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));

@@ -27,9 +27,7 @@ class StandingsRemoteDataSourceImpl implements StandingsRemoteDataSource {
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
     );
-    print(
-      'Full API Response for leagueId: $leagueId, seasonId: $seasonId: ${response.body}',
-    ); // Log full response
+
     if (response.statusCode == 200) {
       final jsonData = json.decode(response.body) as Map<String, dynamic>;
       return StandingsModel.fromJson(jsonData);
@@ -47,9 +45,7 @@ class StandingsRemoteDataSourceImpl implements StandingsRemoteDataSource {
     final response = await client
         .get(Uri.parse(url))
         .timeout(const Duration(seconds: 12));
-    print(
-      'Seasons API Response for uniqueTournamentId: $uniqueTournamentId: ${response.body}',
-    );
+
     if (response.statusCode == 200) {
       final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
       final List<dynamic> seasonsJson =

@@ -1,3 +1,4 @@
+// league_infos_squelette_screen.dart
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/pages/league%20info%20screens/standing_screen.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart'; // Added for translations
 
+import '../../../../../core/cubit/theme cubit/theme_cubit.dart';
 import '../../../domain%20layer/entities/season_entity.dart';
 import '../../bloc/matches_bloc/matches_bloc.dart';
 import '../../bloc/standing%20bloc/standing_bloc.dart';
@@ -66,7 +68,6 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
         ),
       );
     }
-    // Note: MatchesPerRoundBloc doesn't need initialization here since MatchesPerRoundScreen handles it
   }
 
   void _onYearChanged(int newSeasonId) {
@@ -91,6 +92,8 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:
+          Theme.of(context).scaffoldBackgroundColor, // Theme-based background
       body: DefaultTabController(
         length: 3,
         child: NestedScrollView(
@@ -101,18 +104,40 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                 floating: false,
                 snap: false,
                 expandedHeight: 360.h,
-                backgroundColor: const Color(0xFF33353B),
+                backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+                // Theme-based color
                 leading: IconButton(
                   icon: Icon(
                     Icons.arrow_back_ios,
-                    color: Colors.white,
+                    color:
+                        Theme.of(
+                          context,
+                        ).appBarTheme.foregroundColor, // Theme-based color
                     size: 50.sp,
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      Theme.of(context).brightness == Brightness.light
+                          ? Icons
+                              .brightness_7 // Sun for light mode
+                          : Icons.brightness_4, // Moon for dark mode
+                      color: Theme.of(context).appBarTheme.foregroundColor,
+                      size: 50.sp,
+                    ),
+                    onPressed: () {
+                      context.read<ThemeCubit>().toggleTheme(); // Toggle theme
+                    },
+                  ),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
-                    color: const Color(0xFF33353B),
+                    color:
+                        Theme.of(
+                          context,
+                        ).appBarTheme.backgroundColor, // Theme-based color
                     padding: EdgeInsets.only(left: 0, top: 70.h),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -126,7 +151,10 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                               text: widget.leagueName,
                               textSize: 120.sp,
                               textFontWeight: FontWeight.w600,
-                              textColor: Colors.white,
+                              textColor:
+                                  Theme.of(context)
+                                      .appBarTheme
+                                      .foregroundColor!, // Theme-based color
                             ),
                             YearDropdownMenu(
                               seasons: widget.seasons,
@@ -146,13 +174,18 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                     isScrollable: false,
                     indicatorPadding: EdgeInsets.zero,
                     labelPadding: EdgeInsets.symmetric(horizontal: 0.w),
+                    indicatorColor: Theme.of(context).colorScheme.primary,
+                    // Theme-based indicator
                     tabs: [
                       Tab(
                         child: ReusableText(
                           text: 'standings'.tr,
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
-                          textColor: Colors.white,
+                          textColor:
+                              Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor!, // Theme-based color
                         ),
                       ),
                       Tab(
@@ -160,7 +193,10 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                           text: 'matches'.tr,
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
-                          textColor: Colors.white,
+                          textColor:
+                              Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor!, // Theme-based color
                         ),
                       ),
                       Tab(
@@ -168,7 +204,10 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                           text: 'rounds'.tr,
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
-                          textColor: Colors.white,
+                          textColor:
+                              Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor!, // Theme-based color
                         ),
                       ),
                     ],
@@ -186,7 +225,6 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                 seasonId: selectedSeasonId,
               ),
               GamesPerRoundScreen(
-                // Assuming this is the correct widget name
                 leagueName: widget.leagueName,
                 uniqueTournamentId: widget.leagueId,
                 seasonId: selectedSeasonId,

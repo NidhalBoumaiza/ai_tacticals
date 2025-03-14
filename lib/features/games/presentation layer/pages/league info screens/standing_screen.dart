@@ -5,11 +5,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart'; // Added for translations
 
 import '../../../../../core/utils/navigation_with_transition.dart';
-import '../../../domain%20layer/entities/standing_entity.dart';
-import '../../bloc/standing%20bloc/standing_bloc.dart';
-import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/country_flag_widget.dart';
-import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/standing_line_widget.dart';
-import '../team%20info%20screens/team_info_screen_squelette.dart';
+import '../../../domain layer/entities/standing_entity.dart';
+import '../../bloc/standing bloc/standing_bloc.dart';
+import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+import '../../widgets/home page widgets/standing screen widgets/standing_line_widget.dart';
+import '../team info screens/team_info_screen_squelette.dart';
 
 class StandingScreen extends StatefulWidget {
   final String leagueName;
@@ -47,9 +47,6 @@ class _StandingScreenState extends State<StandingScreen> {
   }
 
   void _initializeData() {
-    print(
-      'Initializing data for leagueId: ${widget.leagueId}, seasonId: ${widget.seasonId}',
-    );
     if (!_standingBloc.isStandingCached(widget.leagueId, widget.seasonId)) {
       _standingBloc.add(
         GetStanding(leagueId: widget.leagueId, seasonId: widget.seasonId),
@@ -59,83 +56,105 @@ class _StandingScreenState extends State<StandingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 20.h),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xff161d1f),
-            borderRadius: BorderRadius.circular(55.r),
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 30.h, horizontal: 30.w),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    SizedBox(width: 10.w),
-                    CountryFlagWidget(flag: widget.leagueId.toString()),
-                    SizedBox(width: 50.w),
-                    BlocBuilder<StandingBloc, StandingsState>(
-                      builder: (context, state) {
-                        if (state is StandingsSuccess) {
+    return Scaffold(
+      backgroundColor:
+          Theme.of(context).scaffoldBackgroundColor, // Theme-based background
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 20.h),
+          child: Container(
+            decoration: BoxDecoration(
+              color:
+                  Theme.of(context).colorScheme.surface, // Theme-based surface
+              borderRadius: BorderRadius.circular(55.r),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 30.h, horizontal: 30.w),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(width: 10.w),
+                      CountryFlagWidget(flag: widget.leagueId.toString()),
+                      SizedBox(width: 50.w),
+                      BlocBuilder<StandingBloc, StandingsState>(
+                        builder: (context, state) {
+                          if (state is StandingsSuccess) {
+                            return ReusableText(
+                              text:
+                                  state.standings.league?.name ??
+                                  widget.leagueName,
+                              textSize: 130.sp,
+                              textColor:
+                                  Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge!
+                                      .color!, // Theme-based color
+                              textFontWeight: FontWeight.w800,
+                            );
+                          }
                           return ReusableText(
-                            text:
-                                state.standings.league?.name ??
-                                widget.leagueName,
+                            text: widget.leagueName,
                             textSize: 130.sp,
-                            textColor: Colors.white,
-                            textFontWeight: FontWeight.w800,
+                            textColor:
+                                Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge!
+                                    .color!, // Theme-based color
+                            textFontWeight: FontWeight.w600,
                           );
-                        }
-                        return ReusableText(
-                          text: widget.leagueName,
-                          textSize: 130.sp,
-                          textColor: Colors.white,
-                          textFontWeight: FontWeight.w600,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                SizedBox(height: 50.h),
-                BlocBuilder<StandingBloc, StandingsState>(
-                  builder: (context, state) {
-                    print('Current state: $state');
-                    // Check cache first
-                    if (_standingBloc.isStandingCached(
-                      widget.leagueId,
-                      widget.seasonId,
-                    )) {
-                      final cachedStanding =
-                          _standingBloc.getCachedStanding(
-                            widget.leagueId,
-                            widget.seasonId,
-                          )!;
-                      return _buildStandingsContent(cachedStanding);
-                    }
-
-                    if (state is StandingsLoading) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (state is StandingsSuccess) {
-                      return _buildStandingsContent(state.standings);
-                    } else if (state is StandingsError) {
-                      print('Error: ${state.message}');
-                      return Center(
-                        child: Image.asset("assets/images/Empty.png"),
-                      );
-                    }
-                    return Center(
-                      child: ReusableText(
-                        text: 'no_data_available'.tr, // Translated
-                        textSize: 100.sp,
-                        textColor: Colors.white,
-                        textFontWeight: FontWeight.w600,
+                        },
                       ),
-                    );
-                  },
-                ),
-              ],
+                    ],
+                  ),
+                  SizedBox(height: 50.h),
+                  BlocBuilder<StandingBloc, StandingsState>(
+                    builder: (context, state) {
+                      // Check cache first
+                      if (_standingBloc.isStandingCached(
+                        widget.leagueId,
+                        widget.seasonId,
+                      )) {
+                        final cachedStanding =
+                            _standingBloc.getCachedStanding(
+                              widget.leagueId,
+                              widget.seasonId,
+                            )!;
+                        return _buildStandingsContent(cachedStanding);
+                      }
+
+                      if (state is StandingsLoading) {
+                        return Center(
+                          child: CircularProgressIndicator(
+                            color:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary, // Theme-based color
+                          ),
+                        );
+                      } else if (state is StandingsSuccess) {
+                        return _buildStandingsContent(state.standings);
+                      } else if (state is StandingsError) {
+                        return Center(
+                          child: Image.asset("assets/images/Empty.png"),
+                        );
+                      }
+                      return Center(
+                        child: ReusableText(
+                          text: 'no_data_available'.tr, // Translated
+                          textSize: 100.sp,
+                          textColor:
+                              Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge!
+                                  .color!, // Theme-based color
+                          textFontWeight: FontWeight.w600,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -144,20 +163,21 @@ class _StandingScreenState extends State<StandingScreen> {
   }
 
   Widget _buildStandingsContent(StandingsEntity standings) {
-    print('Groups count: ${standings.groups.length}');
     if (standings.groups.isEmpty) {
       return Center(
         child: ReusableText(
           text: 'no_standings_data_available'.tr, // Translated
           textSize: 100.sp,
-          textColor: Colors.white,
+          textColor:
+              Theme.of(
+                context,
+              ).textTheme.bodyLarge!.color!, // Theme-based color
           textFontWeight: FontWeight.w600,
         ),
       );
     }
 
     final isGroupBased = standings.groups.any((g) => g.isGroup == true);
-    print('Is group-based: $isGroupBased');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -169,7 +189,8 @@ class _StandingScreenState extends State<StandingScreen> {
                 text: standings.groups[0].name ?? 'total_standings'.tr,
                 // Translated
                 textSize: 110.sp,
-                textColor: Colors.white,
+                textColor: Theme.of(context).textTheme.bodyLarge!.color!,
+                // Theme-based color
                 textFontWeight: FontWeight.w600,
               ),
               SizedBox(height: 10.h),
@@ -187,7 +208,10 @@ class _StandingScreenState extends State<StandingScreen> {
                     child: ReusableText(
                       text: group.name ?? group.groupName ?? "Unnamed Group",
                       textSize: 110.sp,
-                      textColor: Colors.white,
+                      textColor:
+                          Theme.of(
+                            context,
+                          ).textTheme.bodyLarge!.color!, // Theme-based color
                       textFontWeight: FontWeight.w600,
                     ),
                   ),
@@ -201,10 +225,6 @@ class _StandingScreenState extends State<StandingScreen> {
   }
 
   Widget _buildStandingsTable(GroupEntity group) {
-    print(
-      'Building table for group: ${group.name ?? group.groupName}, Rows: ${group.rows.length}',
-    );
-
     return StatefulBuilder(
       builder: (BuildContext context, StateSetter setState) {
         bool isExpanded = false;
@@ -216,8 +236,7 @@ class _StandingScreenState extends State<StandingScreen> {
                     .where((line) => line.trim().isNotEmpty)
                     .length
                 : 0;
-        print('Raw TieBreakingRuleText: "${group.tieBreakingRuleText}"');
-        print('TieBreakingRule Lines: $tieBreakingLines');
+
         final showToggleButton = tieBreakingLines > 3;
 
         final promotionTypes =
@@ -226,13 +245,14 @@ class _StandingScreenState extends State<StandingScreen> {
                 .map((team) => team.promotion!.text!)
                 .toSet()
                 .toList();
-        print('Unique Promotion Types: $promotionTypes');
 
         final promotionColors =
             promotionTypes.map((promotion) {
               if (promotion == "Relegation" ||
                   promotion == "Relegation Playoffs") {
-                return const Color(0xffef5056);
+                return const Color(
+                  0xffef5056,
+                ); // Keep specific colors for promotions
               } else if (promotion == "UEFA Europa League") {
                 return const Color(0xff278eea);
               } else if (promotion == "Playoffs" ||
@@ -255,7 +275,10 @@ class _StandingScreenState extends State<StandingScreen> {
                   child: ReusableText(
                     text: 'position_short'.tr,
                     textSize: 100.sp,
-                    textColor: const Color(0xff8a8e90),
+                    textColor:
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant, // Theme-based color
                     textFontWeight: FontWeight.w600,
                   ),
                 ),
@@ -265,7 +288,10 @@ class _StandingScreenState extends State<StandingScreen> {
                   child: ReusableText(
                     text: 'team'.tr,
                     textSize: 100.sp,
-                    textColor: const Color(0xff8a8e90),
+                    textColor:
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant, // Theme-based color
                     textFontWeight: FontWeight.w600,
                   ),
                 ),
@@ -274,7 +300,10 @@ class _StandingScreenState extends State<StandingScreen> {
                   child: ReusableText(
                     text: 'played_short'.tr,
                     textSize: 100.sp,
-                    textColor: const Color(0xff8a8e90),
+                    textColor:
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant, // Theme-based color
                     textFontWeight: FontWeight.w600,
                   ),
                 ),
@@ -283,7 +312,10 @@ class _StandingScreenState extends State<StandingScreen> {
                   child: ReusableText(
                     text: 'difference_short'.tr,
                     textSize: 100.sp,
-                    textColor: const Color(0xff8a8e90),
+                    textColor:
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant, // Theme-based color
                     textFontWeight: FontWeight.w600,
                   ),
                 ),
@@ -292,7 +324,10 @@ class _StandingScreenState extends State<StandingScreen> {
                   child: ReusableText(
                     text: 'points_short'.tr,
                     textSize: 100.sp,
-                    textColor: const Color(0xff8a8e90),
+                    textColor:
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant, // Theme-based color
                     textFontWeight: FontWeight.w600,
                   ),
                 ),
@@ -304,9 +339,7 @@ class _StandingScreenState extends State<StandingScreen> {
               itemCount: group.rows.length,
               itemBuilder: (context, index) {
                 final team = group.rows[index];
-                print(
-                  'Team: ${team.shortName}, ID: ${team.id}, Position: ${team.position}',
-                );
+
                 final hasPromotion = team.promotion?.text != null;
                 final positionColor =
                     hasPromotion
@@ -322,7 +355,9 @@ class _StandingScreenState extends State<StandingScreen> {
                                 team.promotion!.text == "Promotion playoffs"
                             ? const Color(0xff38b752)
                             : const Color(0xff80ec7b))
-                        : const Color(0xff161d1f);
+                        : Theme.of(
+                          context,
+                        ).colorScheme.surface; // Theme-based fallback
 
                 return GestureDetector(
                   onTap: () {
@@ -355,7 +390,11 @@ class _StandingScreenState extends State<StandingScreen> {
               },
             ),
             SizedBox(height: 20.h),
-            const Divider(),
+            Divider(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withOpacity(0.5), // Theme-based divider
+            ),
             if (group.tieBreakingRuleText != null)
               Padding(
                 padding: EdgeInsets.only(top: 15.h),
@@ -372,20 +411,25 @@ class _StandingScreenState extends State<StandingScreen> {
                                   .take(3)
                                   .join('\n'),
                       textSize: 90.sp,
-                      textColor: Colors.white,
+                      textColor:
+                          Theme.of(
+                            context,
+                          ).textTheme.bodyMedium!.color!, // Theme-based color
                     ),
                     if (showToggleButton)
                       TextButton(
                         onPressed: () {
                           setState(() {
                             isExpanded = !isExpanded;
-                            print('Toggle pressed, isExpanded: $isExpanded');
                           });
                         },
                         child: ReusableText(
                           text: isExpanded ? 'show_less'.tr : 'show_more'.tr,
                           textSize: 90.sp,
-                          textColor: const Color(0xff38b752),
+                          textColor:
+                              Theme.of(
+                                context,
+                              ).colorScheme.primary, // Theme-based color
                         ),
                       ),
                   ],
@@ -409,7 +453,8 @@ class _StandingScreenState extends State<StandingScreen> {
                                 height: 20.w,
                                 width: 20.w,
                                 decoration: BoxDecoration(
-                                  color: color,
+                                  color:
+                                      color, // Keep specific promotion colors
                                   borderRadius: BorderRadius.circular(100.r),
                                 ),
                               ),
@@ -417,7 +462,10 @@ class _StandingScreenState extends State<StandingScreen> {
                               ReusableText(
                                 text: promotion,
                                 textSize: 90.sp,
-                                textColor: const Color(0xff8a8e90),
+                                textColor:
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant, // Theme-based color
                               ),
                             ],
                           ),

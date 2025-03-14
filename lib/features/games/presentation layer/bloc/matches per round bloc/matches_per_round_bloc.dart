@@ -5,6 +5,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
 part 'matches_per_round_event.dart';
+
 part 'matches_per_round_state.dart';
 
 class MatchesPerRoundBloc
@@ -31,7 +32,6 @@ class MatchesPerRoundBloc
 
     // Check if this round is already cached
     if (_matchesCache[cacheKey]!.containsKey(event.round) && !event.isRefresh) {
-      print('Using cached matches for round ${event.round}');
       if (state is MatchesPerRoundLoaded) {
         final currentState = state as MatchesPerRoundLoaded;
         final updatedMatches = Map<int, List<MatchEventEntity>>.from(
@@ -59,11 +59,9 @@ class MatchesPerRoundBloc
 
     // Emit loading state
     if (state is MatchesPerRoundInitial || event.isRefresh) {
-      print('Emitting MatchesPerRoundLoading');
       emit(MatchesPerRoundLoading());
     } else if (state is MatchesPerRoundLoaded) {
       final currentState = state as MatchesPerRoundLoaded;
-      print('Setting isLoadingMore to true for round ${event.round}');
       emit(currentState.copyWith(isLoadingMore: true));
     }
 
@@ -76,13 +74,9 @@ class MatchesPerRoundBloc
 
     result.fold(
       (failure) {
-        print('Fetch failed: ${mapFailureToMessage(failure)}');
         emit(MatchesPerRoundError(message: mapFailureToMessage(failure)));
       },
       (matches) {
-        print(
-          'Fetch succeeded: ${matches.length} matches for round ${event.round}',
-        );
         try {
           // Cache the fetched matches
           _matchesCache[cacheKey]![event.round] = matches;
@@ -90,9 +84,6 @@ class MatchesPerRoundBloc
           if (state is MatchesPerRoundLoading ||
               state is MatchesPerRoundInitial ||
               event.isRefresh) {
-            print(
-              'Emitting initial MatchesPerRoundLoaded with round ${event.round}',
-            );
             emit(
               MatchesPerRoundLoaded(
                 matches: {event.round: matches},
@@ -106,9 +97,7 @@ class MatchesPerRoundBloc
               currentState.matches,
             );
             updatedMatches[event.round] = matches;
-            print(
-              'Emitting updated MatchesPerRoundLoaded with ${updatedMatches.keys.length} rounds',
-            );
+
             emit(
               currentState.copyWith(
                 matches: updatedMatches,
@@ -118,7 +107,6 @@ class MatchesPerRoundBloc
             );
           }
         } catch (e) {
-          print('Error emitting state: $e');
           emit(MatchesPerRoundError(message: 'Failed to update state: $e'));
         }
       },

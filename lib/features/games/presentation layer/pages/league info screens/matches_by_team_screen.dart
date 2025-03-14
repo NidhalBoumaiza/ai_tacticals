@@ -1,3 +1,4 @@
+// games_per_round_screen.dart
 import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:flutter/material.dart';
@@ -76,38 +77,43 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
     return '';
   }
 
-  void _handleNotificationToggle(MatchEventEntity match) {
-    print('Toggling notification for match ID: ${match.id}');
-  }
+  void _handleNotificationToggle(MatchEventEntity match) {}
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<MatchesBloc, MatchesState>(
-      builder: (context, state) {
-        // Check cache first
-        if (_matchesBloc.isMatchesCached(
-          widget.uniqueTournamentId,
-          widget.seasonId,
-        )) {
-          final cachedMatches =
-              _matchesBloc.getCachedMatches(
-                widget.uniqueTournamentId,
-                widget.seasonId,
-              )!;
-          return _buildMatchesContent(cachedMatches);
-        }
+    return Scaffold(
+      backgroundColor:
+          Theme.of(context).scaffoldBackgroundColor, // Theme-based background
+      body: BlocBuilder<MatchesBloc, MatchesState>(
+        builder: (context, state) {
+          // Check cache first
+          if (_matchesBloc.isMatchesCached(
+            widget.uniqueTournamentId,
+            widget.seasonId,
+          )) {
+            final cachedMatches =
+                _matchesBloc.getCachedMatches(
+                  widget.uniqueTournamentId,
+                  widget.seasonId,
+                )!;
+            return _buildMatchesContent(cachedMatches);
+          }
 
-        if (state is MatchesLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          );
-        } else if (state is MatchesLoaded) {
-          return _buildMatchesContent(state.matches);
-        } else if (state is MatchesError) {
-          return Center(child: Image.asset("assets/images/Empty.png"));
-        }
-        return Container();
-      },
+          if (state is MatchesLoading) {
+            return Center(
+              child: CircularProgressIndicator(
+                color:
+                    Theme.of(context).colorScheme.primary, // Theme-based color
+              ),
+            );
+          } else if (state is MatchesLoaded) {
+            return _buildMatchesContent(state.matches);
+          } else if (state is MatchesError) {
+            return Center(child: Image.asset("assets/images/Empty.png"));
+          }
+          return Container();
+        },
+      ),
     );
   }
 
@@ -116,9 +122,12 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
     if (matchesPerTeam == null || matchesPerTeam.isEmpty) {
       return Center(
         child: ReusableText(
-          text: 'no_matches_available_generic'.tr, // Translated
+          text: 'no_matches_available_generic'.tr,
           textSize: 100.sp,
-          textColor: Colors.white,
+          textColor:
+              Theme.of(
+                context,
+              ).textTheme.bodyLarge!.color!, // Theme-based color
           textFontWeight: FontWeight.w600,
         ),
       );
@@ -186,7 +195,7 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                 final matches = entry.value;
                 final teamName =
                     matches.first.homeTeam?.shortName ?? "Unknown Team";
-                late int index = 0;
+                int index = 0; // Reset index for each team
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -203,36 +212,43 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                 )
                                 : null;
                         final status = _getMatchStatus(match);
-                        index++;
+                        index++; // Increment index for conditional rendering
                         return Column(
                           children: [
-                            index == 1
-                                ? Container(
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: 10.h,
-                                    horizontal: 15.w,
+                            if (index ==
+                                1) // Show team header only for the first match
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 10.h,
+                                  horizontal: 15.w,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .surface, // Theme-based surface
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(12.r),
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade800,
-                                    borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(12.r),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    CountryFlagWidget(flag: teamId),
+                                    SizedBox(width: 10.w),
+                                    ReusableText(
+                                      text: teamName,
+                                      textSize: 110.sp,
+                                      textColor:
+                                          Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge!
+                                              .color!, // Theme-based color
+                                      textFontWeight: FontWeight.w700,
                                     ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      CountryFlagWidget(flag: teamId),
-                                      SizedBox(width: 10.w),
-                                      ReusableText(
-                                        text: teamName,
-                                        textSize: 110.sp,
-                                        textColor: Colors.white,
-                                        textFontWeight: FontWeight.w700,
-                                      ),
-                                    ],
-                                  ),
-                                )
-                                : SizedBox.shrink(),
+                                  ],
+                                ),
+                              ),
                             GestureDetector(
                               onTap: () {
                                 navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
@@ -254,7 +270,10 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                               child: Container(
                                 padding: EdgeInsets.all(20.w),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xff161d1f),
+                                  color:
+                                      Theme.of(context)
+                                          .colorScheme
+                                          .surfaceVariant, // Theme-based variant
                                   borderRadius: BorderRadius.vertical(
                                     bottom: Radius.circular(12.r),
                                   ),
@@ -276,13 +295,20 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                                     ? "${date.day}.${date.month}.${date.year}"
                                                     : "N/A",
                                             textSize: 90.sp,
-                                            textColor: Colors.white,
+                                            textColor:
+                                                Theme.of(context)
+                                                    .textTheme
+                                                    .bodyMedium!
+                                                    .color!, // Theme-based color
                                           ),
                                           if (status.isNotEmpty)
                                             ReusableText(
                                               text: status,
                                               textSize: 80.sp,
-                                              textColor: Colors.grey,
+                                              textColor:
+                                                  Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant, // Theme-based color
                                             ),
                                         ],
                                       ),
@@ -291,7 +317,11 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                     Container(
                                       width: 2.w,
                                       height: 80.h,
-                                      color: Colors.grey.shade600,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(
+                                        0.5,
+                                      ), // Theme-based divider
                                     ),
                                     Expanded(
                                       child: Row(
@@ -308,7 +338,11 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                                 match.homeTeam?.shortName ??
                                                 "Unknown",
                                             textSize: 100.sp,
-                                            textColor: Colors.white,
+                                            textColor:
+                                                Theme.of(context)
+                                                    .textTheme
+                                                    .bodyLarge!
+                                                    .color!, // Theme-based color
                                             textFontWeight: FontWeight.w600,
                                           ),
                                           SizedBox(width: 20.w),
@@ -316,7 +350,11 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                             text:
                                                 '${match.homeScore?.current ?? "-"} - ${match.awayScore?.current ?? "-"}',
                                             textSize: 100.sp,
-                                            textColor: Colors.white,
+                                            textColor:
+                                                Theme.of(context)
+                                                    .textTheme
+                                                    .bodyLarge!
+                                                    .color!, // Theme-based color
                                             textFontWeight: FontWeight.w600,
                                           ),
                                           SizedBox(width: 20.w),
@@ -327,7 +365,11 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                                   match.awayTeam?.shortName ??
                                                   "Unknown",
                                               textSize: 100.sp,
-                                              textColor: Colors.white,
+                                              textColor:
+                                                  Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge!
+                                                      .color!, // Theme-based color
                                               textFontWeight: FontWeight.w600,
                                             ),
                                           ),

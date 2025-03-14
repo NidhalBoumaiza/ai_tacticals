@@ -25,7 +25,7 @@ class _HomeScreenSqueletteState extends State<HomeScreenSquelette> {
           context,
           controller: _controller,
           screens: buildScreens(),
-          items: navBarsItems(),
+          items: navBarsItems(context),
           handleAndroidBackButtonPress: true,
           // Default is true.
           resizeToAvoidBottomInset: true,

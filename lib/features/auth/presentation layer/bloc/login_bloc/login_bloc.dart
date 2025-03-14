@@ -7,6 +7,7 @@ import 'package:meta/meta.dart';
 import '../../../../../core/utils/map_failure_to_message.dart';
 
 part 'login_event.dart';
+
 part 'login_state.dart';
 
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
@@ -23,7 +24,6 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) async {
     emit(LoginLoading());
     final failureOrUser = await login(event.email, event.password);
-    print('failureOrUser: $failureOrUser');
     failureOrUser.fold(
       (failure) => emit(LoginError(message: mapFailureToMessage(failure))),
       (user) => emit(LoginSuccess(user: user)),

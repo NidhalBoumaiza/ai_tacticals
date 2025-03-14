@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart'; // Added for translations
+import 'package:get/get.dart';
 
 import '../../../../../core/widgets/reusable_text.dart';
-import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/country_flag_widget.dart';
+import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
 import 'one_match_squad_screen.dart';
 import 'one_match_statics_screen.dart';
 
@@ -42,7 +42,6 @@ class _MatchDetailsSqueletteScreenState
     extends State<MatchDetailsSqueletteScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late int index = 0;
 
   @override
   void initState() {
@@ -59,6 +58,10 @@ class _MatchDetailsSqueletteScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:
+          Theme.of(
+            context,
+          ).scaffoldBackgroundColor, // Light: grey[50], Dark: 0xFF37383c
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
@@ -66,108 +69,131 @@ class _MatchDetailsSqueletteScreenState
             return [
               SliverAppBar(
                 pinned: true,
-                // Keep the app bar pinned at the top
                 floating: false,
-                // Disable floating behavior
                 snap: false,
-                // Disable snap effect
                 expandedHeight: 500.h,
-                // Height of the expanded app bar
-                backgroundColor: const Color(0xFF33353B),
+                backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+                // 0xFFfbc02d
+                elevation: 0,
                 leading: IconButton(
                   icon: Icon(
                     Icons.arrow_back_ios,
-                    color: Colors.white,
-                    size: 50.sp, // Much larger back arrow
+                    color:
+                        Theme.of(context).appBarTheme.foregroundColor, // Black
+                    size: 60.sp, // Slightly larger for better touch target
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
-                    color: const Color(0xFF33353B),
-                    padding: EdgeInsets.only(left: 0, top: 50.h),
+                    color:
+                        Theme.of(context)
+                            .colorScheme
+                            .surface, // White (light) or grey[850] (dark)
+                    padding: EdgeInsets.only(top: 50.h),
                     child: Column(
                       children: [
-                        SizedBox(height: 140.h),
+                        SizedBox(height: 100.h), // Adjusted for app bar overlap
                         ReusableText(
-                          text: widget.leagueName, // Dynamic, not translated
+                          text: widget.leagueName,
                           textSize: 130.sp,
                           textFontWeight: FontWeight.w700,
-                          textColor: Colors.white,
+                          textColor:
+                              Theme.of(context)
+                                  .colorScheme
+                                  .onSurface, // Dark gray (light) or white (dark)
                         ),
                         SizedBox(height: 50.h),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Row(
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsets.only(right: 15.w),
-                                      child: CountryFlagWidget(
-                                        flag: widget.homeTeamId,
-                                        width: 100.w,
-                                        height: 100.w,
-                                      ),
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(right: 15.w),
+                                    child: CountryFlagWidget(
+                                      flag: widget.homeTeamId,
+                                      width: 100.w,
+                                      height: 100.w,
                                     ),
-                                    ReusableText(
-                                      text: widget.homeShortName,
-                                      // Dynamic, not translated
-                                      textSize: 120.sp,
-                                      textFontWeight: FontWeight.w800,
-                                    ),
-                                    SizedBox(width: 50.w),
-                                  ],
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.only(top: 20.h),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      ReusableText(
-                                        text:
-                                            '${widget.homeScore} - ${widget.awayScore}',
-                                        // Dynamic, not translated
-                                        textSize: 120.sp,
-                                        textFontWeight: FontWeight.w900,
-                                        textColor: Colors.white,
-                                      ),
-                                      SizedBox(height: 20.h),
-                                      ReusableText(
-                                        text: widget.matchStatus,
-                                        // Dynamic, not translated
-                                        textSize: 100.sp,
-                                        textFontWeight: FontWeight.w900,
-                                        textColor: Colors.white,
-                                      ),
-                                    ],
                                   ),
-                                ),
-                                Row(
-                                  children: [
-                                    SizedBox(width: 50.w),
-                                    ReusableText(
-                                      text: widget.awayShortName,
-                                      // Dynamic, not translated
+                                  Flexible(
+                                    child: ReusableText(
+                                      text: widget.homeShortName,
                                       textSize: 120.sp,
                                       textFontWeight: FontWeight.w800,
+                                      textColor:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                      textAlign: TextAlign.right,
                                     ),
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        left: 15.w,
-                                        bottom: 10.h,
-                                      ),
-                                      child: CountryFlagWidget(
-                                        flag: widget.awayTeamId,
-                                        width: 100.w,
-                                        height: 100.w,
-                                      ),
+                                  ),
+                                  SizedBox(width: 20.w),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20.h),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ReusableText(
+                                    text:
+                                        '${widget.homeScore} - ${widget.awayScore}',
+                                    textSize: 120.sp,
+                                    textFontWeight: FontWeight.w900,
+                                    textColor:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                  SizedBox(height: 20.h),
+                                  ReusableText(
+                                    text: widget.matchStatus,
+                                    textSize: 100.sp,
+                                    textFontWeight: FontWeight.w900,
+                                    textColor:
+                                        widget.matchStatus.toLowerCase() ==
+                                                'live'
+                                            ? Theme.of(
+                                              context,
+                                            ).colorScheme.error
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.7),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  SizedBox(width: 20.w),
+                                  Flexible(
+                                    child: ReusableText(
+                                      text: widget.awayShortName,
+                                      textSize: 120.sp,
+                                      textFontWeight: FontWeight.w800,
+                                      textColor:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                      textAlign: TextAlign.left,
                                     ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.only(left: 15.w),
+                                    child: CountryFlagWidget(
+                                      flag: widget.awayTeamId,
+                                      width: 100.w,
+                                      height: 100.w,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -176,48 +202,56 @@ class _MatchDetailsSqueletteScreenState
                   ),
                 ),
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(0),
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: false,
-                    indicatorPadding: EdgeInsets.zero,
-                    labelPadding: EdgeInsets.symmetric(horizontal: 0.w),
-                    tabs: [
-                      Tab(
-                        iconMargin: EdgeInsets.zero,
-                        child: ReusableText(
-                          text: 'statistics'.tr, // Translated
-                          textSize: 120.sp, // Much larger text
-                          textFontWeight: FontWeight.w600,
-                          textColor: Colors.white,
+                  preferredSize: Size.fromHeight(100.h),
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surface,
+                    child: TabBar(
+                      controller: _tabController,
+                      isScrollable: false,
+                      indicatorPadding: EdgeInsets.symmetric(horizontal: 30.w),
+                      labelPadding: EdgeInsets.zero,
+                      indicatorColor: Theme.of(context).colorScheme.primary,
+                      // 0xFFfbc02d
+                      indicatorWeight: 4,
+                      tabs: [
+                        Tab(
+                          child: ReusableText(
+                            text: 'statistics'.tr,
+                            textSize: 120.sp,
+                            textFontWeight: FontWeight.w600,
+                            textColor: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
-                      ),
-                      Tab(
-                        child: ReusableText(
-                          text: 'lineups'.tr, // Translated
-                          textSize: 120.sp, // Much larger text
-                          textFontWeight: FontWeight.w600,
-                          textColor: Colors.white,
+                        Tab(
+                          child: ReusableText(
+                            text: 'lineups'.tr,
+                            textSize: 120.sp,
+                            textFontWeight: FontWeight.w600,
+                            textColor: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ];
           },
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              OneMatchStaticsScreen(
-                matchId: widget.matchId,
-                homeTeamId: widget.homeTeamId,
-                awayTeamId: widget.awayTeamId,
-                homeShortName: widget.homeShortName,
-                awayShortName: widget.awayShortName,
-              ),
-              MatchLineupsScreen(matchId: widget.matchId),
-            ],
+          body: Container(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                OneMatchStaticsScreen(
+                  matchId: widget.matchId,
+                  homeTeamId: widget.homeTeamId,
+                  awayTeamId: widget.awayTeamId,
+                  homeShortName: widget.homeShortName,
+                  awayShortName: widget.awayShortName,
+                ),
+                MatchLineupsScreen(matchId: widget.matchId),
+              ],
+            ),
           ),
         ),
       ),

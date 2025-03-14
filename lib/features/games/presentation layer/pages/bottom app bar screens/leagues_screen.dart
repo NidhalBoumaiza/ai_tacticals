@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../../core/cubit/theme cubit/theme_cubit.dart';
 import '../../../../auth/presentation%20layer/pages/login_screen.dart';
 import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/league_and_matches_by_country_widget.dart';
 
@@ -22,7 +23,6 @@ class _LeagueScreenState extends State<LeagueScreen> {
   @override
   void initState() {
     super.initState();
-    // Trigger fetching countries when the widget initializes
     context.read<CountriesBloc>().add(GetAllCountries());
   }
 
@@ -34,74 +34,97 @@ class _LeagueScreenState extends State<LeagueScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(120.h),
-        child: Container(
-          height: 120.h,
-          decoration: BoxDecoration(color: Colors.grey.shade900),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 35.w),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: () async {
-                    SharedPreferences prefs =
-                        await SharedPreferences.getInstance();
-                    await prefs.remove('TOKEN');
-                    PersistentNavBarNavigator.pushNewScreen(
-                      context,
-                      screen: const LoginScreen(),
-                      withNavBar: false,
-                      pageTransitionAnimation:
-                          PageTransitionAnimation.slideRight,
-                    );
-                  },
-                  child: Icon(
-                    FontAwesomeIcons.rightFromBracket,
-                    size: 60.sp,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(width: 765.w),
-              ],
-            ),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        // Uses primaryColor (0xFFfbc02d)
+        elevation: 0,
+        toolbarHeight: 120.h,
+        leadingWidth: 80.w,
+        leading: IconButton(
+          icon: Icon(
+            FontAwesomeIcons.rightFromBracket,
+            size: 60.sp,
+            color:
+                Theme.of(
+                  context,
+                ).appBarTheme.foregroundColor, // Black in both themes
           ),
+          onPressed: () async {
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+            await prefs.remove('TOKEN');
+            PersistentNavBarNavigator.pushNewScreen(
+              context,
+              screen: const LoginScreen(),
+              withNavBar: false,
+              pageTransitionAnimation: PageTransitionAnimation.slideRight,
+            );
+          },
         ),
+        title: ReusableText(
+          text: 'leagues'.tr, // Translated title
+          textSize: 130.sp,
+          textFontWeight: FontWeight.w900,
+          textColor: Theme.of(context).appBarTheme.foregroundColor,
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.brightness_6,
+              size: 60.sp,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+            ),
+            onPressed: () => context.read<ThemeCubit>().toggleTheme(),
+          ),
+        ],
       ),
-      backgroundColor: const Color(0xff010001), // Dark background
+      backgroundColor:
+          Theme.of(
+            context,
+          ).scaffoldBackgroundColor, // Light: grey[50], Dark: 0xFF37383c
       body: BlocConsumer<CountriesBloc, CountriesState>(
         listener: (context, state) {
           if (state is CountriesError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message.tr),
-              ), // Translate error message
+                content: ReusableText(
+                  text: state.message.tr,
+                  textSize: 90.sp,
+                  textColor: Theme.of(context).colorScheme.onSurface,
+                ),
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
             );
           }
         },
         builder: (context, state) {
           if (state is CountriesLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
+            return Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary, // 0xFFfbc02d
+              ),
             );
           } else if (state is CountriesSuccess) {
             return SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(30.w, 20.h, 30.w, 60.h),
+                padding: EdgeInsets.fromLTRB(30.w, 150.h, 30.w, 60.h),
+                // Adjusted top padding for app bar
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ReusableText(
                       text: "categories".tr,
-                      // Translated "Categories"
                       textSize: 120.sp,
                       textFontWeight: FontWeight.w700,
-                      textColor: const Color(0xffececee),
-                      // textDirection:
-                      //     Get.locale?.languageCode == 'ar'
-                      //         ? TextDirection.rtl
-                      //         : TextDirection.ltr, // RTL support
+                      textColor:
+                          Theme.of(context)
+                              .colorScheme
+                              .onSurface, // Dark gray (light) or white (dark)
                     ),
                     SizedBox(height: 25.h),
                     ListView.separated(
@@ -116,9 +139,8 @@ class _LeagueScreenState extends State<LeagueScreen> {
                           countryId: country.id,
                         );
                       },
-                      separatorBuilder: (BuildContext context, int index) {
-                        return SizedBox(height: 12.h);
-                      },
+                      separatorBuilder:
+                          (context, index) => SizedBox(height: 12.h),
                     ),
                   ],
                 ),
@@ -126,44 +148,31 @@ class _LeagueScreenState extends State<LeagueScreen> {
             );
           } else if (state is CountriesError) {
             final message = state.message;
-            if (message == 'offline_failure_message'.tr ||
-                message == 'No Internet connection') {
-              return Center(
-                child: Text(
-                  'no_internet_connection'.tr,
-                  // Translated "No Internet Connection"
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textDirection:
-                      Get.locale?.languageCode == 'ar'
-                          ? TextDirection.rtl
-                          : TextDirection.ltr, // RTL support
-                ),
-              );
-            }
             return Center(
-              child: Text(
-                state.message.tr, // Translate dynamic error message
-                style: TextStyle(color: Colors.white, fontSize: 16.sp),
-                textDirection:
-                    Get.locale?.languageCode == 'ar'
-                        ? TextDirection.rtl
-                        : TextDirection.ltr, // RTL support
+              child: Padding(
+                padding: EdgeInsets.all(30.w),
+                child: ReusableText(
+                  text:
+                      message == 'offline_failure_message'.tr ||
+                              message == 'No Internet connection'
+                          ? 'no_internet_connection'.tr
+                          : state.message.tr,
+                  textSize: message.contains('internet') ? 120.sp : 100.sp,
+                  textFontWeight:
+                      message.contains('internet')
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                  textColor: Theme.of(context).colorScheme.onSurface,
+                  textAlign: TextAlign.center,
+                ),
               ),
             );
           }
           return Center(
-            child: Text(
-              'wait_to_load_countries'.tr,
-              // Translated "Press a button or wait to load countries"
-              style: TextStyle(color: Colors.white, fontSize: 16.sp),
-              textDirection:
-                  Get.locale?.languageCode == 'ar'
-                      ? TextDirection.rtl
-                      : TextDirection.ltr, // RTL support
+            child: ReusableText(
+              text: 'wait_to_load_countries'.tr,
+              textSize: 100.sp,
+              textColor: Theme.of(context).colorScheme.onSurface,
             ),
           );
         },

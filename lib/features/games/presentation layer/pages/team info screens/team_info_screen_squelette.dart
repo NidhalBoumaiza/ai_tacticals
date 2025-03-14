@@ -4,7 +4,7 @@ import 'package:analysis_ai/features/games/presentation%20layer/pages/team%20inf
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart'; // Added for translations
+import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 
 class TeamInfoScreenSquelette extends StatefulWidget {
@@ -28,7 +28,6 @@ class TeamInfoScreenSquelette extends StatefulWidget {
 class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late int index = 0;
 
   @override
   void initState() {
@@ -45,6 +44,7 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
@@ -55,18 +55,18 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                 floating: false,
                 snap: false,
                 expandedHeight: 360.h,
-                backgroundColor: const Color(0xff161d1f),
+                backgroundColor: Theme.of(context).colorScheme.surface,
                 leading: IconButton(
                   icon: Icon(
                     Icons.arrow_back_ios,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     size: 50.sp,
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
-                    color: const Color(0xff161d1f),
+                    color: Theme.of(context).colorScheme.surface,
                     padding: EdgeInsets.only(left: 0, top: 70.h),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -79,22 +79,28 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                                   "https://img.sofascore.com/api/v1/team/${widget.teamId}/image/small",
                               placeholder:
                                   (context, url) => Shimmer.fromColors(
-                                    baseColor: Colors.grey.shade300,
-                                    highlightColor: Colors.grey.shade100,
+                                    baseColor:
+                                        Theme.of(context).colorScheme.surface,
+                                    highlightColor:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceVariant,
                                     child: Container(
                                       width: 45,
                                       height: 45,
-                                      color: Colors.grey.shade300,
+                                      color:
+                                          Theme.of(context).colorScheme.surface,
                                     ),
                                   ),
-                              errorWidget: (context, url, error) {
-                                print('Error loading image: $error');
-                                return const Icon(Icons.error);
-                              },
+                              errorWidget:
+                                  (context, url, error) => Icon(
+                                    Icons.error,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
                               fit: BoxFit.cover,
                               width: 45,
-                              cacheKey: widget.teamId.toString(),
                               height: 45,
+                              cacheKey: widget.teamId.toString(),
                             ),
                             SizedBox(width: 20.w),
                             Column(
@@ -106,10 +112,12 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                                   children: [
                                     ReusableText(
                                       text: widget.teamName,
-                                      // Dynamic, not translated
                                       textSize: 120.sp,
                                       textFontWeight: FontWeight.w600,
-                                      textColor: Colors.white,
+                                      textColor:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                     ),
                                   ],
                                 ),
@@ -126,24 +134,25 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                   child: TabBar(
                     controller: _tabController,
                     isScrollable: false,
+                    indicatorColor: Theme.of(context).colorScheme.primary,
                     indicatorPadding: EdgeInsets.zero,
                     labelPadding: EdgeInsets.symmetric(horizontal: 0.w),
                     tabs: [
                       Tab(
                         iconMargin: EdgeInsets.zero,
                         child: ReusableText(
-                          text: 'squad'.tr, // Translated
+                          text: 'squad'.tr,
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
-                          textColor: Colors.white,
+                          textColor: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       Tab(
                         child: ReusableText(
-                          text: 'statics'.tr, // Translated
+                          text: 'statics'.tr,
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
-                          textColor: Colors.white,
+                          textColor: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ],

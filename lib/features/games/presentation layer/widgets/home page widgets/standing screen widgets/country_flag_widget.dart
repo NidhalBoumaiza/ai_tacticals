@@ -4,10 +4,10 @@ import 'package:shimmer/shimmer.dart';
 
 class CountryFlagWidget extends StatelessWidget {
   final dynamic flag;
-  late double height;
-  late double width;
+  final double height;
+  final double width;
 
-  CountryFlagWidget({
+  const CountryFlagWidget({
     super.key,
     required this.flag,
     this.height = 25.0,
@@ -22,40 +22,40 @@ class CountryFlagWidget extends StatelessWidget {
       return numericRegex.hasMatch(str);
     }
 
-    if (isNumeric(flag)) {
+    // Determine if the app is in light or dark mode
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final themeVariant = isDarkMode ? 'dark' : 'light';
+
+    if (isNumeric(flag.toString())) {
       imageUrl =
-          "https://api.sofascore.com/api/v1/unique-tournament/$flag/image/dark";
+          "https://api.sofascore.com/api/v1/unique-tournament/$flag/image/$themeVariant";
     } else {
       imageUrl =
           'https://www.sofascore.com/static/images/flags/${flag.toLowerCase()}.png';
     }
 
-    print('Image URL: $imageUrl'); // Debugging: Print the URL
     return CachedNetworkImage(
       imageUrl: imageUrl,
       placeholder:
           (context, url) => Shimmer.fromColors(
-            baseColor: Colors.grey.shade300,
-            highlightColor: Colors.grey.shade100,
+            baseColor: Theme.of(context).colorScheme.surface,
+            highlightColor: Theme.of(context).colorScheme.surfaceVariant,
             child: Container(
-              width: width ?? 25,
-              height: height ?? 25,
-
+              width: width,
+              height: height,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(50),
               ),
             ),
           ),
-      errorWidget: (context, url, error) {
-        print('Error loading image: $error'); // Debugging: Print the error
-        return Icon(Icons.error);
-      },
+      errorWidget:
+          (context, url, error) =>
+              Icon(Icons.error, color: Theme.of(context).colorScheme.error),
       fit: BoxFit.cover,
-      width: width ?? 25,
-
-      cacheKey: flag,
-      height: height ?? 25, // Increase height for better visibility
+      width: width,
+      height: height,
+      cacheKey: flag.toString(),
     );
   }
 }

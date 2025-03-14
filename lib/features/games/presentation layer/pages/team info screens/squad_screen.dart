@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart'; // Added for translations
+import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../../core/widgets/reusable_text.dart';
@@ -47,46 +47,50 @@ class _SquadScreenState extends State<SquadScreen> {
 
   Color _getPositionColor(String position) {
     return switch (position) {
-      'Goalkeeper' => const Color(0xffdcb050),
-      'Defense' => const Color(0xff7a85e5),
-      'Midfield' => const Color(0xff4abc55),
-      'Forward' => const Color(0xffe03b3c),
-      _ => const Color(0xff8a8e90),
+      'Goalkeeper' => Theme.of(context).colorScheme.primary, // Gold-like
+      'Defense' => Colors.blueAccent, // Blue
+      'Midfield' => Colors.green, // Green
+      'Forward' => Colors.redAccent, // Red
+      _ => Theme.of(context).colorScheme.onSurface.withOpacity(0.6), // Grey
     };
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PlayersBloc, PlayersState>(
-      builder: (context, state) {
-        if (_playersBloc.isTeamCached(widget.teamId)) {
-          final cachedPlayers = _playersBloc.getCachedPlayers(widget.teamId)!;
-          return _buildGroupedPlayersList(cachedPlayers);
-        }
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: BlocBuilder<PlayersBloc, PlayersState>(
+        builder: (context, state) {
+          if (_playersBloc.isTeamCached(widget.teamId)) {
+            final cachedPlayers = _playersBloc.getCachedPlayers(widget.teamId)!;
+            return _buildGroupedPlayersList(cachedPlayers);
+          }
 
-        if (state is PlayersLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          );
-        } else if (state is PlayersError) {
-          return Center(
-            child: ReusableText(
-              text: state.message,
-              textSize: 100.sp,
-              textColor: Colors.red,
-              textFontWeight: FontWeight.w600,
-            ),
-          );
-        } else if (state is PlayersLoaded) {
-          return _buildGroupedPlayersList(state.players);
-        }
-        return const SizedBox.shrink();
-      },
+          if (state is PlayersLoading) {
+            return Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            );
+          } else if (state is PlayersError) {
+            return Center(
+              child: ReusableText(
+                text: state.message,
+                textSize: 100.sp,
+                textColor: Theme.of(context).colorScheme.error,
+                textFontWeight: FontWeight.w600,
+              ),
+            );
+          } else if (state is PlayersLoaded) {
+            return _buildGroupedPlayersList(state.players);
+          }
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 
   Widget _buildGroupedPlayersList(List<PlayerEntityy> players) {
-    // Fixed typo: PlayerEntityy -> PlayerEntity
     final groupedPlayers = <String, List<PlayerEntityy>>{};
 
     for (var player in players) {
@@ -107,8 +111,15 @@ class _SquadScreenState extends State<SquadScreen> {
         padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 20.h),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xff161d1f),
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(55.r),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).shadowColor.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(vertical: 30.h, horizontal: 30.w),
@@ -147,8 +158,10 @@ class _SquadScreenState extends State<SquadScreen> {
       shrinkWrap: true,
       itemCount: players.length,
       separatorBuilder:
-          (context, index) =>
-              Divider(color: Colors.grey.shade800, height: 30.h),
+          (context, index) => Divider(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+            height: 30.h,
+          ),
       itemBuilder: (context, index) {
         final player = players[index];
         return GestureDetector(
@@ -170,8 +183,6 @@ class _SquadScreenState extends State<SquadScreen> {
   }
 
   Widget _buildPlayerRow(PlayerEntityy player) {
-    print("******************************");
-    print(player);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -184,7 +195,7 @@ class _SquadScreenState extends State<SquadScreen> {
                 height: 110.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.grey.shade800,
+                  color: Theme.of(context).colorScheme.surfaceVariant,
                 ),
                 child: ClipOval(
                   child: CachedNetworkImage(
@@ -192,25 +203,24 @@ class _SquadScreenState extends State<SquadScreen> {
                         'https://img.sofascore.com/api/v1/player/${player.id}/image',
                     placeholder:
                         (context, url) => Shimmer.fromColors(
-                          baseColor: Colors.grey.shade300,
-                          highlightColor: Colors.grey.shade100,
+                          baseColor: Theme.of(context).colorScheme.surface,
+                          highlightColor:
+                              Theme.of(context).colorScheme.surfaceVariant,
                           child: Container(
                             width: 110.w,
                             height: 110.w,
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
+                              color: Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(55.w),
                             ),
                           ),
                         ),
-                    errorWidget: (context, url, error) {
-                      print('Error loading player ${player.id} image: $error');
-                      return Icon(
-                        Icons.person,
-                        size: 60.w,
-                        color: Colors.grey.shade600,
-                      );
-                    },
+                    errorWidget:
+                        (context, url, error) => Icon(
+                          Icons.person,
+                          size: 60.w,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                     fit: BoxFit.cover,
                     width: 110.w,
                     height: 110.w,
@@ -226,7 +236,7 @@ class _SquadScreenState extends State<SquadScreen> {
                     ReusableText(
                       text: player.name ?? 'na'.tr,
                       textSize: 100.sp,
-                      textColor: const Color(0xffe4e9ea),
+                      textColor: Theme.of(context).colorScheme.onSurface,
                       textFontWeight: FontWeight.w700,
                     ),
                     SizedBox(height: 5.h),
@@ -246,7 +256,8 @@ class _SquadScreenState extends State<SquadScreen> {
                                         ? player.jerseyNumber.toString()
                                         : 'na'.tr,
                                 textSize: 90.sp,
-                                textColor: Colors.white,
+                                textColor:
+                                    Theme.of(context).colorScheme.onSurface,
                                 textAlign: TextAlign.start,
                               ),
                             ],
@@ -263,7 +274,7 @@ class _SquadScreenState extends State<SquadScreen> {
                                     )
                                     : 'na'.tr,
                             textSize: 90.sp,
-                            textColor: Colors.white,
+                            textColor: Theme.of(context).colorScheme.onSurface,
                             textAlign: TextAlign.start,
                           ),
                         ),
@@ -279,7 +290,7 @@ class _SquadScreenState extends State<SquadScreen> {
                           child: ReusableText(
                             text: player.countryAlpha3 ?? 'na'.tr,
                             textSize: 90.sp,
-                            textColor: Colors.white,
+                            textColor: Theme.of(context).colorScheme.onSurface,
                             textAlign: TextAlign.start,
                           ),
                         ),

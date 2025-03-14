@@ -1,5 +1,3 @@
-// features/games/presentation layer/widgets/player_stats_modal.dart
-
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -15,8 +13,8 @@ class PlayerStatsModal extends StatefulWidget {
   final int matchId;
   final int playerId;
   final String playerName;
-  final int? jerseyNumber; // Add jersey number
-  final String? position; // Add position
+  final int? jerseyNumber;
+  final String? position;
 
   const PlayerStatsModal({
     super.key,
@@ -35,7 +33,6 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
   @override
   void initState() {
     super.initState();
-    // Dispatch the event once when the widget is initialized
     context.read<PlayerMatchStatsBloc>().add(
       FetchPlayerMatchStats(widget.matchId, widget.playerId),
     );
@@ -45,26 +42,52 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
-      decoration: const BoxDecoration(
-        color: Color(0xff011f28), // Match the dark theme of MatchLineupsScreen
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color:
+            Theme.of(
+              context,
+            ).colorScheme.surface, // White (light) or grey[850] (dark)
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).shadowColor.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: SafeArea(
         child: BlocBuilder<PlayerMatchStatsBloc, PlayerMatchStatsState>(
           builder: (context, state) {
             if (state is PlayerMatchStatsLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary,
+                ), // 0xFFfbc02d
+              );
             } else if (state is PlayerMatchStatsError) {
               return Center(
-                child: Text(
-                  state.message,
-                  style: TextStyle(color: Colors.white, fontSize: 60.sp),
+                child: Padding(
+                  padding: EdgeInsets.all(30.w),
+                  child: ReusableText(
+                    text: state.message.tr,
+                    textSize: 100.sp,
+                    textColor: Theme.of(context).colorScheme.onSurface,
+                    textFontWeight: FontWeight.w600,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               );
             } else if (state is PlayerMatchStatsLoaded) {
               return _buildStatsContent(context, state.playerStats);
             }
-            return const SizedBox.shrink(); // Initial state
+            return Center(
+              child: ReusableText(
+                text: 'waiting_for_stats'.tr,
+                textSize: 100.sp,
+                textColor: Theme.of(context).colorScheme.onSurface,
+              ),
+            );
           },
         ),
       ),
@@ -77,28 +100,30 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with close button
           Padding(
             padding: EdgeInsets.symmetric(vertical: 15.h),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ReusableText(
-                  text: 'player_statistics'.tr, // Translated
+                  text: 'player_statistics'.tr,
                   textSize: 160.sp,
                   textFontWeight: FontWeight.bold,
+                  textColor: Theme.of(context).colorScheme.onSurface,
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: Icon(
+                    Icons.close,
+                    color: Theme.of(context).colorScheme.onSurface,
+                    size: 60.sp, // Slightly larger for better touch target
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
-                  iconSize: 55.w,
                 ),
               ],
             ),
           ),
-          // Player Info Header (unchanged)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+            padding: EdgeInsets.symmetric(vertical: 10.h),
             child: Row(
               children: [
                 Container(
@@ -106,7 +131,13 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
                   height: 120.w,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.grey.shade800,
+                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.7),
+                      width: 2,
+                    ), // 0xFFfbc02d border
                   ),
                   child: ClipOval(
                     child: CachedNetworkImage(
@@ -114,122 +145,140 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
                           'https://img.sofascore.com/api/v1/player/${widget.playerId}/image',
                       placeholder:
                           (context, url) => Shimmer.fromColors(
-                            baseColor: Colors.grey.shade300,
-                            highlightColor: Colors.grey.shade100,
+                            baseColor: Theme.of(context).colorScheme.surface,
+                            highlightColor:
+                                Theme.of(context).colorScheme.surfaceVariant,
                             child: Container(
                               width: 120.w,
                               height: 120.w,
-                              color: Colors.grey.shade300,
+                              color: Theme.of(context).colorScheme.surface,
                             ),
                           ),
                       errorWidget:
                           (context, url, error) => Icon(
                             Icons.person,
-                            size: 120.w,
-                            color: Colors.grey.shade600,
+                            size: 60.w,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                SizedBox(width: 25.w),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ReusableText(
-                      text: widget.playerName,
-                      textSize: 140.sp,
-                      textFontWeight: FontWeight.bold,
-                    ),
-                    SizedBox(height: 4.h),
-                    Row(
-                      children: [
-                        if (widget.jerseyNumber != null)
-                          Text(
-                            '#${widget.jerseyNumber}',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 60.sp,
+                SizedBox(width: 30.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ReusableText(
+                        text: widget.playerName,
+                        textSize: 140.sp,
+                        textFontWeight: FontWeight.bold,
+                        textColor: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      SizedBox(height: 10.h),
+                      Row(
+                        children: [
+                          if (widget.jerseyNumber != null)
+                            ReusableText(
+                              text: '#${widget.jerseyNumber}',
+                              textSize: 100.sp,
+                              textColor: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.7),
                             ),
-                          ),
-                        if (widget.jerseyNumber != null &&
-                            widget.position != null)
-                          SizedBox(width: 8.w),
-                        if (widget.position != null)
-                          Text(
-                            widget.position!,
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 60.sp,
+                          if (widget.jerseyNumber != null &&
+                              widget.position != null)
+                            SizedBox(width: 20.w),
+                          if (widget.position != null)
+                            ReusableText(
+                              text: widget.position!,
+                              textSize: 100.sp,
+                              textColor: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.7),
                             ),
-                          ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const Divider(color: Colors.white30),
-          // Stats List
+          Divider(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                padding: EdgeInsets.symmetric(vertical: 10.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildStatRow(
-                      'minutes_played'.tr, // Translated
+                      context,
+                      'minutes_played'.tr,
                       playerStats.statistics?.minutesPlayed ?? 0,
                     ),
                     _buildStatRow(
-                      'rating'.tr, // Translated
+                      context,
+                      'rating'.tr,
                       playerStats.statistics?.rating?.toStringAsFixed(1) ??
                           '0.0',
                     ),
                     _buildStatRow(
-                      'total_passes'.tr, // Translated
+                      context,
+                      'total_passes'.tr,
                       playerStats.statistics?.totalPass ?? 0,
                     ),
                     _buildStatRow(
-                      'accurate_passes'.tr, // Translated
+                      context,
+                      'accurate_passes'.tr,
                       playerStats.statistics?.accuratePass ?? 0,
                     ),
                     _buildStatRow(
-                      'total_crosses'.tr, // Translated
+                      context,
+                      'total_crosses'.tr,
                       playerStats.statistics?.totalCross ?? 0,
                     ),
                     _buildStatRow(
-                      'duels_won'.tr, // Translated
+                      context,
+                      'duels_won'.tr,
                       playerStats.statistics?.duelWon ?? 0,
                     ),
                     _buildStatRow(
-                      'duels_lost'.tr, // Translated
+                      context,
+                      'duels_lost'.tr,
                       playerStats.statistics?.duelLost ?? 0,
                     ),
                     _buildStatRow(
-                      'total_tackles'.tr, // Translated
+                      context,
+                      'total_tackles'.tr,
                       playerStats.statistics?.totalTackle ?? 0,
                     ),
                     _buildStatRow(
-                      'fouls'.tr, // Translated
+                      context,
+                      'fouls'.tr,
                       playerStats.statistics?.fouls ?? 0,
                     ),
                     _buildStatRow(
-                      'touches'.tr, // Translated
+                      context,
+                      'touches'.tr,
                       playerStats.statistics?.touches ?? 0,
                     ),
                     _buildStatRow(
-                      'possession_lost'.tr, // Translated
+                      context,
+                      'possession_lost'.tr,
                       playerStats.statistics?.possessionLostCtrl ?? 0,
                     ),
                     _buildStatRow(
-                      'expected_assists'.tr, // Translated
+                      context,
+                      'expected_assists'.tr,
                       playerStats.statistics?.expectedAssists?.toStringAsFixed(
-                            4,
+                            2,
                           ) ??
-                          '0.0',
+                          '0.00',
                     ),
                   ],
                 ),
@@ -241,27 +290,29 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
     );
   }
 
-  Widget _buildStatRow(String label, dynamic value) {
+  Widget _buildStatRow(BuildContext context, String label, dynamic value) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 6.h),
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      margin: EdgeInsets.symmetric(vertical: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: Colors.white12),
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           ReusableText(
             text: label,
-            textColor: Colors.white70,
-            textSize: 125.sp,
+            textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            textSize: 110.sp,
             textFontWeight: FontWeight.w500,
           ),
           ReusableText(
             text: value.toString(),
-            textColor: Colors.white,
+            textColor: Theme.of(context).colorScheme.onSurface,
             textSize: 110.sp,
             textFontWeight: FontWeight.bold,
           ),

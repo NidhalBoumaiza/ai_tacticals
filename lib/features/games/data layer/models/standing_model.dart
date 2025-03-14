@@ -11,8 +11,6 @@ class StandingsModel extends StandingsEntity {
     : super(league: league, groups: groups);
 
   factory StandingsModel.fromJson(Map<String, dynamic> json) {
-    print('Raw JSON: $json'); // Debug raw JSON
-
     // Check if the JSON has a top-level "standings" array
     List<dynamic>? standingsJson = json['standings'] as List<dynamic>?;
     Map<String, dynamic>? singleStandingsJson;
@@ -21,9 +19,7 @@ class StandingsModel extends StandingsEntity {
       // If no "standings" array, assume the entire JSON is a single standings object
       singleStandingsJson = json;
       standingsJson = [json]; // Treat it as a single-entry array
-      print('Treating JSON as single standings object');
     } else if (standingsJson.isEmpty) {
-      print('No standings data found in JSON');
       return StandingsModel(groups: []);
     }
 
@@ -47,7 +43,6 @@ class StandingsModel extends StandingsEntity {
                 groupJson['tieBreakingRule'] as Map<String, dynamic>?;
             final rowsJson = groupJson['rows'] as List<dynamic>? ?? [];
 
-            print('Parsing group: $groupJson');
             return GroupModel(
               name: groupJson['name'] as String?,
               tieBreakingRuleText:
@@ -78,7 +73,6 @@ class StandingsModel extends StandingsEntity {
           firstStandings['tieBreakingRule'] as Map<String, dynamic>?;
       final rowsJson = firstStandings['rows'] as List<dynamic>? ?? [];
 
-      print('Parsing total standings: $firstStandings');
       groups = [
         GroupModel(
           name: firstStandings['name'] as String?,

@@ -1,17 +1,16 @@
 import 'dart:async';
 
-import 'package:analysis_ai/core/app_colors.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart'; // For translations
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../../../../../core/cubit/theme cubit/theme_cubit.dart';
 import '../../../domain%20layer/entities/matches_entities.dart';
 import '../../bloc/home%20match%20bloc/home_matches_bloc.dart';
 import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/country_flag_widget.dart';
@@ -42,8 +41,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     27,
     10783,
     19,
-    21,
-    1054,
+    211054,
     35,
     34,
     8,
@@ -74,9 +72,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     _fetchMatchesForDate(_selectedDate, isInitial: true);
 
     _liveUpdateTimer = Timer.periodic(Duration(seconds: 5), (timer) {
-      if (mounted) {
-        _fetchLiveUpdates(_selectedDate);
-      }
+      if (mounted) _fetchLiveUpdates(_selectedDate);
     });
 
     _preloadPriorityImages();
@@ -107,7 +103,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
   Future<void> _preloadPriorityImages() async {
     if (!mounted) return;
-
     final state = context.read<HomeMatchesBloc>().state;
     if (state is HomeMatchesLoaded) {
       final matches =
@@ -118,7 +113,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
       final priorityMatches = matches.where(
         (match) => priorityLeagueIds.contains(match.tournament?.id),
       );
-
       for (final match in priorityMatches) {
         final homeUrl =
             "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small";
@@ -134,13 +128,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
     if (match.status == null) return '';
     final statusType = match.status!.type?.toLowerCase() ?? '';
     final statusDescription = match.status!.description?.toLowerCase() ?? '';
-
     if (statusType == 'inprogress') return 'LIVE';
     if (statusType == 'finished') {
       if (statusDescription.contains('penalties') ||
-          statusDescription.contains('extra time')) {
+          statusDescription.contains('extra time'))
         return 'FT (ET/AP)';
-      }
       return 'FT';
     }
     if (statusType == 'notstarted' || statusType == 'scheduled') return 'NS';
@@ -153,10 +145,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     final groupedMatches = <String, List<MatchEventEntity>>{};
     for (var match in matches) {
       final leagueName = match.tournament?.name ?? 'Unknown League';
-      if (!groupedMatches.containsKey(leagueName)) {
-        groupedMatches[leagueName] = [];
-      }
-      groupedMatches[leagueName]!.add(match);
+      groupedMatches.putIfAbsent(leagueName, () => []).add(match);
     }
     groupedMatches.forEach((league, matchList) {
       matchList.sort(
@@ -176,8 +165,15 @@ class _MatchesScreenState extends State<MatchesScreen> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: const Color(0xff161d1f),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).shadowColor.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       margin: EdgeInsets.only(bottom: 12.h),
       child: Row(
@@ -202,9 +198,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           );
                       final isLive = updatedMatch?.isLive ?? false;
                       final currentMinutes = updatedMatch?.currentLiveMinutes;
-                      if (isLive && currentMinutes != null) {
+                      if (isLive && currentMinutes != null)
                         return "$currentMinutes'";
-                      }
                       return date != null
                           ? "${DateFormat('MMM d').format(date)} ${date.hour}:${date.minute.toString().padLeft(2, '0')}"
                           : "N/A";
@@ -218,7 +213,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       text: timeText,
                       textSize: 90.sp,
                       textColor:
-                          match.isLive ?? false ? Colors.red : Colors.white,
+                          match.isLive ?? false
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.onSurface,
                     );
                   },
                 ),
@@ -244,7 +241,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           text: statusText,
                           textSize: 80.sp,
                           textColor:
-                              statusText == 'LIVE' ? Colors.red : Colors.grey,
+                              statusText == 'LIVE'
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.7),
                           textFontWeight: FontWeight.bold,
                         )
                         : const SizedBox.shrink();
@@ -254,7 +255,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
             ),
           ),
           SizedBox(width: 7.w),
-          Container(width: 2.w, height: 80.h, color: Colors.grey.shade600),
+          Container(
+            width: 2.w,
+            height: 80.h,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+          ),
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
@@ -269,9 +274,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       (context, url) => Container(
                         width: 50.w,
                         height: 50.w,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).colorScheme.surfaceVariant,
                       ),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
+                  errorWidget:
+                      (context, url, error) => Icon(
+                        Icons.error,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                   fit: BoxFit.cover,
                   width: 50.w,
                   height: 50.w,
@@ -282,7 +291,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   child: ReusableText(
                     text: match.homeTeam?.shortName ?? "Unknown",
                     textSize: 100.sp,
-                    textColor: Colors.white,
+                    textColor: Theme.of(context).colorScheme.onSurface,
                     textFontWeight: FontWeight.w600,
                   ),
                 ),
@@ -314,7 +323,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       text: scoreText,
                       textSize: 100.sp,
                       textColor:
-                          match.isLive ?? false ? Colors.red : Colors.white,
+                          match.isLive ?? false
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.onSurface,
                       textFontWeight: FontWeight.w600,
                     );
                   },
@@ -325,7 +336,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   child: ReusableText(
                     text: match.awayTeam?.shortName ?? "Unknown",
                     textSize: 100.sp,
-                    textColor: Colors.white,
+                    textColor: Theme.of(context).colorScheme.onSurface,
                     textFontWeight: FontWeight.w600,
                   ),
                 ),
@@ -339,9 +350,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       (context, url) => Container(
                         width: 50.w,
                         height: 50.w,
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).colorScheme.surfaceVariant,
                       ),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
+                  errorWidget:
+                      (context, url, error) => Icon(
+                        Icons.error,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                   fit: BoxFit.cover,
                   width: 50.w,
                   height: 50.w,
@@ -356,7 +371,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
   List<Widget> _buildMatchSection(List<MatchEventEntity> matches) {
     final groupedMatches = _groupMatchesByLeague(matches);
-
     final priorityLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
     final otherLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
 
@@ -391,7 +405,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
           Container(
             padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
             decoration: BoxDecoration(
-              color: Colors.grey.shade800,
+              color: Theme.of(context).colorScheme.surfaceVariant,
               borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
             ),
             child: Row(
@@ -407,7 +421,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   child: ReusableText(
                     text: leagueName,
                     textSize: 110.sp,
-                    textColor: Colors.white,
+                    textColor: Theme.of(context).colorScheme.onSurface,
                     textFontWeight: FontWeight.w700,
                   ),
                 ),
@@ -423,88 +437,117 @@ class _MatchesScreenState extends State<MatchesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF33353B),
-        title: ReusableText(
-          text: 'matches'.tr, // Translated "Matches"
-          textSize: 140.sp,
-          textColor: AppColor.primaryColor,
-          textFontWeight: FontWeight.w800,
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(Icons.calendar_today, color: AppColor.primaryColor),
-                Positioned(
-                  bottom: 10.h,
-                  child: ReusableText(
-                    text: _selectedDate.day.toString(),
-                    textSize: 60.sp,
-                    textColor: AppColor.primaryColor,
-                    textFontWeight: FontWeight.bold,
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(120.h),
+        child: AppBar(
+          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+          // 0xFFfbc02d
+          elevation: 0,
+          title: ReusableText(
+            text: 'matches'.tr,
+            textSize: 130.sp,
+            textColor: Theme.of(context).appBarTheme.foregroundColor, // Black
+            textFontWeight: FontWeight.w800,
+          ),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    size: 60.sp,
+                    Icons.calendar_today,
+                    color: Theme.of(context).appBarTheme.foregroundColor,
                   ),
-                ),
-              ],
+                  Positioned(
+                    bottom: 10.h,
+                    child: ReusableText(
+                      text: _selectedDate.day.toString(),
+                      textSize: 60.sp,
+                      textColor: Theme.of(context).appBarTheme.foregroundColor,
+                      textFontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              onPressed:
+                  () =>
+                      setState(() => _isCalendarVisible = !_isCalendarVisible),
             ),
-            onPressed: () {
-              setState(() {
-                _isCalendarVisible = !_isCalendarVisible;
-              });
-            },
-          ),
-          IconButton(
-            icon: Icon(
-              _showLiveMatchesOnly
-                  ? Icons.watch_later
-                  : Icons.watch_later_outlined,
-              color: AppColor.primaryColor,
+            IconButton(
+              icon: Icon(
+                size: 60.sp,
+                _showLiveMatchesOnly
+                    ? Icons.watch_later
+                    : Icons.watch_later_outlined,
+                color: Theme.of(context).appBarTheme.foregroundColor,
+              ),
+              onPressed:
+                  () => setState(
+                    () => _showLiveMatchesOnly = !_showLiveMatchesOnly,
+                  ),
             ),
-            onPressed: () {
-              setState(() {
-                _showLiveMatchesOnly = !_showLiveMatchesOnly;
-              });
-            },
-          ),
-          IconButton(
-            onPressed: () {
-              Get.updateLocale(const Locale('fr', 'FR'));
-            },
-            icon: Icon(Icons.translate, color: AppColor.primaryColor),
-          ),
-        ],
+            IconButton(
+              onPressed: () => context.read<ThemeCubit>().toggleTheme(),
+              icon: Icon(
+                size: 60.sp,
+                Icons.brightness_6,
+                color: Theme.of(context).appBarTheme.foregroundColor,
+              ),
+            ),
+          ],
+        ),
       ),
+      backgroundColor:
+          Theme.of(
+            context,
+          ).scaffoldBackgroundColor, // Light: grey[50], Dark: 0xFF37383c
       body: Stack(
         children: [
           BlocBuilder<HomeMatchesBloc, HomeMatchesState>(
             builder: (context, state) {
               if (state is HomeMatchesLoading && _isFirstLoad) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                return Center(
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 );
               } else if (state is HomeMatchesError) {
-                return Center(child: Image.asset("assets/images/Empty.png"));
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset("assets/images/Empty.png", height: 300.h),
+                      SizedBox(height: 20.h),
+                      ReusableText(
+                        text: 'error_loading_matches'.tr,
+                        textSize: 100.sp,
+                        textColor: Theme.of(context).colorScheme.onSurface,
+                        textFontWeight: FontWeight.w600,
+                      ),
+                    ],
+                  ),
+                );
               } else if (state is HomeMatchesLoaded) {
                 _isFirstLoad = false;
                 final matchesPerTeam = state.matches.tournamentTeamEvents;
                 if (matchesPerTeam == null || matchesPerTeam.isEmpty) {
                   return Center(
                     child: ReusableText(
-                      text: 'no_matches_available'.tr, // Translated
+                      text: 'no_matches_available'.tr,
                       textSize: 100.sp,
-                      textColor: Colors.white,
+                      textColor: Theme.of(context).colorScheme.onSurface,
                       textFontWeight: FontWeight.w600,
                     ),
                   );
                 }
 
                 final allMatches = <MatchEventEntity>[];
-                matchesPerTeam.forEach((teamId, matchList) {
-                  allMatches.addAll(matchList);
-                });
-
+                matchesPerTeam.forEach(
+                  (teamId, matchList) => allMatches.addAll(matchList),
+                );
                 final matchesToDisplay =
                     _showLiveMatchesOnly
                         ? allMatches
@@ -517,11 +560,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     child: ReusableText(
                       text:
                           _showLiveMatchesOnly
-                              ? 'no_live_matches_available'
-                                  .tr // Translated
-                              : 'no_matches_available'.tr, // Translated
+                              ? 'no_live_matches_available'.tr
+                              : 'no_matches_available'.tr,
                       textSize: 100.sp,
-                      textColor: Colors.white,
+                      textColor: Theme.of(context).colorScheme.onSurface,
                       textFontWeight: FontWeight.w600,
                     ),
                   );
@@ -530,10 +572,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 return SingleChildScrollView(
                   controller: _scrollController,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 30.w,
-                      vertical: 20.h,
-                    ),
+                    padding: EdgeInsets.fromLTRB(30.w, 150.h, 30.w, 60.h),
+                    // Adjusted for app bar
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: _buildMatchSection(matchesToDisplay),
@@ -541,42 +581,86 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   ),
                 );
               }
-              return Container();
+              return Center(
+                child: ReusableText(
+                  text: 'waiting_for_matches'.tr,
+                  textSize: 100.sp,
+                  textColor: Theme.of(context).colorScheme.onSurface,
+                ),
+              );
             },
           ),
           if (_isCalendarVisible)
             Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                color: const Color(0xFF33353B),
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                child: TableCalendar(
-                  firstDay: DateTime(2000),
-                  lastDay: DateTime(2050),
-                  focusedDay: _focusedDay,
-                  calendarFormat: _calendarFormat,
-                  selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDate = selectedDay;
-                      _focusedDay = focusedDay;
-                      _isCalendarVisible = false;
-                    });
-                    _fetchMatchesForDate(selectedDay, isInitial: true);
-                  },
-                  onFormatChanged: (format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
-                  },
-                  onPageChanged: (focusedDay) {
-                    setState(() {
-                      _focusedDay = focusedDay;
-                    });
-                  },
-                  locale: Get.locale?.toString(), // Localize calendar
+              top: 120.h, // Position below app bar
+              left: 30.w,
+              right: 30.w,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(12.r),
+                color: Theme.of(context).colorScheme.surface,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
+                  ),
+                  child: TableCalendar(
+                    firstDay: DateTime(2000),
+                    lastDay: DateTime(2050),
+                    focusedDay: _focusedDay,
+                    calendarFormat: _calendarFormat,
+                    selectedDayPredicate:
+                        (day) => isSameDay(day, _selectedDate),
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDate = selectedDay;
+                        _focusedDay = focusedDay;
+                        _isCalendarVisible = false;
+                      });
+                      _fetchMatchesForDate(selectedDay, isInitial: true);
+                    },
+                    onFormatChanged:
+                        (format) => setState(() => _calendarFormat = format),
+                    onPageChanged:
+                        (focusedDay) =>
+                            setState(() => _focusedDay = focusedDay),
+                    locale: Get.locale?.toString(),
+                    calendarStyle: CalendarStyle(
+                      defaultTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      weekendTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      selectedDecoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      todayDecoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    headerStyle: HeaderStyle(
+                      titleTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 100.sp,
+                      ),
+                      formatButtonTextStyle: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      leftChevronIcon: Icon(
+                        Icons.chevron_left,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      rightChevronIcon: Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -597,76 +681,5 @@ extension IterableIndexed<T> on Iterable<T> {
 
 class CustomCacheManager extends CacheManager {
   CustomCacheManager(Config config) : super(config);
-
   static const key = 'teamLogosCache';
-}
-
-class LanguageChangeButton extends StatelessWidget {
-  final List<Locale> supportedLocales = const [
-    Locale('en', 'US'),
-    Locale('fr', 'FR'),
-    Locale('ar', 'AR'),
-  ];
-
-  const LanguageChangeButton({super.key});
-
-  String _getLocaleDisplayName(Locale locale) {
-    switch (locale.toString()) {
-      case 'en_US':
-        return 'English';
-      case 'fr_FR':
-        return 'Français';
-      case 'ar_AR':
-        return 'العربية';
-      default:
-        return locale.languageCode;
-    }
-  }
-
-  void _showLanguageDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('select_language'.tr),
-            // Add this key to AppTranslations
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children:
-                  supportedLocales.map((locale) {
-                    return ListTile(
-                      title: Text(_getLocaleDisplayName(locale)),
-                      onTap: () {
-                        Get.updateLocale(locale);
-                        Navigator.pop(context);
-                      },
-                    );
-                  }).toList(),
-            ),
-          ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.language, color: Colors.white, size: 30),
-      onPressed: () => _showLanguageDialog(context),
-    );
-  }
-}
-
-Future<void> saveLocale(Locale locale) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('locale', locale.toString());
-}
-
-Future<Locale?> loadLocale() async {
-  final prefs = await SharedPreferences.getInstance();
-  final localeString = prefs.getString('locale');
-  if (localeString != null) {
-    final parts = localeString.split('_');
-    return Locale(parts[0], parts[1]);
-  }
-  return null;
 }
