@@ -1,5 +1,3 @@
-// players_bloc.dart
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -12,6 +10,7 @@ part 'players_state.dart';
 
 class PlayersBloc extends Bloc<PlayersEvent, PlayersState> {
   final GetAllPlayersInfos getAllPlayersInfos;
+  final Map<int, List<PlayerEntityy>> _playersCache = {};
 
   PlayersBloc({required this.getAllPlayersInfos}) : super(PlayersInitial()) {
     on<GetAllPlayersEvent>(_handleGetPlayers);
@@ -21,11 +20,27 @@ class PlayersBloc extends Bloc<PlayersEvent, PlayersState> {
     GetAllPlayersEvent event,
     Emitter<PlayersState> emit,
   ) async {
+    // Check cache first
+    if (_playersCache.containsKey(event.teamId)) {
+      emit(PlayersLoaded(players: _playersCache[event.teamId]!));
+      return;
+    }
+
     emit(PlayersLoading());
     final result = await getAllPlayersInfos(event.teamId);
-    result.fold(
-      (failure) => emit(PlayersError(mapFailureToMessage(failure))),
-      (players) => emit(PlayersLoaded(players: players)),
-    );
+    result.fold((failure) => emit(PlayersError(mapFailureToMessage(failure))), (
+      players,
+    ) {
+      _playersCache[event.teamId] = players;
+      emit(PlayersLoaded(players: players));
+    });
+  }
+
+  bool isTeamCached(int teamId) {
+    return _playersCache.containsKey(teamId);
+  }
+
+  List<PlayerEntityy>? getCachedPlayers(int teamId) {
+    return _playersCache[teamId];
   }
 }

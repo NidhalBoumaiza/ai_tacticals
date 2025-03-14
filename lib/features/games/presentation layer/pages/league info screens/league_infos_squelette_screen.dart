@@ -1,14 +1,13 @@
-// features/games/presentation layer/pages/league info screens/league_infos_squelette_screen.dart
-
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
-import 'package:analysis_ai/features/games/presentation layer/pages/league info screens/standing_screen.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/pages/league%20info%20screens/standing_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart'; // Added for translations
 
-import '../../../domain layer/entities/season_entity.dart';
+import '../../../domain%20layer/entities/season_entity.dart';
 import '../../bloc/matches_bloc/matches_bloc.dart';
-import '../../bloc/standing bloc/standing_bloc.dart';
+import '../../bloc/standing%20bloc/standing_bloc.dart';
 import '../../widgets/year_drop_down_menu.dart';
 import 'matches_by_team_screen.dart';
 import 'matches_per_round_screen.dart';
@@ -34,25 +33,17 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late int selectedSeasonId;
+  late StandingBloc _standingBloc;
+  late MatchesBloc _matchesBloc;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(
-      length: 3,
-      vsync: this,
-      initialIndex: 0,
-    ); // Updated to 3 tabs
+    _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
     selectedSeasonId = widget.seasons[0].id;
-    context.read<StandingBloc>().add(
-      GetStanding(leagueId: widget.leagueId, seasonId: selectedSeasonId),
-    );
-    context.read<MatchesBloc>().add(
-      GetMatchesEvent(
-        uniqueTournamentId: widget.leagueId,
-        seasonId: selectedSeasonId,
-      ),
-    );
+    _standingBloc = context.read<StandingBloc>();
+    _matchesBloc = context.read<MatchesBloc>();
+    _initializeData();
   }
 
   @override
@@ -61,26 +52,47 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
     super.dispose();
   }
 
+  void _initializeData() {
+    if (!_standingBloc.isStandingCached(widget.leagueId, selectedSeasonId)) {
+      _standingBloc.add(
+        GetStanding(leagueId: widget.leagueId, seasonId: selectedSeasonId),
+      );
+    }
+    if (!_matchesBloc.isMatchesCached(widget.leagueId, selectedSeasonId)) {
+      _matchesBloc.add(
+        GetMatchesEvent(
+          uniqueTournamentId: widget.leagueId,
+          seasonId: selectedSeasonId,
+        ),
+      );
+    }
+    // Note: MatchesPerRoundBloc doesn't need initialization here since MatchesPerRoundScreen handles it
+  }
+
   void _onYearChanged(int newSeasonId) {
     setState(() {
       selectedSeasonId = newSeasonId;
     });
-    context.read<StandingBloc>().add(
-      GetStanding(leagueId: widget.leagueId, seasonId: selectedSeasonId),
-    );
-    context.read<MatchesBloc>().add(
-      GetMatchesEvent(
-        uniqueTournamentId: widget.leagueId,
-        seasonId: selectedSeasonId,
-      ),
-    );
+    if (!_standingBloc.isStandingCached(widget.leagueId, selectedSeasonId)) {
+      _standingBloc.add(
+        GetStanding(leagueId: widget.leagueId, seasonId: selectedSeasonId),
+      );
+    }
+    if (!_matchesBloc.isMatchesCached(widget.leagueId, selectedSeasonId)) {
+      _matchesBloc.add(
+        GetMatchesEvent(
+          uniqueTournamentId: widget.leagueId,
+          seasonId: selectedSeasonId,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: DefaultTabController(
-        length: 3, // Updated to 3
+        length: 3,
         child: NestedScrollView(
           headerSliverBuilder: (context, value) {
             return [
@@ -137,7 +149,7 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                     tabs: [
                       Tab(
                         child: ReusableText(
-                          text: 'Standings',
+                          text: 'standings'.tr,
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.white,
@@ -145,7 +157,7 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                       ),
                       Tab(
                         child: ReusableText(
-                          text: 'Matches',
+                          text: 'matches'.tr,
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.white,
@@ -153,7 +165,7 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                       ),
                       Tab(
                         child: ReusableText(
-                          text: 'Rounds',
+                          text: 'rounds'.tr,
                           textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.white,
@@ -174,6 +186,7 @@ class _LeagueInfosSqueletteScreenState extends State<LeagueInfosSqueletteScreen>
                 seasonId: selectedSeasonId,
               ),
               GamesPerRoundScreen(
+                // Assuming this is the correct widget name
                 leagueName: widget.leagueName,
                 uniqueTournamentId: widget.leagueId,
                 seasonId: selectedSeasonId,

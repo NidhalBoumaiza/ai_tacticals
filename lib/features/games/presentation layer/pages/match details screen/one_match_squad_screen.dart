@@ -3,13 +3,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart'; // Added for translations
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../../core/widgets/reusable_text.dart';
-import '../../../domain layer/entities/manager_entity.dart';
-import '../../../domain layer/entities/player_per_match_entity.dart';
-import '../../bloc/manager bloc/manager_bloc.dart';
-import '../../bloc/player per match bloc/player_per_match_bloc.dart';
+import '../../../domain%20layer/entities/manager_entity.dart';
+import '../../../domain%20layer/entities/player_per_match_entity.dart';
+import '../../bloc/manager%20bloc/manager_bloc.dart';
+import '../../bloc/player%20per%20match%20bloc/player_per_match_bloc.dart';
 
 class MatchLineupsScreen extends StatefulWidget {
   final int matchId;
@@ -21,13 +22,33 @@ class MatchLineupsScreen extends StatefulWidget {
 }
 
 class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
+  late final PlayerPerMatchBloc _playerBloc;
+  late final ManagerBloc _managerBloc;
+
   @override
   void initState() {
     super.initState();
-    context.read<PlayerPerMatchBloc>().add(
-      GetPlayersPerMatch(matchId: widget.matchId),
-    );
-    context.read<ManagerBloc>().add(GetManagers(matchId: widget.matchId));
+    _playerBloc = context.read<PlayerPerMatchBloc>();
+    _managerBloc = context.read<ManagerBloc>();
+    _initializeData();
+  }
+
+  @override
+  void didUpdateWidget(MatchLineupsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.matchId != widget.matchId) {
+      _initializeData();
+    }
+  }
+
+  void _initializeData() {
+    // Only fetch if not cached
+    if (!_playerBloc.isMatchCached(widget.matchId)) {
+      _playerBloc.add(GetPlayersPerMatch(matchId: widget.matchId));
+    }
+    if (!_managerBloc.isMatchCached(widget.matchId)) {
+      _managerBloc.add(GetManagers(matchId: widget.matchId));
+    }
   }
 
   @override
@@ -36,11 +57,23 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
       builder: (context, playerState) {
         return BlocBuilder<ManagerBloc, ManagerState>(
           builder: (context, managerState) {
+            // Check cache first and use it if available
+            if (_playerBloc.isMatchCached(widget.matchId) &&
+                _managerBloc.isMatchCached(widget.matchId)) {
+              final cachedPlayers =
+                  _playerBloc.getCachedPlayers(widget.matchId)!;
+              final cachedManagers =
+                  _managerBloc.getCachedManagers(widget.matchId)!;
+              return _buildContent(cachedPlayers, cachedManagers);
+            }
+
+            // Handle loading states
             if (playerState is PlayerPerMatchLoading ||
                 managerState is ManagerLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 
+            // Handle error states
             if (playerState is PlayerPerMatchError) {
               return Center(
                 child: Text('Players Error: ${playerState.message}'),
@@ -52,44 +85,50 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               );
             }
 
+            // Handle success states
             if (playerState is PlayerPerMatchSuccess &&
                 managerState is ManagerSuccess) {
-              final homePlayers = playerState.players['home'] ?? [];
-              final awayPlayers = playerState.players['away'] ?? [];
-              final homeManager = managerState.managers['homeManager'];
-              final awayManager = managerState.managers['awayManager'];
-
-              final homeStarting =
-                  homePlayers.where((p) => !p.substitute).toList();
-              final homeSubs = homePlayers.where((p) => p.substitute).toList();
-              final awayStarting =
-                  awayPlayers.where((p) => !p.substitute).toList();
-              final awaySubs = awayPlayers.where((p) => p.substitute).toList();
-
-              return SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildFootballField(homeStarting, awayStarting),
-                      const SizedBox(height: 24),
-                      _buildSubstitutesSection(
-                        homeManager,
-                        homeSubs,
-                        awayManager,
-                        awaySubs,
-                      ),
-                    ],
-                  ),
-                ),
-              );
+              return _buildContent(playerState.players, managerState.managers);
             }
 
             return const SizedBox.shrink();
           },
         );
       },
+    );
+  }
+
+  Widget _buildContent(
+    Map<String, List<PlayerPerMatchEntity>> players,
+    Map<String, ManagerEntity?> managers,
+  ) {
+    final homePlayers = players['home'] ?? [];
+    final awayPlayers = players['away'] ?? [];
+    final homeManager = managers['homeManager'];
+    final awayManager = managers['awayManager'];
+
+    final homeStarting = homePlayers.where((p) => !p.substitute).toList();
+    final homeSubs = homePlayers.where((p) => p.substitute).toList();
+    final awayStarting = awayPlayers.where((p) => !p.substitute).toList();
+    final awaySubs = awayPlayers.where((p) => p.substitute).toList();
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildFootballField(homeStarting, awayStarting),
+            const SizedBox(height: 24),
+            _buildSubstitutesSection(
+              homeManager,
+              homeSubs,
+              awayManager,
+              awaySubs,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -116,7 +155,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
       height: 1900.h,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Color(0xff011f28),
+        color: const Color(0xff011f28),
         border: Border.all(color: Colors.white, width: 3),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
@@ -168,7 +207,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
           // Goal areas
           _buildGoalArea(true), // Home goal area (top)
           _buildGoalArea(false), // Away goal area (bottom)
-          // Corner arcs
+          // Corner arcs (commented out in original code, kept as-is)
           // _buildCornerArc(true, true), // Top-left corner
           // _buildCornerArc(true, false), // Top-right corner
           // _buildCornerArc(false, true), // Bottom-left corner
@@ -307,16 +346,11 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
           border: Border.all(color: Colors.white, width: 2),
           borderRadius: BorderRadius.only(
             topRight: isTop && isLeft ? const Radius.circular(20) : Radius.zero,
-            // Top-left corner rounds top-right
             topLeft: isTop && !isLeft ? const Radius.circular(20) : Radius.zero,
-            // Top-right corner rounds top-left
             bottomRight:
                 !isTop && isLeft ? const Radius.circular(20) : Radius.zero,
-            // Bottom-left corner rounds bottom-right
             bottomLeft:
-                !isTop && !isLeft
-                    ? const Radius.circular(20)
-                    : Radius.zero, // Bottom-right corner rounds bottom-left
+                !isTop && !isLeft ? const Radius.circular(20) : Radius.zero,
           ),
         ),
       ),
@@ -439,7 +473,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             ),
             width: 150.w,
             child: Text(
-              player.name,
+              player.name, // Dynamic, not translated
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -471,16 +505,20 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Substitutes',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Text(
+          'substitutes'.tr, // Translated
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        _buildManagerHeader('Home Manager', homeManager, Colors.blue),
-        _buildSubsList('Home Substitutes', homeSubs, Colors.blue),
+        _buildManagerHeader('home_manager'.tr, homeManager, Colors.blue),
+        // Translated
+        _buildSubsList('home_substitutes'.tr, homeSubs, Colors.blue),
+        // Translated
         const SizedBox(height: 24),
-        _buildManagerHeader('Away Manager', awayManager, Colors.red),
-        _buildSubsList('Away Substitutes', awaySubs, Colors.red),
+        _buildManagerHeader('away_manager'.tr, awayManager, Colors.red),
+        // Translated
+        _buildSubsList('away_substitutes'.tr, awaySubs, Colors.red),
+        // Translated
       ],
     );
   }
@@ -507,10 +545,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                 textColor: color,
                 textFontWeight: FontWeight.bold,
               ),
-
               const SizedBox(height: 8),
               if (manager == null)
-                const Text('No manager data available')
+                Text('no_manager_data_available'.tr) // Translated
               else
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,7 +599,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                         ),
                         SizedBox(width: 30.w),
                         ReusableText(
-                          text: manager.name,
+                          text: manager.name, // Dynamic, not translated
                           textSize: 100.sp,
                           textColor: color,
                           textFontWeight: FontWeight.w800,
@@ -597,7 +634,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
           ),
           const SizedBox(height: 8),
           if (subs.isEmpty)
-            const Text('No substitutes available')
+            Text('no_substitutes_available'.tr) // Translated
           else
             ListView.builder(
               shrinkWrap: true,
@@ -685,7 +722,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ReusableText(
-                          text: player.name ?? 'N/A',
+                          text: player.name ?? 'N/A', // Dynamic, not translated
                           textSize: 100.sp,
                           textColor: const Color(0xffe4e9ea),
                           textFontWeight: FontWeight.w700,
@@ -703,7 +740,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                                     text:
                                         player.jerseyNumber != null
                                             ? player.jerseyNumber.toString()
-                                            : "N/A",
+                                            : "N/A", // Dynamic, not translated
                                     textSize: 90.sp,
                                     textColor: Colors.white,
                                     textAlign: TextAlign.end,

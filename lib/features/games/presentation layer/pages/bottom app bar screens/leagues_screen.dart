@@ -1,5 +1,5 @@
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
-import 'package:analysis_ai/features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
+import 'package:analysis_ai/features/games/presentation%20layer/bloc/countries_bloc/countries_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,8 +8,8 @@ import 'package:get/get.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../auth/presentation layer/pages/login_screen.dart';
-import '../../widgets/home page widgets/standing screen widgets/league_and_matches_by_country_widget.dart';
+import '../../../../auth/presentation%20layer/pages/login_screen.dart';
+import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/league_and_matches_by_country_widget.dart';
 
 class LeagueScreen extends StatefulWidget {
   const LeagueScreen({super.key});
@@ -28,7 +28,6 @@ class _LeagueScreenState extends State<LeagueScreen> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
   }
 
@@ -52,12 +51,10 @@ class _LeagueScreenState extends State<LeagueScreen> {
                     await prefs.remove('TOKEN');
                     PersistentNavBarNavigator.pushNewScreen(
                       context,
-                      screen: LoginScreen(),
+                      screen: const LoginScreen(),
                       withNavBar: false,
-                      // Hides the bottom navigation bar
                       pageTransitionAnimation:
-                          PageTransitionAnimation
-                              .slideRight, // Matches your right-to-left intent
+                          PageTransitionAnimation.slideRight,
                     );
                   },
                   child: Icon(
@@ -76,14 +73,16 @@ class _LeagueScreenState extends State<LeagueScreen> {
       body: BlocConsumer<CountriesBloc, CountriesState>(
         listener: (context, state) {
           if (state is CountriesError) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message.tr),
+              ), // Translate error message
+            );
           }
         },
         builder: (context, state) {
           if (state is CountriesLoading) {
-            return Center(
+            return const Center(
               child: CircularProgressIndicator(color: Colors.white),
             );
           } else if (state is CountriesSuccess) {
@@ -94,10 +93,15 @@ class _LeagueScreenState extends State<LeagueScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ReusableText(
-                      text: "Categories",
+                      text: "categories".tr,
+                      // Translated "Categories"
                       textSize: 120.sp,
                       textFontWeight: FontWeight.w700,
                       textColor: const Color(0xffececee),
+                      // textDirection:
+                      //     Get.locale?.languageCode == 'ar'
+                      //         ? TextDirection.rtl
+                      //         : TextDirection.ltr, // RTL support
                     ),
                     SizedBox(height: 25.h),
                     ListView.separated(
@@ -109,8 +113,8 @@ class _LeagueScreenState extends State<LeagueScreen> {
                         return LeaguesAndMatchesByCountryWidget(
                           countryName: country.name,
                           countryFlag: country.alpha2 ?? country.flag,
-                          countryId: country.id, // Pass the country ID
-                        ); // Pass country data
+                          countryId: country.id,
+                        );
                       },
                       separatorBuilder: (BuildContext context, int index) {
                         return SizedBox(height: 12.h);
@@ -126,26 +130,40 @@ class _LeagueScreenState extends State<LeagueScreen> {
                 message == 'No Internet connection') {
               return Center(
                 child: Text(
-                  'No Internet Connection',
+                  'no_internet_connection'.tr,
+                  // Translated "No Internet Connection"
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
                   ),
+                  textDirection:
+                      Get.locale?.languageCode == 'ar'
+                          ? TextDirection.rtl
+                          : TextDirection.ltr, // RTL support
                 ),
               );
             }
             return Center(
               child: Text(
-                state.message,
+                state.message.tr, // Translate dynamic error message
                 style: TextStyle(color: Colors.white, fontSize: 16.sp),
+                textDirection:
+                    Get.locale?.languageCode == 'ar'
+                        ? TextDirection.rtl
+                        : TextDirection.ltr, // RTL support
               ),
             );
           }
           return Center(
             child: Text(
-              "Press a button or wait to load countries",
+              'wait_to_load_countries'.tr,
+              // Translated "Press a button or wait to load countries"
               style: TextStyle(color: Colors.white, fontSize: 16.sp),
+              textDirection:
+                  Get.locale?.languageCode == 'ar'
+                      ? TextDirection.rtl
+                      : TextDirection.ltr, // RTL support
             ),
           );
         },

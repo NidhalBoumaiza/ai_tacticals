@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../domain layer/entities/player_entity.dart';
@@ -83,7 +84,7 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ReusableText(
-                  text: 'Player Statistics',
+                  text: 'player_statistics'.tr, // Translated
                   textSize: 160.sp,
                   textFontWeight: FontWeight.bold,
                 ),
@@ -95,18 +96,17 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
               ],
             ),
           ),
-          // Player Info Header
+          // Player Info Header (unchanged)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             child: Row(
               children: [
-                // Player Image
                 Container(
                   width: 120.w,
                   height: 120.w,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.grey.shade800, // Fallback color
+                    color: Colors.grey.shade800,
                   ),
                   child: ClipOval(
                     child: CachedNetworkImage(
@@ -133,7 +133,6 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
                   ),
                 ),
                 SizedBox(width: 25.w),
-                // Player Details
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -142,7 +141,6 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
                       textSize: 140.sp,
                       textFontWeight: FontWeight.bold,
                     ),
-
                     SizedBox(height: 4.h),
                     Row(
                       children: [
@@ -151,7 +149,7 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
                             '#${widget.jerseyNumber}',
                             style: TextStyle(
                               color: Colors.white70,
-                              fontSize: 60.sp, // Adjusted to fit the new range
+                              fontSize: 60.sp,
                             ),
                           ),
                         if (widget.jerseyNumber != null &&
@@ -162,7 +160,7 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
                             widget.position!,
                             style: TextStyle(
                               color: Colors.white70,
-                              fontSize: 60.sp, // Adjusted to fit the new range
+                              fontSize: 60.sp,
                             ),
                           ),
                       ],
@@ -182,49 +180,52 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildStatRow(
-                      'Minutes Played',
+                      'minutes_played'.tr, // Translated
                       playerStats.statistics?.minutesPlayed ?? 0,
                     ),
                     _buildStatRow(
-                      'Rating',
+                      'rating'.tr, // Translated
                       playerStats.statistics?.rating?.toStringAsFixed(1) ??
                           '0.0',
                     ),
                     _buildStatRow(
-                      'Total Passes',
+                      'total_passes'.tr, // Translated
                       playerStats.statistics?.totalPass ?? 0,
                     ),
                     _buildStatRow(
-                      'Accurate Passes',
+                      'accurate_passes'.tr, // Translated
                       playerStats.statistics?.accuratePass ?? 0,
                     ),
                     _buildStatRow(
-                      'Total Crosses',
+                      'total_crosses'.tr, // Translated
                       playerStats.statistics?.totalCross ?? 0,
                     ),
                     _buildStatRow(
-                      'Duels Won',
+                      'duels_won'.tr, // Translated
                       playerStats.statistics?.duelWon ?? 0,
                     ),
                     _buildStatRow(
-                      'Duels Lost',
+                      'duels_lost'.tr, // Translated
                       playerStats.statistics?.duelLost ?? 0,
                     ),
                     _buildStatRow(
-                      'Total Tackles',
+                      'total_tackles'.tr, // Translated
                       playerStats.statistics?.totalTackle ?? 0,
                     ),
-                    _buildStatRow('Fouls', playerStats.statistics?.fouls ?? 0),
                     _buildStatRow(
-                      'Touches',
+                      'fouls'.tr, // Translated
+                      playerStats.statistics?.fouls ?? 0,
+                    ),
+                    _buildStatRow(
+                      'touches'.tr, // Translated
                       playerStats.statistics?.touches ?? 0,
                     ),
                     _buildStatRow(
-                      'Possession Lost',
+                      'possession_lost'.tr, // Translated
                       playerStats.statistics?.possessionLostCtrl ?? 0,
                     ),
                     _buildStatRow(
-                      'Expected Assists',
+                      'expected_assists'.tr, // Translated
                       playerStats.statistics?.expectedAssists?.toStringAsFixed(
                             4,
                           ) ??

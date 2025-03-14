@@ -1,6 +1,7 @@
 import 'package:analysis_ai/core/app_colors.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart'; // Added for translations
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
 import '../../pages/bottom app bar screens/leagues_screen.dart';
@@ -15,36 +16,28 @@ List<Widget> buildScreens() {
 List<PersistentBottomNavBarItem> navBarsItems() {
   return [
     PersistentBottomNavBarItem(
-      icon: Icon(FontAwesomeIcons.futbol, size: 25),
-      title: ("Matchs"),
+      icon: const Icon(FontAwesomeIcons.futbol, size: 25),
+      title: 'matches'.tr, // Translated
       activeColorPrimary: AppColor.primaryColor,
       inactiveColorPrimary: CupertinoColors.systemGrey,
-
-      // scrollController: ScrollController.,
     ),
     PersistentBottomNavBarItem(
-      icon: Icon(FontAwesomeIcons.trophy, size: 25),
-      title: ("Ligues"),
+      icon: const Icon(FontAwesomeIcons.trophy, size: 25),
+      title: 'leagues'.tr, // Translated
       activeColorPrimary: AppColor.primaryColor,
       inactiveColorPrimary: CupertinoColors.systemGrey,
-
-      // scrollController: ScrollController.,
     ),
     PersistentBottomNavBarItem(
-      icon: Icon(FontAwesomeIcons.star, size: 25),
-      title: ("Favoris"),
+      icon: const Icon(FontAwesomeIcons.star, size: 25),
+      title: 'favorites'.tr, // Translated
       activeColorPrimary: AppColor.primaryColor,
       inactiveColorPrimary: CupertinoColors.systemGrey,
-
-      // scrollController: ScrollController.,
     ),
     PersistentBottomNavBarItem(
-      icon: Icon(FontAwesomeIcons.circleUser, size: 25),
-      title: ("Profile"),
+      icon: const Icon(FontAwesomeIcons.circleUser, size: 25),
+      title: 'profile'.tr, // Translated
       activeColorPrimary: AppColor.primaryColor,
       inactiveColorPrimary: CupertinoColors.systemGrey,
-
-      // scrollController: _scrollController2,
     ),
   ];
 }

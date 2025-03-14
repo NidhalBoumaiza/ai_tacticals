@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart'; // Added for translations
 
 import '../../../../../core/widgets/reusable_text.dart';
-import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/country_flag_widget.dart';
 import 'one_match_squad_screen.dart';
 import 'one_match_statics_screen.dart';
 
@@ -11,16 +12,11 @@ class MatchDetailsSqueletteScreen extends StatefulWidget {
   final String homeTeamId;
   final String awayTeamId;
   final String homeShortName;
-
   final String awayShortName;
-
   final String leagueName;
-
   final DateTime matchDate;
-
   final String matchStatus;
   final int homeScore;
-
   final int awayScore;
 
   const MatchDetailsSqueletteScreen({
@@ -77,7 +73,7 @@ class _MatchDetailsSqueletteScreenState
                 // Disable snap effect
                 expandedHeight: 500.h,
                 // Height of the expanded app bar
-                backgroundColor: Color(0xFF33353B),
+                backgroundColor: const Color(0xFF33353B),
                 leading: IconButton(
                   icon: Icon(
                     Icons.arrow_back_ios,
@@ -88,13 +84,13 @@ class _MatchDetailsSqueletteScreenState
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
-                    color: Color(0xFF33353B),
+                    color: const Color(0xFF33353B),
                     padding: EdgeInsets.only(left: 0, top: 50.h),
                     child: Column(
                       children: [
                         SizedBox(height: 140.h),
                         ReusableText(
-                          text: widget.leagueName,
+                          text: widget.leagueName, // Dynamic, not translated
                           textSize: 130.sp,
                           textFontWeight: FontWeight.w700,
                           textColor: Colors.white,
@@ -116,9 +112,9 @@ class _MatchDetailsSqueletteScreenState
                                         height: 100.w,
                                       ),
                                     ),
-
                                     ReusableText(
                                       text: widget.homeShortName,
+                                      // Dynamic, not translated
                                       textSize: 120.sp,
                                       textFontWeight: FontWeight.w800,
                                     ),
@@ -133,6 +129,7 @@ class _MatchDetailsSqueletteScreenState
                                       ReusableText(
                                         text:
                                             '${widget.homeScore} - ${widget.awayScore}',
+                                        // Dynamic, not translated
                                         textSize: 120.sp,
                                         textFontWeight: FontWeight.w900,
                                         textColor: Colors.white,
@@ -140,6 +137,7 @@ class _MatchDetailsSqueletteScreenState
                                       SizedBox(height: 20.h),
                                       ReusableText(
                                         text: widget.matchStatus,
+                                        // Dynamic, not translated
                                         textSize: 100.sp,
                                         textFontWeight: FontWeight.w900,
                                         textColor: Colors.white,
@@ -152,6 +150,7 @@ class _MatchDetailsSqueletteScreenState
                                     SizedBox(width: 50.w),
                                     ReusableText(
                                       text: widget.awayShortName,
+                                      // Dynamic, not translated
                                       textSize: 120.sp,
                                       textFontWeight: FontWeight.w800,
                                     ),
@@ -177,7 +176,7 @@ class _MatchDetailsSqueletteScreenState
                   ),
                 ),
                 bottom: PreferredSize(
-                  preferredSize: Size.fromHeight(0),
+                  preferredSize: const Size.fromHeight(0),
                   child: TabBar(
                     controller: _tabController,
                     isScrollable: false,
@@ -187,7 +186,7 @@ class _MatchDetailsSqueletteScreenState
                       Tab(
                         iconMargin: EdgeInsets.zero,
                         child: ReusableText(
-                          text: 'Statistics',
+                          text: 'statistics'.tr, // Translated
                           textSize: 120.sp, // Much larger text
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.white,
@@ -195,7 +194,7 @@ class _MatchDetailsSqueletteScreenState
                       ),
                       Tab(
                         child: ReusableText(
-                          text: 'Lineups',
+                          text: 'lineups'.tr, // Translated
                           textSize: 120.sp, // Much larger text
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.white,

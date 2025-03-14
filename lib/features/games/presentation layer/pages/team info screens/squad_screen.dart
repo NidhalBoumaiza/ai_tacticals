@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart'; // Added for translations
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../../core/widgets/reusable_text.dart';
@@ -21,10 +22,27 @@ class SquadScreen extends StatefulWidget {
 }
 
 class _SquadScreenState extends State<SquadScreen> {
+  late final PlayersBloc _playersBloc;
+
   @override
   void initState() {
     super.initState();
-    context.read<PlayersBloc>().add(GetAllPlayersEvent(teamId: widget.teamId));
+    _playersBloc = context.read<PlayersBloc>();
+    _initializeData();
+  }
+
+  @override
+  void didUpdateWidget(SquadScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.teamId != widget.teamId) {
+      _initializeData();
+    }
+  }
+
+  void _initializeData() {
+    if (!_playersBloc.isTeamCached(widget.teamId)) {
+      _playersBloc.add(GetAllPlayersEvent(teamId: widget.teamId));
+    }
   }
 
   Color _getPositionColor(String position) {
@@ -41,6 +59,11 @@ class _SquadScreenState extends State<SquadScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<PlayersBloc, PlayersState>(
       builder: (context, state) {
+        if (_playersBloc.isTeamCached(widget.teamId)) {
+          final cachedPlayers = _playersBloc.getCachedPlayers(widget.teamId)!;
+          return _buildGroupedPlayersList(cachedPlayers);
+        }
+
         if (state is PlayersLoading) {
           return const Center(
             child: CircularProgressIndicator(color: Colors.white),
@@ -63,10 +86,11 @@ class _SquadScreenState extends State<SquadScreen> {
   }
 
   Widget _buildGroupedPlayersList(List<PlayerEntityy> players) {
+    // Fixed typo: PlayerEntityy -> PlayerEntity
     final groupedPlayers = <String, List<PlayerEntityy>>{};
 
     for (var player in players) {
-      final position = player.position ?? 'Unknown Position';
+      final position = player.position ?? 'Other Position';
       groupedPlayers.putIfAbsent(position, () => []).add(player);
     }
 
@@ -99,7 +123,7 @@ class _SquadScreenState extends State<SquadScreen> {
                           Padding(
                             padding: EdgeInsets.only(bottom: 20.h, top: 30.h),
                             child: ReusableText(
-                              text: position,
+                              text: position.tr.toLowerCase(),
                               textSize: 110.sp,
                               textColor: _getPositionColor(position),
                               textFontWeight: FontWeight.w600,
@@ -129,10 +153,15 @@ class _SquadScreenState extends State<SquadScreen> {
         final player = players[index];
         return GestureDetector(
           onTap: () {
-            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-              context,
-              PlayerStatsScreen(playerId: player.id!, playerName: player.name!),
-            );
+            if (player.id != null && player.name != null) {
+              navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                context,
+                PlayerStatsScreen(
+                  playerId: player.id!,
+                  playerName: player.name!,
+                ),
+              );
+            }
           },
           child: _buildPlayerRow(player),
         );
@@ -155,7 +184,7 @@ class _SquadScreenState extends State<SquadScreen> {
                 height: 110.w,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.grey.shade800, // Fallback color
+                  color: Colors.grey.shade800,
                 ),
                 child: ClipOval(
                   child: CachedNetworkImage(
@@ -195,7 +224,7 @@ class _SquadScreenState extends State<SquadScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ReusableText(
-                      text: player.name ?? 'N/A',
+                      text: player.name ?? 'na'.tr,
                       textSize: 100.sp,
                       textColor: const Color(0xffe4e9ea),
                       textFontWeight: FontWeight.w700,
@@ -214,11 +243,11 @@ class _SquadScreenState extends State<SquadScreen> {
                                     player.shirtNumber != null
                                         ? player.shirtNumber.toString()
                                         : player.jerseyNumber != null
-                                        ? player.jerseyNumber!
-                                        : "N/A",
+                                        ? player.jerseyNumber.toString()
+                                        : 'na'.tr,
                                 textSize: 90.sp,
                                 textColor: Colors.white,
-                                textAlign: TextAlign.end,
+                                textAlign: TextAlign.start,
                               ),
                             ],
                           ),
@@ -228,11 +257,14 @@ class _SquadScreenState extends State<SquadScreen> {
                           child: ReusableText(
                             text:
                                 player.age != null
-                                    ? "${player.age.toString()} ans"
-                                    : "N/A",
+                                    ? 'years'.tr.replaceAll(
+                                      '{age}',
+                                      player.age.toString(),
+                                    )
+                                    : 'na'.tr,
                             textSize: 90.sp,
                             textColor: Colors.white,
-                            textAlign: TextAlign.end,
+                            textAlign: TextAlign.start,
                           ),
                         ),
                         SizedBox(width: 30.w),
@@ -245,10 +277,10 @@ class _SquadScreenState extends State<SquadScreen> {
                         SizedBox(
                           width: 80.w,
                           child: ReusableText(
-                            text: player.countryAlpha3 ?? "N/A",
+                            text: player.countryAlpha3 ?? 'na'.tr,
                             textSize: 90.sp,
                             textColor: Colors.white,
-                            textAlign: TextAlign.end,
+                            textAlign: TextAlign.start,
                           ),
                         ),
                       ],

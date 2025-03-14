@@ -22,7 +22,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/auth/presentation%20layer/pages/starter_screen.dart';
 import 'features/games/presentation layer/bloc/home match bloc/home_matches_bloc.dart';
 import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
-import 'features/games/presentation layer/bloc/match details bloc/match_details_bloc.dart';
 import 'features/games/presentation layer/bloc/matches per round bloc/matches_per_round_bloc.dart';
 import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
 import 'features/games/presentation layer/bloc/national team bloc/national_team_stats_bloc.dart';
@@ -77,7 +76,6 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (create) => di.sl<LastYearSummaryBloc>()),
         BlocProvider(create: (create) => di.sl<TransferHistoryBloc>()),
         BlocProvider(create: (create) => di.sl<MediaBloc>()),
-        BlocProvider(create: (context) => di.sl<MatchDetailsBloc>()),
         BlocProvider(create: (context) => di.sl<PlayerPerMatchBloc>()),
         BlocProvider(create: (context) => di.sl<ManagerBloc>()),
         BlocProvider(create: (context) => di.sl<PlayerMatchStatsBloc>()),

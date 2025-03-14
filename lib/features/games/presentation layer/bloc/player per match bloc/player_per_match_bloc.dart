@@ -12,32 +12,37 @@ part 'player_per_match_state.dart';
 class PlayerPerMatchBloc
     extends Bloc<PlayerPerMatchEvent, PlayerPerMatchState> {
   final OneMatchStatsRepository repository;
+  final Map<int, Map<String, List<PlayerPerMatchEntity>>> _playersCache = {};
 
   PlayerPerMatchBloc({required this.repository})
     : super(PlayerPerMatchInitial()) {
-    on<GetPlayersPerMatch>(_getPlayersPerMatch);
+    on<GetPlayersPerMatch>(_handleGetPlayersPerMatch);
   }
 
-  void _getPlayersPerMatch(
+  Future<void> _handleGetPlayersPerMatch(
     GetPlayersPerMatch event,
     Emitter<PlayerPerMatchState> emit,
   ) async {
+    // Check cache first
+    if (_playersCache.containsKey(event.matchId)) {
+      emit(PlayerPerMatchSuccess(players: _playersCache[event.matchId]!));
+      return;
+    }
+
     emit(PlayerPerMatchLoading());
     final failureOrPlayers = await repository.getPlayersPerMatch(event.matchId);
     failureOrPlayers.fold(
       (failure) =>
           emit(PlayerPerMatchError(message: mapFailureToMessage(failure))),
       (players) {
-        final homePlayers =
-            players['home'] as List<PlayerPerMatchEntity>? ?? [];
-        final awayPlayers =
-            players['away'] as List<PlayerPerMatchEntity>? ?? [];
-        emit(
-          PlayerPerMatchSuccess(
-            players: {'home': homePlayers, 'away': awayPlayers},
-          ),
-        );
+        _playersCache[event.matchId] = players;
+        emit(PlayerPerMatchSuccess(players: players));
       },
     );
   }
+
+  bool isMatchCached(int matchId) => _playersCache.containsKey(matchId);
+
+  Map<String, List<PlayerPerMatchEntity>>? getCachedPlayers(int matchId) =>
+      _playersCache[matchId];
 }

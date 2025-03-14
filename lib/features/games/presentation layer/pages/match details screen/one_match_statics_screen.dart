@@ -1,7 +1,9 @@
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
+import 'package:analysis_ai/injection_container.dart' as di;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data layer/models/one_match_statics_entity.dart';
@@ -12,7 +14,6 @@ class OneMatchStaticsScreen extends StatefulWidget {
   final String homeTeamId;
   final String awayTeamId;
   final String homeShortName;
-
   final String awayShortName;
 
   const OneMatchStaticsScreen({
@@ -29,43 +30,93 @@ class OneMatchStaticsScreen extends StatefulWidget {
 }
 
 class _OneMatchStaticsScreenState extends State<OneMatchStaticsScreen> {
+  late final MatchDetailsBloc matchDetailsBloc;
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    context.read<MatchDetailsBloc>().add(
-      GetMatchDetailsEvent(matchId: widget.matchId),
-    );
+    matchDetailsBloc = di.sl<MatchDetailsBloc>();
+    _initializeMatchData();
+  }
+
+  @override
+  void didUpdateWidget(OneMatchStaticsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.matchId != widget.matchId) {
+      _initializeMatchData();
+    }
+  }
+
+  void _initializeMatchData() {
+    // Check if data is already cached first
+    if (matchDetailsBloc.isMatchCached(widget.matchId)) {
+      final cachedMatch = matchDetailsBloc.getCachedMatch(widget.matchId);
+      if (cachedMatch != null &&
+          matchDetailsBloc.state is! MatchDetailsLoaded) {
+        matchDetailsBloc.add(GetMatchDetailsEvent(matchId: widget.matchId));
+      }
+    } else {
+      // Only fetch if not in cache
+      matchDetailsBloc.add(GetMatchDetailsEvent(matchId: widget.matchId));
+    }
+  }
+
+  @override
+  void dispose() {
+    // Don't close the bloc here since it's provided by dependency injection
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<MatchDetailsBloc, MatchDetailsState>(
-      builder: (context, state) {
-        if (state is MatchDetailsLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFF3D07E)),
-          );
-        } else if (state is MatchDetailsLoaded) {
-          return MatchDetailsContent(matchDetails: state.matchDetails);
-        } else if (state is MatchDetailsError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset("assets/images/Empty.png"),
-                ReusableText(
-                  text: "No Data Found For This ",
-                  textSize: 120.sp,
-                  textColor: Colors.white,
-                  textFontWeight: FontWeight.w900,
-                ),
-              ],
-            ),
-          );
-        }
-        return const SizedBox.shrink();
-      },
+    return BlocProvider.value(
+      value: matchDetailsBloc,
+      child: BlocConsumer<MatchDetailsBloc, MatchDetailsState>(
+        listener: (context, state) {
+          if (state is MatchDetailsError) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
+          }
+        },
+        builder: (context, state) {
+          // Always check cache first
+          if (matchDetailsBloc.isMatchCached(widget.matchId)) {
+            final cachedMatch =
+                matchDetailsBloc.getCachedMatch(widget.matchId)!;
+            return MatchDetailsContent(matchDetails: cachedMatch);
+          }
+
+          if (state is MatchDetailsLoading) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFFF3D07E)),
+            );
+          }
+
+          if (state is MatchDetailsLoaded) {
+            return MatchDetailsContent(matchDetails: state.matchDetails);
+          }
+
+          if (state is MatchDetailsError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset("assets/images/Empty.png"),
+                  ReusableText(
+                    text: 'no_data_found'.tr,
+                    textSize: 120.sp,
+                    textColor: Colors.white,
+                    textFontWeight: FontWeight.w900,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 }
@@ -89,17 +140,14 @@ class MatchDetailsContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ReusableText(
-                  text: 'Match Statistics',
+                  text: 'match_statistics'.tr,
                   textSize: 150.sp,
                   textFontWeight: FontWeight.w900,
-                  textColor: Color(0xFFF3D07E),
+                  textColor: const Color(0xFFF3D07E),
                 ),
-
                 const SizedBox(height: 12),
                 ...matchDetails.statistics
-                    .where(
-                      (stat) => stat.period == 'ALL',
-                    ) // Show only overall stats for simplicity
+                    .where((stat) => stat.period == 'ALL')
                     .expand((stat) => stat.groups)
                     .map((group) => _buildStatsGroup(group)),
               ],
@@ -112,30 +160,29 @@ class MatchDetailsContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ReusableText(
-                  text: 'Match Information',
+                  text: 'match_information'.tr,
                   textSize: 150.sp,
                   textFontWeight: FontWeight.w900,
-                  textColor: Color(0xFFF3D07E),
+                  textColor: const Color(0xFFF3D07E),
                 ),
-
                 const SizedBox(height: 12),
                 _buildInfoRow(
-                  'Tournament',
+                  'tournament'.tr,
                   matchDetails.tournamentName,
                   Icons.emoji_events,
                 ),
                 _buildInfoRow(
-                  'Venue',
+                  'venue'.tr,
                   matchDetails.venueName,
                   Icons.location_on,
                 ),
                 _buildInfoRow(
-                  'Referee',
+                  'referee'.tr,
                   matchDetails.refereeName,
                   Icons.person,
                 ),
                 _buildInfoRow(
-                  'Date',
+                  'date'.tr,
                   DateFormat(
                     'dd MMM yyyy, HH:mm',
                   ).format(matchDetails.startTime),
@@ -154,21 +201,20 @@ class MatchDetailsContent extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: Color(0xFFF1D778), size: 20),
+          Icon(icon, color: const Color(0xFFF1D778), size: 20),
           const SizedBox(width: 8),
           ReusableText(
             text: '$label: ',
             textSize: 110.sp,
             textFontWeight: FontWeight.w900,
-            textColor: Color(0xFFF3D07E),
+            textColor: const Color(0xFFF3D07E),
           ),
-
           Expanded(
             child: ReusableText(
               text: value,
               textSize: 110.sp,
               textFontWeight: FontWeight.w900,
-              textColor: Color(0xFFF3D07E),
+              textColor: const Color(0xFFF3D07E),
             ),
           ),
         ],
@@ -194,9 +240,8 @@ class MatchDetailsContent extends StatelessWidget {
               text: group.groupName,
               textSize: 125.sp,
               textFontWeight: FontWeight.w900,
-              textColor: Color(0xFFF3D07E),
+              textColor: const Color(0xFFF3D07E),
             ),
-
             const SizedBox(height: 12),
             ...group.items.map((item) => _buildStatsItem(item)),
           ],
@@ -212,7 +257,6 @@ class MatchDetailsContent extends StatelessWidget {
         children: [
           Expanded(
             flex: 2,
-
             child: ReusableText(
               text: item.homeValue,
               textSize: 110.sp,
@@ -222,16 +266,6 @@ class MatchDetailsContent extends StatelessWidget {
                       ? const Color(0xFFF3D07E)
                       : Colors.white,
             ),
-            // Text(
-            //   item.homeValue,
-            //   style: TextStyle(
-            //     color:
-            //         item.compareCode == 1
-            //             ? const Color(0xFFF3D07E)
-            //             : Colors.white,
-            //     fontSize: 16,
-            //   ),
-            // ),
           ),
           Expanded(
             flex: 3,
@@ -242,11 +276,6 @@ class MatchDetailsContent extends StatelessWidget {
               textColor: Colors.white,
               textAlign: TextAlign.center,
             ),
-            // Text(
-            //   item.name,
-            //   style: const TextStyle(color: Colors.white, fontSize: 16),
-            //   textAlign: TextAlign.center,
-            // ),
           ),
           Expanded(
             flex: 2,
@@ -260,17 +289,6 @@ class MatchDetailsContent extends StatelessWidget {
                       : Colors.white,
               textAlign: TextAlign.right,
             ),
-            // Text(
-            //   item.awayValue,
-            //   style: TextStyle(
-            //     color:
-            //         item.compareCode == 2
-            //             ? const Color(0xFFF3D07E)
-            //             : Colors.white,
-            //     fontSize: 16,
-            //   ),
-            //   textAlign: TextAlign.right,
-            // ),
           ),
         ],
       ),

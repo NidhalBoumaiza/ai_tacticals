@@ -98,7 +98,9 @@ Future<void> init() async {
   sl.registerFactory(() => SeasonsCubit(getSeasonsUseCase: sl()));
   sl.registerFactory(() => PlayersBloc(getAllPlayersInfos: sl()));
   sl.registerFactory(() => StatsBloc(repository: sl()));
-  sl.registerFactory(() => MatchDetailsBloc(getMatchDetailsUseCase: sl()));
+  sl.registerLazySingleton(
+    () => MatchDetailsBloc(getMatchDetailsUseCase: sl()),
+  );
   sl.registerFactory(
     () => PlayerAttributesBloc(getPlayerAttributesUseCase: sl()),
   );

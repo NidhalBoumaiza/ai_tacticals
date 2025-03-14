@@ -12,12 +12,22 @@ part 'stats_state.dart';
 
 class StatsBloc extends Bloc<StatsEvent, StatsState> {
   final StaticsRepository repository;
+  final Map<String, StatsEntity> _statsCache = {};
 
   StatsBloc({required this.repository}) : super(StatsInitial()) {
     on<GetStats>(_onGetStats);
   }
 
   Future<void> _onGetStats(GetStats event, Emitter<StatsState> emit) async {
+    // Create a unique key for this teamId, tournamentId, and seasonId combination
+    final cacheKey = '${event.teamId}_${event.tournamentId}_${event.seasonId}';
+
+    // Check cache first
+    if (_statsCache.containsKey(cacheKey)) {
+      emit(StatsLoaded(_statsCache[cacheKey]!));
+      return;
+    }
+
     emit(StatsLoading());
     final failureOrStats = await repository.getTeamStats(
       event.teamId,
@@ -27,7 +37,18 @@ class StatsBloc extends Bloc<StatsEvent, StatsState> {
 
     failureOrStats.fold(
       (failure) => emit(StatsError(mapFailureToMessage(failure))),
-      (stats) => emit(StatsLoaded(stats)),
+      (stats) {
+        _statsCache[cacheKey] = stats;
+        emit(StatsLoaded(stats));
+      },
     );
+  }
+
+  bool isStatsCached(int teamId, int tournamentId, int seasonId) {
+    return _statsCache.containsKey('${teamId}_$tournamentId$seasonId');
+  }
+
+  StatsEntity? getCachedStats(int teamId, int tournamentId, int seasonId) {
+    return _statsCache['${teamId}_$tournamentId$seasonId'];
   }
 }

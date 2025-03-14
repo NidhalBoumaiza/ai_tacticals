@@ -4,6 +4,7 @@ import 'package:analysis_ai/features/games/presentation%20layer/pages/team%20inf
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart'; // Added for translations
 import 'package:shimmer/shimmer.dart';
 
 class TeamInfoScreenSquelette extends StatefulWidget {
@@ -51,25 +52,21 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
             return [
               SliverAppBar(
                 pinned: true,
-                // Keep the app bar pinned at the top
                 floating: false,
-                // Disable floating behavior
                 snap: false,
-                // Disable snap effect
                 expandedHeight: 360.h,
-                // Height of the expanded app bar
-                backgroundColor: Color(0xff161d1f),
+                backgroundColor: const Color(0xff161d1f),
                 leading: IconButton(
                   icon: Icon(
                     Icons.arrow_back_ios,
                     color: Colors.white,
-                    size: 50.sp, // Much larger back arrow
+                    size: 50.sp,
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
-                    color: Color(0xff161d1f),
+                    color: const Color(0xff161d1f),
                     padding: EdgeInsets.only(left: 0, top: 70.h),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
@@ -91,18 +88,14 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                                     ),
                                   ),
                               errorWidget: (context, url, error) {
-                                print(
-                                  'Error loading image: $error',
-                                ); // Debugging: Print the error
-                                return Icon(Icons.error);
+                                print('Error loading image: $error');
+                                return const Icon(Icons.error);
                               },
                               fit: BoxFit.cover,
                               width: 45,
-
                               cacheKey: widget.teamId.toString(),
-                              height:
-                                  45, // Increase height for better visibility
-                            ), // Increased spacing
+                              height: 45,
+                            ),
                             SizedBox(width: 20.w),
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -113,12 +106,11 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                                   children: [
                                     ReusableText(
                                       text: widget.teamName,
-                                      textSize: 120.sp, // Much larger text
+                                      // Dynamic, not translated
+                                      textSize: 120.sp,
                                       textFontWeight: FontWeight.w600,
                                       textColor: Colors.white,
                                     ),
-
-                                    // Increased spacing
                                   ],
                                 ),
                               ],
@@ -130,7 +122,7 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                   ),
                 ),
                 bottom: PreferredSize(
-                  preferredSize: Size.fromHeight(0),
+                  preferredSize: const Size.fromHeight(0),
                   child: TabBar(
                     controller: _tabController,
                     isScrollable: false,
@@ -140,16 +132,16 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                       Tab(
                         iconMargin: EdgeInsets.zero,
                         child: ReusableText(
-                          text: 'Squad',
-                          textSize: 120.sp, // Much larger text
+                          text: 'squad'.tr, // Translated
+                          textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.white,
                         ),
                       ),
                       Tab(
                         child: ReusableText(
-                          text: 'Statics',
-                          textSize: 120.sp, // Much larger text
+                          text: 'statics'.tr, // Translated
+                          textSize: 120.sp,
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.white,
                         ),
@@ -166,8 +158,8 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
               SquadScreen(teamId: widget.teamId),
               StatsScreen(
                 teamId: widget.teamId,
-                tournamentId: widget.leagueId, // Get from parent or config
-                seasonId: widget.seasonId, // Get from parent or config
+                tournamentId: widget.leagueId,
+                seasonId: widget.seasonId,
               ),
             ],
           ),
@@ -176,10 +168,3 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
     );
   }
 }
-
-// List<Widget> tabBarScreens = [
-//   StandingsScreen(leagueName: ''),
-//   GamesPerRoundScreen(),
-//   Test1(),
-//   Test2(),
-// ];

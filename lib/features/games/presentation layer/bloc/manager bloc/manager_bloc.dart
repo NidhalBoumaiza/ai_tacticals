@@ -11,20 +11,48 @@ part 'manager_state.dart';
 
 class ManagerBloc extends Bloc<ManagerEvent, ManagerState> {
   final OneMatchStatsRepository repository;
+  final Map<int, Map<String, ManagerEntity?>> _managersCache = {};
 
   ManagerBloc({required this.repository}) : super(ManagerInitial()) {
-    on<ManagerEvent>((event, emit) {});
     on<GetManagers>(_getManagers);
   }
 
-  void _getManagers(GetManagers event, Emitter<ManagerState> emit) async {
+  Future<void> _getManagers(
+    GetManagers event,
+    Emitter<ManagerState> emit,
+  ) async {
+    // Check cache first
+    if (_managersCache.containsKey(event.matchId)) {
+      final cachedManagers = _managersCache[event.matchId]!;
+      // Filter out null values and cast to non-nullable type
+      final nonNullManagers = <String, ManagerEntity>{
+        for (var entry in cachedManagers.entries)
+          if (entry.value != null) entry.key: entry.value!,
+      };
+      emit(ManagerSuccess(managers: nonNullManagers));
+      return;
+    }
+
     emit(ManagerLoading());
     final failureOrManagers = await repository.getManagersPerMatch(
       event.matchId,
     );
     failureOrManagers.fold(
       (failure) => emit(ManagerError(message: mapFailureToMessage(failure))),
-      (managers) => emit(ManagerSuccess(managers: managers)),
+      (managers) {
+        _managersCache[event.matchId] = managers;
+        // Filter out null values for emission
+        final nonNullManagers = <String, ManagerEntity>{
+          for (var entry in managers.entries)
+            if (entry.value != null) entry.key: entry.value!,
+        };
+        emit(ManagerSuccess(managers: nonNullManagers));
+      },
     );
   }
+
+  bool isMatchCached(int matchId) => _managersCache.containsKey(matchId);
+
+  Map<String, ManagerEntity?>? getCachedManagers(int matchId) =>
+      _managersCache[matchId];
 }

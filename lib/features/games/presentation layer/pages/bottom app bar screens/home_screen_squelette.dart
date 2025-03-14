@@ -18,7 +18,7 @@ class _HomeScreenSqueletteState extends State<HomeScreenSquelette> {
   Widget build(BuildContext context) {
     PersistentTabController _controller;
 
-    _controller = PersistentTabController(initialIndex: 1);
+    _controller = PersistentTabController(initialIndex: 0);
     return SafeArea(
       child: Scaffold(
         body: PersistentTabView(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart'; // Added for translations
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -18,7 +19,6 @@ import '../../bloc/transfert history bloc/transfer_history_bloc.dart';
 
 class PlayerStatsScreen extends StatefulWidget {
   final String playerName;
-
   final int playerId;
 
   const PlayerStatsScreen({
@@ -38,7 +38,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   @override
   void initState() {
     super.initState();
-    // Delay data fetching until the widget tree is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshData();
     });
@@ -73,14 +72,13 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       appBar: AppBar(
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
-
           children: [
             Container(
               width: 110.w,
               height: 110.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.grey.shade800, // Fallback color
+                color: Colors.grey.shade800,
               ),
               child: ClipOval(
                 child: CachedNetworkImage(
@@ -118,7 +116,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
             ),
             SizedBox(width: 25.w),
             ReusableText(
-              text: widget.playerName,
+              text: widget.playerName, // Dynamic, not translated
               textSize: 130.sp,
               textColor: const Color(0xFFF1D778),
               textFontWeight: FontWeight.w700,
@@ -142,7 +140,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         backgroundColor: const Color(0xFF33353B),
         child: CustomScrollView(
           controller: _scrollController,
-          cacheExtent: 1000, // Cache offscreen items for better performance
+          cacheExtent: 1000,
           slivers: [
             _buildStatsSummary(),
             _buildPerformanceSection(),
@@ -155,7 +153,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     );
   }
 
-  // Stats Summary Section
   Widget _buildStatsSummary() => SliverPadding(
     padding: const EdgeInsets.all(16),
     sliver: SliverToBoxAdapter(
@@ -184,7 +181,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     ),
   );
 
-  // Performance Trend Section with Line Chart
   Widget _buildPerformanceSection() => SliverPadding(
     padding: const EdgeInsets.symmetric(horizontal: 16),
     sliver: SliverToBoxAdapter(
@@ -212,9 +208,9 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Performance Trend',
-                            style: TextStyle(
+                          Text(
+                            'performance_trend'.tr, // Translated
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               color: Color(0xFFF1D778),
                             ),
@@ -260,10 +256,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               .toList();
 
       if (validSpots.isEmpty) {
-        return const Center(
+        return Center(
           child: Text(
-            'No valid data to display',
-            style: TextStyle(color: Color(0xFFF1D778)),
+            'no_valid_data_to_display'.tr, // Translated
+            style: const TextStyle(color: Color(0xFFF1D778)),
           ),
         );
       }
@@ -304,7 +300,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                     final date = sortedSummary[index].date;
                     if (date != null) {
                       return SideTitleWidget(
-                        //   axisSide: meta.axisSide,
                         meta: meta,
                         child: Text(
                           DateFormat('MM/yy').format(date),
@@ -351,7 +346,9 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                           const TextStyle(color: Color(0xFFF1D778)),
                           children: [
                             TextSpan(
-                              text: '\nRating: ${spot.y.toStringAsFixed(1)}',
+                              text:
+                                  '\n${'rating'.tr}: ${spot.y.toStringAsFixed(1)}',
+                              // Translated "Rating"
                               style: const TextStyle(
                                 color: Color(0xFFF3D07E),
                                 fontWeight: FontWeight.bold,
@@ -380,7 +377,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     return const ShimmerLoading(width: double.infinity, height: 200);
   }
 
-  // National Team Stats Section
   Widget _buildNationalTeamSection() => SliverPadding(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     sliver: BlocBuilder<NationalTeamStatsBloc, NationalTeamStatsState>(
@@ -402,25 +398,25 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               items: [
                 StatItem(
                   Icons.flag,
-                  'Team',
+                  'team'.tr,
                   state.stats.team?.name ?? '-',
                   color: const Color(0xFFF1D778),
                 ),
                 StatItem(
                   FontAwesomeIcons.personRunning,
-                  'Appearences',
+                  'appearances'.tr,
                   state.stats.appearances?.toString() ?? '-',
                   color: const Color(0xFFF1D778),
                 ),
                 StatItem(
                   Icons.sports_soccer,
-                  'Goals',
+                  'goals'.tr,
                   state.stats.goals?.toString() ?? '-',
                   color: const Color(0xFFF1D778),
                 ),
                 StatItem(
                   Icons.calendar_today,
-                  'Debut',
+                  'debut'.tr,
                   state.stats.debutDate != null
                       ? DateFormat('yyyy').format(state.stats.debutDate!)
                       : '-',
@@ -435,7 +431,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     ),
   );
 
-  // Transfer History Section
   Widget _buildTransferHistory() => SliverPadding(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     sliver: BlocBuilder<TransferHistoryBloc, TransferHistoryState>(
@@ -453,12 +448,12 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         }
         if (state is TransferHistoryLoaded) {
           if (state.transfers.isEmpty) {
-            return const SliverToBoxAdapter(
+            return SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'No transfer history available',
-                  style: TextStyle(color: Color(0xFFF1D778)),
+                  'no_transfer_history_available'.tr, // Translated
+                  style: const TextStyle(color: Color(0xFFF1D778)),
                 ),
               ),
             );
@@ -480,7 +475,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     ),
   );
 
-  // Media Section
   Widget _buildMediaSection() => SliverPadding(
     padding: const EdgeInsets.all(16),
     sliver: BlocBuilder<MediaBloc, MediaState>(
@@ -498,12 +492,12 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         }
         if (state is MediaLoaded) {
           if (state.media.isEmpty) {
-            return const SliverToBoxAdapter(
+            return SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'No media available',
-                  style: TextStyle(color: Color(0xFFF1D778)),
+                  'no_media_available'.tr, // Translated
+                  style: const TextStyle(color: Color(0xFFF1D778)),
                 ),
               ),
             );
@@ -533,12 +527,11 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     ),
   );
 
-  // Utility Widgets and Methods
   Widget _buildErrorWidget(String message) => SliverToBoxAdapter(
     child: Padding(
       padding: const EdgeInsets.all(8.0),
       child: Text(
-        'Error: $message',
+        '${'error'.tr}: $message', // Translated "Error"
         style: const TextStyle(color: Color(0xFFF1D778), fontSize: 14),
       ),
     ),
@@ -549,21 +542,21 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text(
-              'Performance Trend Info',
-              style: TextStyle(color: Color(0xFFF1D778)),
+            title: Text(
+              'performance_trend_info'.tr, // Translated
+              style: const TextStyle(color: Color(0xFFF1D778)),
             ),
-            content: const Text(
-              'This chart shows the player\'s rating trend over the last year. The orange line indicates a benchmark rating of 7.',
-              style: TextStyle(color: Color(0xFFF3D07E)),
+            content: Text(
+              'performance_trend_description'.tr, // Translated
+              style: const TextStyle(color: Color(0xFFF3D07E)),
             ),
             backgroundColor: const Color(0xFF33353B),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Close',
-                  style: TextStyle(color: Color(0xFFF1D778)),
+                child: Text(
+                  'close'.tr, // Translated
+                  style: const TextStyle(color: Color(0xFFF1D778)),
                 ),
               ),
             ],
@@ -577,7 +570,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       builder:
           (context) => AlertDialog(
             title: Text(
-              media.title ?? 'Media Preview',
+              media.title ?? 'media_preview'.tr, // Translated fallback
               style: const TextStyle(color: Color(0xFFF1D778)),
             ),
             content: Column(
@@ -601,17 +594,17 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                         await launchUrl(uri);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
-                              'Cannot launch URL',
-                              style: TextStyle(color: Color(0xFF33353B)),
+                              'cannot_launch_url'.tr, // Translated
+                              style: const TextStyle(color: Color(0xFF33353B)),
                             ),
                           ),
                         );
                       }
                     },
                     child: Text(
-                      media.url!,
+                      media.url!, // Dynamic, not translated
                       style: const TextStyle(
                         color: Color(0xFFF3D07E),
                         decoration: TextDecoration.underline,
@@ -624,9 +617,9 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Close',
-                  style: TextStyle(color: Color(0xFFF1D778)),
+                child: Text(
+                  'close'.tr, // Translated
+                  style: const TextStyle(color: Color(0xFFF1D778)),
                 ),
               ),
             ],
@@ -635,7 +628,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   }
 }
 
-// Supporting Widgets
 class AnimatedStatsCard extends StatelessWidget {
   final PlayerAttributesEntity attributes;
   final ValueNotifier<bool> expanded;
@@ -690,15 +682,15 @@ class AnimatedStatsCard extends StatelessWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
-                        'Attributes Radar',
-                        style: TextStyle(
+                        'attributes_radar'.tr, // Translated
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: Color(0xFFF1D778),
                         ),
                       ),
-                      Icon(Icons.expand_more, color: Color(0xFFF1D778)),
+                      const Icon(Icons.expand_more, color: Color(0xFFF1D778)),
                     ],
                   ),
                   if (isExpanded)
@@ -745,11 +737,11 @@ class AnimatedStatsCard extends StatelessWidget {
                             titlePositionPercentageOffset: 0.2,
                             getTitle: (index, angle) {
                               final titles = [
-                                'Attacking',
-                                'Technical',
-                                'Tactical',
-                                'Defending',
-                                'Creativity',
+                                'attacking'.tr,
+                                'technical'.tr,
+                                'tactical'.tr,
+                                'defending'.tr,
+                                'creativity'.tr,
                               ];
                               return RadarChartTitle(text: titles[index]);
                             },
@@ -798,7 +790,8 @@ class TransferTimelineItem extends StatelessWidget {
             style: const TextStyle(fontSize: 16),
             children: [
               TextSpan(
-                text: transfer.fromTeam?.name ?? 'Unknown Team',
+                text: transfer.fromTeam?.name ?? 'unknown_team'.tr,
+                // Translated fallback
                 style: const TextStyle(
                   color: Colors.grey,
                   decoration: TextDecoration.lineThrough,
@@ -806,7 +799,8 @@ class TransferTimelineItem extends StatelessWidget {
               ),
               const TextSpan(text: ' → '),
               TextSpan(
-                text: transfer.toTeam?.name ?? 'Unknown Team',
+                text: transfer.toTeam?.name ?? 'unknown_team'.tr,
+                // Translated fallback
                 style: const TextStyle(
                   color: Color(0xFFF1D778),
                   fontWeight: FontWeight.w600,
@@ -821,7 +815,7 @@ class TransferTimelineItem extends StatelessWidget {
             Text(
               transfer.date != null
                   ? DateFormat('MMM yyyy').format(transfer.date!)
-                  : 'N/A',
+                  : 'n_a'.tr, // Translated "N/A"
               style: const TextStyle(fontSize: 12, color: Color(0xFFF3D07E)),
             ),
             if (transfer.fee != null)
@@ -879,7 +873,7 @@ class StatItem extends StatelessWidget {
           const SizedBox(height: 8),
           Text(title, style: TextStyle(color: color, fontSize: 12)),
           Text(
-            value,
+            value, // Dynamic, not translated
             style: TextStyle(
               color: color,
               fontSize: 16,

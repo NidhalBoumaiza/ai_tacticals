@@ -5,14 +5,16 @@ import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'; // Add this package
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart'; // For translations
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../../../domain layer/entities/matches_entities.dart';
-import '../../bloc/home match bloc/home_matches_bloc.dart';
-import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+import '../../../domain%20layer/entities/matches_entities.dart';
+import '../../bloc/home%20match%20bloc/home_matches_bloc.dart';
+import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/country_flag_widget.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -31,13 +33,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
   Timer? _liveUpdateTimer;
   late ScrollController _scrollController;
 
-  // Define priority league IDs
   static const List<int> priorityLeagueIds = [
-    17, // e.g., UEFA Champions League
-    7, // e.g., Premier League
-    679, // e.g., La Liga
-    17015, // e.g., Serie A
-    465, // e.g., Bundesliga
+    17,
+    7,
+    679,
+    17015,
+    465,
     27,
     10783,
     19,
@@ -55,12 +56,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
     341,
   ];
 
-  // Custom cache manager for longer retention and larger size
   static final CustomCacheManager _cacheManager = CustomCacheManager(
     Config(
       'teamLogosCache',
-      stalePeriod: const Duration(days: 30), // Cache for 30 days
-      maxNrOfCacheObjects: 500, // Increase cache size for more logos
+      stalePeriod: const Duration(days: 30),
+      maxNrOfCacheObjects: 500,
     ),
   );
 
@@ -79,7 +79,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
       }
     });
 
-    // Preload images for priority leagues
     _preloadPriorityImages();
   }
 
@@ -106,7 +105,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
     );
   }
 
-  // Preload images for priority league matches
   Future<void> _preloadPriorityImages() async {
     if (!mounted) return;
 
@@ -126,8 +124,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
             "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small";
         final awayUrl =
             "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small";
-        await _cacheManager.downloadFile(homeUrl); // Preload home team logo
-        await _cacheManager.downloadFile(awayUrl); // Preload away team logo
+        await _cacheManager.downloadFile(homeUrl);
+        await _cacheManager.downloadFile(awayUrl);
       }
     }
   }
@@ -266,14 +264,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   imageUrl:
                       "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small",
                   cacheManager: _cacheManager,
-                  // Use custom cache manager
                   fadeInDuration: Duration(milliseconds: 300),
-                  // Smooth transition
                   placeholder:
                       (context, url) => Container(
                         width: 50.w,
                         height: 50.w,
-                        color: Colors.grey.shade300, // Simple placeholder
+                        color: Colors.grey.shade300,
                       ),
                   errorWidget: (context, url, error) => Icon(Icons.error),
                   fit: BoxFit.cover,
@@ -338,14 +334,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   imageUrl:
                       "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small",
                   cacheManager: _cacheManager,
-                  // Use custom cache manager
                   fadeInDuration: Duration(milliseconds: 300),
-                  // Smooth transition
                   placeholder:
                       (context, url) => Container(
                         width: 50.w,
                         height: 50.w,
-                        color: Colors.grey.shade300, // Simple placeholder
+                        color: Colors.grey.shade300,
                       ),
                   errorWidget: (context, url, error) => Icon(Icons.error),
                   fit: BoxFit.cover,
@@ -432,7 +426,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF33353B),
         title: ReusableText(
-          text: 'Matches',
+          text: 'matches'.tr, // Translated "Matches"
           textSize: 140.sp,
           textColor: AppColor.primaryColor,
           textFontWeight: FontWeight.w800,
@@ -474,6 +468,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
               });
             },
           ),
+          IconButton(
+            onPressed: () {
+              Get.updateLocale(const Locale('fr', 'FR'));
+            },
+            icon: Icon(Icons.translate, color: AppColor.primaryColor),
+          ),
         ],
       ),
       body: Stack(
@@ -492,7 +492,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 if (matchesPerTeam == null || matchesPerTeam.isEmpty) {
                   return Center(
                     child: ReusableText(
-                      text: 'No matches available for selected date',
+                      text: 'no_matches_available'.tr, // Translated
                       textSize: 100.sp,
                       textColor: Colors.white,
                       textFontWeight: FontWeight.w600,
@@ -517,8 +517,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     child: ReusableText(
                       text:
                           _showLiveMatchesOnly
-                              ? 'No live matches available'
-                              : 'No matches available for selected date',
+                              ? 'no_live_matches_available'
+                                  .tr // Translated
+                              : 'no_matches_available'.tr, // Translated
                       textSize: 100.sp,
                       textColor: Colors.white,
                       textFontWeight: FontWeight.w600,
@@ -575,6 +576,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       _focusedDay = focusedDay;
                     });
                   },
+                  locale: Get.locale?.toString(), // Localize calendar
                 ),
               ),
             ),
@@ -593,9 +595,78 @@ extension IterableIndexed<T> on Iterable<T> {
   }
 }
 
-// Custom cache manager class
 class CustomCacheManager extends CacheManager {
   CustomCacheManager(Config config) : super(config);
 
   static const key = 'teamLogosCache';
+}
+
+class LanguageChangeButton extends StatelessWidget {
+  final List<Locale> supportedLocales = const [
+    Locale('en', 'US'),
+    Locale('fr', 'FR'),
+    Locale('ar', 'AR'),
+  ];
+
+  const LanguageChangeButton({super.key});
+
+  String _getLocaleDisplayName(Locale locale) {
+    switch (locale.toString()) {
+      case 'en_US':
+        return 'English';
+      case 'fr_FR':
+        return 'Français';
+      case 'ar_AR':
+        return 'العربية';
+      default:
+        return locale.languageCode;
+    }
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('select_language'.tr),
+            // Add this key to AppTranslations
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children:
+                  supportedLocales.map((locale) {
+                    return ListTile(
+                      title: Text(_getLocaleDisplayName(locale)),
+                      onTap: () {
+                        Get.updateLocale(locale);
+                        Navigator.pop(context);
+                      },
+                    );
+                  }).toList(),
+            ),
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.language, color: Colors.white, size: 30),
+      onPressed: () => _showLanguageDialog(context),
+    );
+  }
+}
+
+Future<void> saveLocale(Locale locale) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('locale', locale.toString());
+}
+
+Future<Locale?> loadLocale() async {
+  final prefs = await SharedPreferences.getInstance();
+  final localeString = prefs.getString('locale');
+  if (localeString != null) {
+    final parts = localeString.split('_');
+    return Locale(parts[0], parts[1]);
+  }
+  return null;
 }

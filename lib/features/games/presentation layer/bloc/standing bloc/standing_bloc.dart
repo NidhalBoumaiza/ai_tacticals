@@ -11,13 +11,25 @@ part 'standing_state.dart';
 
 class StandingBloc extends Bloc<StandingEvent, StandingsState> {
   final GetStandingsUseCase getStandings;
+  final Map<String, StandingsEntity> _standingsCache = {};
 
   StandingBloc({required this.getStandings}) : super(StandingsInitial()) {
-    on<StandingEvent>((event, emit) {});
     on<GetStanding>(_getStandings);
   }
 
-  void _getStandings(GetStanding event, Emitter<StandingsState> emit) async {
+  Future<void> _getStandings(
+    GetStanding event,
+    Emitter<StandingsState> emit,
+  ) async {
+    // Create a unique key for this leagueId and seasonId combination
+    final cacheKey = '${event.leagueId}_${event.seasonId}';
+
+    // Check cache first
+    if (_standingsCache.containsKey(cacheKey)) {
+      emit(StandingsSuccess(standings: _standingsCache[cacheKey]!));
+      return;
+    }
+
     emit(StandingsLoading());
     final failureOrStandings = await getStandings(
       event.leagueId,
@@ -25,7 +37,18 @@ class StandingBloc extends Bloc<StandingEvent, StandingsState> {
     );
     failureOrStandings.fold(
       (failure) => emit(StandingsError(message: mapFailureToMessage(failure))),
-      (standings) => emit(StandingsSuccess(standings: standings)),
+      (standings) {
+        _standingsCache[cacheKey] = standings;
+        emit(StandingsSuccess(standings: standings));
+      },
     );
+  }
+
+  bool isStandingCached(int leagueId, int seasonId) {
+    return _standingsCache.containsKey('${leagueId}_$seasonId');
+  }
+
+  StandingsEntity? getCachedStanding(int leagueId, int seasonId) {
+    return _standingsCache['${leagueId}_$seasonId'];
   }
 }
