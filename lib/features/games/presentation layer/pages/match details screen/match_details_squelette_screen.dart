@@ -1,9 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:shimmer/shimmer.dart';
 
+import '../../../../../core/utils/navigation_with_transition.dart';
 import '../../../../../core/widgets/reusable_text.dart';
-import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
+import '../team info screens/team_info_screen_squelette.dart';
 import 'one_match_squad_screen.dart';
 import 'one_match_statics_screen.dart';
 
@@ -18,6 +21,8 @@ class MatchDetailsSqueletteScreen extends StatefulWidget {
   final String matchStatus;
   final int homeScore;
   final int awayScore;
+  final int seasonId;
+  final int uniqueTournamentId;
 
   const MatchDetailsSqueletteScreen({
     super.key,
@@ -31,6 +36,8 @@ class MatchDetailsSqueletteScreen extends StatefulWidget {
     required this.matchStatus,
     required this.homeScore,
     required this.awayScore,
+    required this.seasonId,
+    required this.uniqueTournamentId,
   });
 
   @override
@@ -79,7 +86,7 @@ class _MatchDetailsSqueletteScreenState
                   icon: Icon(
                     Icons.arrow_back_ios,
                     color:
-                        Theme.of(context).appBarTheme.foregroundColor, // Black
+                        Theme.of(context).appBarTheme.backgroundColor, // Black
                     size: 60.sp, // Slightly larger for better touch target
                   ),
                   onPressed: () => Navigator.pop(context),
@@ -113,10 +120,21 @@ class _MatchDetailsSqueletteScreenState
                                 children: [
                                   Padding(
                                     padding: EdgeInsets.only(right: 15.w),
-                                    child: CountryFlagWidget(
-                                      flag: widget.homeTeamId,
-                                      width: 100.w,
-                                      height: 100.w,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        navigateToAnotherScreenWithBottomToTopTransition(
+                                          context,
+                                          TeamInfoScreenSquelette(
+                                            teamId: int.parse(
+                                              widget.homeTeamId,
+                                            ),
+                                            teamName: widget.homeShortName,
+                                            seasonId: widget.seasonId,
+                                            leagueId: widget.uniqueTournamentId,
+                                          ),
+                                        );
+                                      },
+                                      child: teamFlag(widget.homeTeamId),
                                     ),
                                   ),
                                   Flexible(
@@ -184,12 +202,21 @@ class _MatchDetailsSqueletteScreenState
                                       textAlign: TextAlign.left,
                                     ),
                                   ),
-                                  Padding(
-                                    padding: EdgeInsets.only(left: 15.w),
-                                    child: CountryFlagWidget(
-                                      flag: widget.awayTeamId,
-                                      width: 100.w,
-                                      height: 100.w,
+                                  GestureDetector(
+                                    onTap: () {
+                                      navigateToAnotherScreenWithBottomToTopTransition(
+                                        context,
+                                        TeamInfoScreenSquelette(
+                                          teamId: int.parse(widget.awayTeamId),
+                                          teamName: widget.awayShortName,
+                                          seasonId: widget.seasonId,
+                                          leagueId: widget.uniqueTournamentId,
+                                        ),
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: EdgeInsets.only(left: 15.w),
+                                      child: teamFlag(widget.awayTeamId),
                                     ),
                                   ),
                                 ],
@@ -255,6 +282,29 @@ class _MatchDetailsSqueletteScreenState
           ),
         ),
       ),
+    );
+  }
+
+  Widget teamFlag(String teamId) {
+    return CachedNetworkImage(
+      imageUrl: "https://img.sofascore.com/api/v1/team/${teamId}/image/small",
+      placeholder:
+          (context, url) => Shimmer.fromColors(
+            baseColor: Theme.of(context).colorScheme.surface,
+            highlightColor: Theme.of(context).colorScheme.surfaceVariant,
+            child: Container(
+              width: 80.w,
+              height: 80.w,
+              color: Theme.of(context).colorScheme.surface,
+            ),
+          ),
+      errorWidget:
+          (context, url, error) =>
+              Icon(Icons.error, color: Theme.of(context).colorScheme.error),
+      fit: BoxFit.cover,
+      width: 80.w,
+      height: 80.w,
+      cacheKey: teamId.toString(),
     );
   }
 }

@@ -76,7 +76,7 @@ class StandingLineWidget extends StatelessWidget {
               text: "  $teamName",
               textSize: 100.sp,
               textColor: Theme.of(context).colorScheme.onSurface,
-              textFontWeight: FontWeight.w400,
+              textFontWeight: FontWeight.w500,
             ),
           ),
           SizedBox(

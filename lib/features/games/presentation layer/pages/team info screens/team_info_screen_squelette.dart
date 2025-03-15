@@ -57,7 +57,7 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
               SliverAppBar(
                 pinned: true,
                 floating: false,
-                expandedHeight: 300.h,
+                expandedHeight: 320.h,
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 // 0xFFfbc02d
                 elevation: 2,
@@ -75,12 +75,16 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   background: Padding(
-                    padding: EdgeInsets.only(top: 100.h, left: 30.w),
+                    padding: EdgeInsets.only(
+                      top: 150.h,
+                      left: 70.w,
+                      bottom: 20.h,
+                    ),
                     child: Row(
                       children: [
                         Container(
-                          width: 120.w,
-                          height: 120.w,
+                          width: 100.w,
+                          height: 100.w,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Theme.of(context).colorScheme.surfaceVariant,

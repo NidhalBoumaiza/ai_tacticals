@@ -292,7 +292,7 @@ class _SquadScreenState extends State<SquadScreen> {
                       ),
                     ),
                     SizedBox(
-                      width: 100.w,
+                      width: 115.w,
                       child: ReusableText(
                         text:
                             player.age != null
@@ -307,6 +307,7 @@ class _SquadScreenState extends State<SquadScreen> {
                         ).colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
+                    SizedBox(width: 8.w),
                     CountryFlagWidget(
                       flag: player.countryAlpha2,
                       height: 50.sp,

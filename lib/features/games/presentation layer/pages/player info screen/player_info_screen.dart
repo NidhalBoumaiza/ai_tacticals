@@ -60,7 +60,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
-    _expandedSection.removeListener(() {}); // Remove any listeners if necessary
     _expandedSection.dispose();
     super.dispose();
   }
@@ -135,7 +134,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
             _buildNationalTeamSection(),
             _buildTransferHistory(),
             _buildMediaSection(),
-            SliverFillRemaining(hasScrollBody: false, child: SizedBox.shrink()),
+            SliverFillRemaining(hasScrollBody: false),
           ],
         ),
       ),
@@ -148,10 +147,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       child: BlocBuilder<PlayerAttributesBloc, PlayerAttributesState>(
         builder: (context, state) {
           if (state is PlayerAttributesLoading) {
-            return ShimmerLoading(width: double.infinity);
+            return ShimmerLoading(width: double.infinity, height: 200.h);
           }
           if (state is PlayerAttributesError) {
-            return _buildErrorWidget(state.message, context);
+            return ErrorCard(message: state.message, onRetry: _refreshData);
           }
           if (state is PlayerAttributesLoaded) {
             return AnimatedStatsCard(
@@ -169,8 +168,15 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 15.h),
     sliver: SliverToBoxAdapter(
       child: BlocBuilder<LastYearSummaryBloc, LastYearSummaryState>(
-        builder:
-            (context, state) => Card(
+        builder: (context, state) {
+          if (state is LastYearSummaryLoading) {
+            return ShimmerLoading(width: double.infinity, height: 300.h);
+          }
+          if (state is LastYearSummaryError) {
+            return ErrorCard(message: state.message, onRetry: _refreshData);
+          }
+          if (state is LastYearSummaryLoaded) {
+            return Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12.r),
@@ -201,11 +207,14 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                       ],
                     ),
                     SizedBox(height: 20.h),
-                    SizedBox(child: _buildEnhancedLineChart(state, context)),
+                    _buildEnhancedLineChart(state, context),
                   ],
                 ),
               ),
-            ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
     ),
   );
@@ -219,153 +228,164 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         ..sort(
           (a, b) => (a.date ?? DateTime(0)).compareTo(b.date ?? DateTime(0)),
         );
+
+      // Validate data points more strictly
       final validSpots =
           sortedSummary
               .asMap()
               .entries
               .where(
                 (entry) =>
-                    entry.value.rating != null && entry.value.date != null,
-              )
+                    entry.value.rating != null &&
+                    entry.value.date != null &&
+                    entry.value.rating! >= 0 &&
+                    entry.value.rating! <= 10,
+              ) // Ensure rating is within bounds
               .map((entry) => FlSpot(entry.key.toDouble(), entry.value.rating!))
               .toList();
 
-      if (validSpots.isEmpty) {
+      // Do not render the chart if there are fewer than 2 valid data points
+      if (validSpots.length < 2) {
         return Center(
           child: ReusableText(
-            text: 'no_valid_data_to_display'.tr,
+            text:
+                validSpots.isEmpty
+                    ? 'no_valid_data_to_display'.tr
+                    : 'insufficient_data_for_trend'.tr,
             textSize: 100.sp,
             textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
           ),
         );
       }
 
-      return ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: 300.h),
-        child: LineChart(
-          LineChartData(
-            gridData: FlGridData(
-              show: true,
-              drawVerticalLine: true,
-              getDrawingHorizontalLine:
-                  (value) => FlLine(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.2),
-                    strokeWidth: 0.5,
-                  ),
-            ),
-            titlesData: FlTitlesData(
-              leftTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 40,
-                  getTitlesWidget:
-                      (value, meta) => Text(
-                        value.toInt().toString(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.7),
-                        ),
-                      ),
-                ),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 30,
-                  getTitlesWidget: (value, meta) {
-                    final index = value.toInt();
-                    if (index >= 0 && index < sortedSummary.length) {
-                      final date = sortedSummary[index].date;
-                      if (date != null) {
-                        return SideTitleWidget(
-                          meta: meta,
-                          child: Text(
-                            DateFormat('MM/yy').format(date),
+      return ClipRect(
+        // Clip the chart to prevent overflow
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: 500.h),
+          // Optional: Increase to 350.h if needed
+          child: Padding(
+            padding: EdgeInsets.only(top: 25.0.h),
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(show: false),
+                // Disable all grid lines
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 20,
+                      // Increased from 20 to 40 for better label visibility
+                      getTitlesWidget:
+                          (value, meta) => Text(
+                            value.toInt().toString(),
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurface.withOpacity(0.7),
                             ),
                           ),
-                        );
-                      }
-                    }
-                    return const Text('');
-                  },
-                ),
-              ),
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-            ),
-            borderData: FlBorderData(
-              show: true,
-              border: Border.all(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
-              ),
-            ),
-            minY: 0,
-            maxY: 10,
-            extraLinesData: ExtraLinesData(
-              horizontalLines: [
-                HorizontalLine(
-                  y: 7,
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
-                  strokeWidth: 1,
-                  dashArray: [5, 5],
-                ),
-              ],
-            ),
-            lineTouchData: LineTouchData(
-              touchTooltipData: LineTouchTooltipData(
-                getTooltipItems:
-                    (spots) =>
-                        spots.map((spot) {
-                          final date = sortedSummary[spot.x.toInt()].date;
-                          return LineTooltipItem(
-                            '${DateFormat('MMM dd').format(date!)}\n',
-                            TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                            children: [
-                              TextSpan(
-                                text:
-                                    '${'rating'.tr}: ${spot.y.toStringAsFixed(1)}',
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index >= 0 && index < sortedSummary.length) {
+                          final date = sortedSummary[index].date;
+                          if (date != null) {
+                            return SideTitleWidget(
+                              meta: meta,
+                              child: Text(
+                                DateFormat('MM/yy').format(date),
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.7),
                                 ),
                               ),
-                            ],
-                          );
-                        }).toList(),
+                            );
+                          }
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                // Disable border to avoid artifacts
+                minY: 0,
+                maxY: 10,
+                extraLinesData: const ExtraLinesData(horizontalLines: []),
+                // No extra lines
+                lineTouchData: LineTouchData(
+                  enabled: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipItems:
+                        (spots) =>
+                            spots.map((spot) {
+                              final date = sortedSummary[spot.x.toInt()].date;
+                              return LineTooltipItem(
+                                '${DateFormat('MMM dd').format(date!)}\n',
+                                TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 23.sp,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        '${'rating'.tr}: ${spot.y.toStringAsFixed(1)}',
+                                    style: TextStyle(
+                                      fontSize: 23.sp,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: validSpots,
+                    isCurved: true,
+                    color: Theme.of(context).colorScheme.primary,
+                    barWidth: 5,
+                    // Keeping the thicker line as per your previous request
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.1),
+                    ),
+                    dotData: FlDotData(show: true),
+                    // Show dots for data points
+                    preventCurveOverShooting:
+                        true, // Prevent curve overshooting
+                  ),
+                ],
               ),
             ),
-            lineBarsData: [
-              LineChartBarData(
-                spots: validSpots,
-                isCurved: true,
-                color: Theme.of(context).colorScheme.primary,
-                barWidth: 2,
-                belowBarData: BarAreaData(
-                  show: true,
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                ),
-              ),
-            ],
           ),
         ),
       );
     }
-    return ShimmerLoading(width: double.infinity);
+    return ShimmerLoading(width: double.infinity, height: 300.h);
   }
 
   Widget _buildNationalTeamSection() => SliverPadding(
@@ -373,20 +393,11 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     sliver: SliverToBoxAdapter(
       child: BlocBuilder<NationalTeamStatsBloc, NationalTeamStatsState>(
         builder: (context, state) {
-          if (state is NationalTeamStatsLoading) return ShimmerLoading();
+          if (state is NationalTeamStatsLoading) {
+            return ShimmerLoading(height: 200.h);
+          }
           if (state is NationalTeamStatsError) {
-            return Padding(
-              // Return a RenderBox widget instead of SliverToBoxAdapter
-              padding: EdgeInsets.all(20.w),
-              child: ReusableText(
-                text: '${'error'.tr}: ${state.message}',
-                textSize: 100.sp,
-                textColor: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withOpacity(0.7),
-                textAlign: TextAlign.center,
-              ),
-            );
+            return ErrorCard(message: state.message, onRetry: _refreshData);
           }
           if (state is NationalTeamStatsLoaded) {
             return StatsGrid(
@@ -431,16 +442,19 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     sliver: SliverToBoxAdapter(
       child: BlocBuilder<TransferHistoryBloc, TransferHistoryState>(
         builder: (context, state) {
-          if (state is TransferHistoryLoading) return ShimmerLoading();
-          if (state is TransferHistoryError)
-            return _buildErrorWidget(state.message, context);
+          if (state is TransferHistoryLoading) {
+            return ShimmerLoading(height: 200.h);
+          }
+          if (state is TransferHistoryError) {
+            return ErrorCard(message: state.message, onRetry: _refreshData);
+          }
           if (state is TransferHistoryLoaded) {
             if (state.transfers.isEmpty) {
               return Padding(
                 padding: EdgeInsets.all(20.w),
                 child: ReusableText(
                   text: 'no_transfer_history_available'.tr,
-                  textSize: 100.sp,
+                  textSize: 120.sp,
                   textColor: Theme.of(
                     context,
                   ).colorScheme.onSurface.withOpacity(0.7),
@@ -452,7 +466,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               children: [
                 ReusableText(
                   text: 'transfer_history'.tr,
-                  textSize: 120.sp,
+                  textSize: 140.sp,
                   textColor: Theme.of(context).colorScheme.onSurface,
                   textFontWeight: FontWeight.bold,
                 ),
@@ -482,9 +496,12 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     sliver: SliverToBoxAdapter(
       child: BlocBuilder<MediaBloc, MediaState>(
         builder: (context, state) {
-          if (state is MediaLoading) return ShimmerGridLoading();
-          if (state is MediaError)
-            return _buildErrorWidget(state.message, context);
+          if (state is MediaLoading) {
+            return ShimmerGridLoading();
+          }
+          if (state is MediaError) {
+            return ErrorCard(message: state.message, onRetry: _refreshData);
+          }
           if (state is MediaLoaded) {
             if (state.media.isEmpty) {
               return Padding(
@@ -521,9 +538,48 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                   itemBuilder:
                       (context, index) => MediaThumbnail(
                         media: state.media[index],
-                        onTap:
-                            () =>
-                                _showMediaPreview(context, state.media[index]),
+                        onTap: () async {
+                          if (state.media[index].url == null ||
+                              state.media[index].url!.isEmpty) {
+                            // Show a message if the URL is null or empty
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: ReusableText(
+                                  text: 'invalid_url'.tr,
+                                  textSize: 100.sp,
+                                  textColor:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.surface,
+                              ),
+                            );
+                            return;
+                          }
+                          final uri = Uri.parse(state.media[index].url!);
+                          try {
+                            await launchUrl(
+                              uri,
+                              mode:
+                                  LaunchMode
+                                      .externalApplication, // Open in external browser
+                            );
+                          } catch (e) {
+                            // Handle any unexpected errors
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: ReusableText(
+                                  text: 'an_error_occurred'.tr,
+                                  textSize: 100.sp,
+                                  textColor:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.surface,
+                              ),
+                            );
+                          }
+                        },
                       ),
                 ),
               ],
@@ -534,19 +590,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       ),
     ),
   );
-
-  Widget _buildErrorWidget(String message, BuildContext context) {
-    // Return a RenderBox widget instead of SliverToBoxAdapter
-    return Padding(
-      padding: EdgeInsets.all(20.w),
-      child: ReusableText(
-        text: '${'error'.tr}: $message',
-        textSize: 100.sp,
-        textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
 
   void _showPerformanceInfo(BuildContext context) {
     showDialog(
@@ -614,17 +657,51 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                 if (media.url != null)
                   GestureDetector(
                     onTap: () async {
-                      final uri = Uri.parse(media.url!);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(
-                          uri,
-                          mode: LaunchMode.externalApplication,
-                        );
-                      } else {
+                      if (media.url == null || media.url!.isEmpty) {
+                        // Show a message if the URL is null or empty
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: ReusableText(
-                              text: 'cannot_launch_url'.tr,
+                              text: 'invalid_url'.tr,
+                              textSize: 100.sp,
+                              textColor:
+                                  Theme.of(context).colorScheme.onSurface,
+                            ),
+                            backgroundColor:
+                                Theme.of(context).colorScheme.surface,
+                          ),
+                        );
+                        return;
+                      }
+                      final uri = Uri.parse(media.url!);
+                      try {
+                        await launchUrl(
+                          uri,
+                          mode:
+                              LaunchMode
+                                  .externalApplication, // Open in external browser
+                        );
+                        // } else {
+                        //   // Show a message if the URL cannot be launched
+                        //   ScaffoldMessenger.of(context).showSnackBar(
+                        //     SnackBar(
+                        //       content: ReusableText(
+                        //         text: 'cannot_launch_url'.tr,
+                        //         textSize: 100.sp,
+                        //         textColor:
+                        //             Theme.of(context).colorScheme.onSurface,
+                        //       ),
+                        //       backgroundColor:
+                        //           Theme.of(context).colorScheme.surface,
+                        //     ),
+                        //   );
+                        // }
+                      } catch (e) {
+                        // Handle any unexpected errors
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: ReusableText(
+                              text: 'an_error_occurred'.tr,
                               textSize: 100.sp,
                               textColor:
                                   Theme.of(context).colorScheme.onSurface,
@@ -663,9 +740,68 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   }
 }
 
-// Keep other widgets (AnimatedStatsCard, TransferTimelineItem, StatItem, StatsGrid, MediaThumbnail, ShimmerLoading, ShimmerGridLoading) as they are
-// since they don't seem to be the primary cause of the sliver mismatch.
+// Reusable Error Card Widget
+class ErrorCard extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
 
+  const ErrorCard({super.key, required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 60.sp,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            SizedBox(height: 15.h),
+            ReusableText(
+              text: 'error'.tr,
+              textSize: 120.sp,
+              textColor: Theme.of(context).colorScheme.onSurface,
+              textFontWeight: FontWeight.bold,
+            ),
+            SizedBox(height: 10.h),
+            ReusableText(
+              text: message,
+              textSize: 100.sp,
+              textColor: Theme.of(
+                context,
+              ).colorScheme.onSurface.withOpacity(0.7),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20.h),
+            ElevatedButton(
+              onPressed: onRetry,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: ReusableText(
+                text: 'retry'.tr,
+                textSize: 100.sp,
+                textColor: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Keep other widgets (AnimatedStatsCard, TransferTimelineItem, StatItem, StatsGrid, MediaThumbnail, ShimmerLoading, ShimmerGridLoading) as they are
 class AnimatedStatsCard extends StatelessWidget {
   final PlayerAttributesEntity attributes;
   final ValueNotifier<bool> expanded;
@@ -710,7 +846,7 @@ class AnimatedStatsCard extends StatelessWidget {
                       children: [
                         ReusableText(
                           text: 'attributes_radar'.tr,
-                          textSize: 120.sp,
+                          textSize: 130.sp,
                           textColor: Theme.of(context).colorScheme.onSurface,
                           textFontWeight: FontWeight.bold,
                         ),
@@ -721,13 +857,14 @@ class AnimatedStatsCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    SizedBox(height: 50.h),
                     AnimatedSize(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
                       child:
                           isExpanded
                               ? SizedBox(
-                                height: 250.h,
+                                height: 500.h,
                                 child: RadarChart(
                                   RadarChartData(
                                     radarBackgroundColor: Colors.transparent,
@@ -748,14 +885,15 @@ class AnimatedStatsCard extends StatelessWidget {
                                           Theme.of(
                                             context,
                                           ).colorScheme.onSurface,
-                                      fontSize: 12.sp,
+                                      fontSize: 35.sp,
                                     ),
                                     tickCount: 5,
                                     ticksTextStyle: TextStyle(
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.onSurface.withOpacity(0.7),
-                                      fontSize: 10.sp,
+                                      fontSize: 18.sp,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                     dataSets: [
                                       RadarDataSet(
@@ -819,82 +957,100 @@ class TransferTimelineItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(left: 30.w),
+    return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 20.h),
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 2,
-          ),
-        ),
-      ),
-      child: ListTile(
-        leading: Icon(
-          Icons.swap_horiz,
-          color: Theme.of(context).colorScheme.primary,
-          size: 50.sp,
-        ),
-        title: RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Theme.of(context).colorScheme.onSurface,
+      child: Stack(
+        children: [
+          // Vertical line for the timeline, positioned on the left
+          Positioned(
+            left: 40.w,
+            // Align with the icon's center
+            top: isFirst ? 25.h : 0,
+            // Start from the middle of the icon for the first item
+            bottom: isLast ? 0 : -20.h,
+            // Extend slightly to connect with the next item
+            child: Container(
+              width: 2,
+              color: Theme.of(context).colorScheme.primary,
             ),
-            children: [
-              TextSpan(
-                text: transfer.fromTeam?.name ?? 'unknown_team'.tr,
+          ),
+          // Content of the item
+          ListTile(
+            leading: Icon(
+              Icons.swap_horiz,
+              color: Theme.of(context).colorScheme.primary,
+              size: 50.sp,
+            ),
+            title: RichText(
+              text: TextSpan(
                 style: TextStyle(
-                  color: Theme.of(
+                  fontSize: 80.sp,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                children: [
+                  TextSpan(
+                    text: transfer.fromTeam?.name ?? 'unknown_team'.tr,
+                    style: TextStyle(
+                      fontSize: 40.sp,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.7),
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                  TextSpan(
+                    text: ' → ',
+                    style: TextStyle(
+                      fontSize: 40.sp,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(
+                    text: transfer.toTeam?.name ?? 'unknown_team'.tr,
+                    style: TextStyle(
+                      fontSize: 40.sp,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ReusableText(
+                  text:
+                      transfer.date != null
+                          ? DateFormat('MMM yyyy').format(transfer.date!)
+                          : 'n_a'.tr,
+                  textSize: 90.sp,
+                  textColor: Theme.of(
                     context,
                   ).colorScheme.onSurface.withOpacity(0.7),
-                  decoration: TextDecoration.lineThrough,
                 ),
-              ),
-              const TextSpan(text: ' → '),
-              TextSpan(
-                text: transfer.toTeam?.name ?? 'unknown_team'.tr,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ReusableText(
-              text:
-                  transfer.date != null
-                      ? DateFormat('MMM yyyy').format(transfer.date!)
-                      : 'n_a'.tr,
-              textSize: 90.sp,
-              textColor: Theme.of(
-                context,
-              ).colorScheme.onSurface.withOpacity(0.7),
-            ),
-            if (transfer.fee != null)
-              Padding(
-                padding: EdgeInsets.only(top: 10.h),
-                child: Chip(
-                  label: ReusableText(
-                    text: NumberFormat.compactCurrency(
-                      symbol: transfer.currency ?? '',
-                    ).format(transfer.fee),
-                    textSize: 90.sp,
-                    textColor: Theme.of(context).colorScheme.onSurface,
+                if (transfer.fee != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: 10.h),
+                    child: Chip(
+                      label: ReusableText(
+                        text: NumberFormat.compactCurrency(
+                          symbol: transfer.currency ?? '',
+                        ).format(transfer.fee),
+                        textSize: 60.sp,
+                        textColor: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.2),
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ),
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withOpacity(0.2),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-          ],
-        ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1054,8 +1210,8 @@ class ShimmerGridLoading extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 3,
-      crossAxisSpacing: 15,
-      mainAxisSpacing: 15,
+      crossAxisSpacing: 15.w,
+      mainAxisSpacing: 15.h,
       childAspectRatio: 1,
       children: List.generate(
         6,

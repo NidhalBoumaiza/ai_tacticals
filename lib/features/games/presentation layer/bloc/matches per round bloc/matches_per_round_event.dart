@@ -24,3 +24,16 @@ class FetchMatchesPerRound extends MatchesPerRoundEvent {
   @override
   List<Object> get props => [leagueId, seasonId, round, isRefresh];
 }
+
+class FetchCurrentAndNextRounds extends MatchesPerRoundEvent {
+  final int leagueId;
+  final int seasonId;
+
+  const FetchCurrentAndNextRounds({
+    required this.leagueId,
+    required this.seasonId,
+  });
+
+  @override
+  List<Object> get props => [leagueId, seasonId];
+}

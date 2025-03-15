@@ -248,6 +248,8 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                 matchStatus: status,
                                 homeScore: match.homeScore!.current!,
                                 awayScore: match.awayScore!.current!,
+                                seasonId: widget.seasonId,
+                                uniqueTournamentId: widget.uniqueTournamentId,
                               ),
                             );
                           },
@@ -309,24 +311,28 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       SizedBox(width: 30.w),
-                                      CountryFlagWidget(
-                                        flag: match.homeTeam!.id.toString(),
-                                        height: 50.w,
-                                        width: 50.w,
-                                        isTeamFlag:
-                                            true, // Specify that this is a team flag
-                                      ),
-                                      SizedBox(width: 10.w),
-                                      ReusableText(
-                                        text:
-                                            match.homeTeam?.shortName ??
-                                            "Unknown",
-                                        textSize: 100.sp,
-                                        textColor:
-                                            Theme.of(
-                                              context,
-                                            ).textTheme.bodyLarge!.color!,
-                                        textFontWeight: FontWeight.w600,
+                                      Row(
+                                        children: [
+                                          CountryFlagWidget(
+                                            flag: match.homeTeam!.id.toString(),
+                                            height: 50.w,
+                                            width: 50.w,
+                                            isTeamFlag:
+                                                true, // Specify that this is a team flag
+                                          ),
+                                          SizedBox(width: 10.w),
+                                          ReusableText(
+                                            text:
+                                                match.homeTeam?.shortName ??
+                                                "Unknown",
+                                            textSize: 100.sp,
+                                            textColor:
+                                                Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge!.color!,
+                                            textFontWeight: FontWeight.w600,
+                                          ),
+                                        ],
                                       ),
                                       SizedBox(width: 20.w),
                                       ReusableText(
@@ -340,27 +346,41 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                         textFontWeight: FontWeight.w600,
                                       ),
                                       SizedBox(width: 20.w),
-                                      SizedBox(
-                                        width: 200.w,
-                                        child: ReusableText(
-                                          text:
-                                              match.awayTeam?.shortName ??
-                                              "Unknown",
-                                          textSize: 100.sp,
-                                          textColor:
-                                              Theme.of(
-                                                context,
-                                              ).textTheme.bodyLarge!.color!,
-                                          textFontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      SizedBox(width: 10.w),
-                                      CountryFlagWidget(
-                                        flag: match.awayTeam!.id.toString(),
-                                        height: 50.w,
-                                        width: 50.w,
-                                        isTeamFlag:
-                                            true, // Specify that this is a team flag
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 240.w,
+                                            child: Row(
+                                              children: [
+                                                ReusableText(
+                                                  text:
+                                                      match
+                                                          .awayTeam
+                                                          ?.shortName ??
+                                                      "Unknown",
+                                                  textSize: 100.sp,
+                                                  textColor:
+                                                      Theme.of(context)
+                                                          .textTheme
+                                                          .bodyLarge!
+                                                          .color!,
+                                                  textFontWeight:
+                                                      FontWeight.w600,
+                                                ),
+                                                SizedBox(width: 10.w),
+                                                CountryFlagWidget(
+                                                  flag:
+                                                      match.awayTeam!.id
+                                                          .toString(),
+                                                  height: 50.w,
+                                                  width: 50.w,
+                                                  isTeamFlag:
+                                                      true, // Specify that this is a team flag
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),

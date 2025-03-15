@@ -188,6 +188,8 @@ class AppTranslations extends Translations {
       'favorites': "Favoris",
       'profile': "Profil",
       'select_language': "Choisir la langue",
+      'current_round': "Tour actuel",
+      'next_round': "Prochain tour",
     },
     'ar_AR': {
       'title': 'عرض Flutter',
@@ -356,6 +358,8 @@ class AppTranslations extends Translations {
       'favorites': "المفضلة",
       'profile': "الملف الشخصي",
       'select_language': "اختر اللغة",
+      'current_round': "الجولة الحالية",
+      'next_round': "الجولة القادمة",
     },
     'en_US': {
       'title': 'Flutter Demo',
@@ -527,6 +531,8 @@ class AppTranslations extends Translations {
       'favorites': "Favorites",
       'profile': "Profile",
       'select_language': "Select Language",
+      'current_round': "Current Round",
+      'next_round': "Next Round",
     },
   };
 }

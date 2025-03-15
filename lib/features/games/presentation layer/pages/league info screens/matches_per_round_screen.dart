@@ -27,8 +27,6 @@ class MatchesPerRoundScreen extends StatefulWidget {
 }
 
 class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
-  final ScrollController _scrollController = ScrollController();
-  int _currentRound = 10; // Start with round 10
   late final MatchesPerRoundBloc _matchesBloc;
 
   @override
@@ -36,7 +34,6 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
     super.initState();
     _matchesBloc = context.read<MatchesPerRoundBloc>();
     _initializeData();
-    _scrollController.addListener(_onScroll);
   }
 
   @override
@@ -44,50 +41,17 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.leagueId != widget.leagueId ||
         oldWidget.seasonId != widget.seasonId) {
-      _currentRound = 10; // Reset to initial round on league/season change
       _initializeData();
     }
   }
 
   void _initializeData() {
-    if (!_matchesBloc.isRoundCached(
-      widget.leagueId,
-      widget.seasonId,
-      _currentRound,
-    )) {
-      _matchesBloc.add(
-        FetchMatchesPerRound(
-          leagueId: widget.leagueId,
-          seasonId: widget.seasonId,
-          round: _currentRound,
-        ),
-      );
-    }
-  }
-
-  void _onScroll() {
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    if (currentScroll >= maxScroll - 200.h &&
-        _matchesBloc.state is MatchesPerRoundLoaded) {
-      final currentState = _matchesBloc.state as MatchesPerRoundLoaded;
-      if (!currentState.isLoadingMore) {
-        _currentRound++;
-        if (!_matchesBloc.isRoundCached(
-          widget.leagueId,
-          widget.seasonId,
-          _currentRound,
-        )) {
-          _matchesBloc.add(
-            FetchMatchesPerRound(
-              leagueId: widget.leagueId,
-              seasonId: widget.seasonId,
-              round: _currentRound,
-            ),
-          );
-        }
-      }
-    }
+    _matchesBloc.add(
+      FetchCurrentAndNextRounds(
+        leagueId: widget.leagueId,
+        seasonId: widget.seasonId,
+      ),
+    );
   }
 
   String _getMatchStatus(MatchEventEntity match) {
@@ -108,19 +72,11 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
   }
 
   @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          Theme.of(context).scaffoldBackgroundColor, // Theme-based background
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: BlocBuilder<MatchesPerRoundBloc, MatchesPerRoundState>(
         builder: (context, state) {
-          // Check cache first and initialize with cached data if available
           final cachedMatches = _matchesBloc.getCachedMatches(
             widget.leagueId,
             widget.seasonId,
@@ -128,18 +84,55 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
           if (state is MatchesPerRoundInitial &&
               cachedMatches != null &&
               cachedMatches.isNotEmpty) {
-            return _buildMatchesContent(cachedMatches);
+            int? currentRound;
+            int? nextRound;
+            final currentTimestamp =
+                DateTime.now().millisecondsSinceEpoch ~/ 1000;
+            for (int round = 1; round <= cachedMatches.keys.length; round++) {
+              if (cachedMatches.containsKey(round)) {
+                final matches = cachedMatches[round]!;
+                if (matches.isNotEmpty) {
+                  bool allUnplayed = matches.every(
+                    (match) =>
+                        match.startTimestamp != null &&
+                        match.startTimestamp! > currentTimestamp &&
+                        (match.homeScore?.current == null ||
+                            match.awayScore?.current == null) &&
+                        match.status?.type != "finished",
+                  );
+                  if (allUnplayed) {
+                    nextRound = round;
+                    currentRound = round > 1 ? round - 1 : null;
+                    break;
+                  }
+                }
+              }
+            }
+            if (currentRound != null && nextRound != null) {
+              final matchesToDisplay = {
+                currentRound: cachedMatches[currentRound] ?? [],
+                nextRound: cachedMatches[nextRound] ?? [],
+              };
+              return _buildMatchesContent(
+                matchesToDisplay,
+                currentRound,
+                nextRound,
+              );
+            }
           }
 
           if (state is MatchesPerRoundLoading) {
             return Center(
               child: CircularProgressIndicator(
-                color:
-                    Theme.of(context).colorScheme.primary, // Theme-based color
+                color: Theme.of(context).colorScheme.primary,
               ),
             );
           } else if (state is MatchesPerRoundLoaded) {
-            return _buildMatchesContent(state.matches);
+            return _buildMatchesContent(
+              state.matches,
+              state.currentRound,
+              state.nextRound,
+            );
           } else if (state is MatchesPerRoundError) {
             return Center(child: Image.asset("assets/images/Empty.png"));
           }
@@ -149,225 +142,216 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
     );
   }
 
-  Widget _buildMatchesContent(Map<int, List<MatchEventEntity>> matchesByRound) {
+  Widget _buildMatchesContent(
+    Map<int, List<MatchEventEntity>> matchesByRound,
+    int currentRound,
+    int nextRound,
+  ) {
     if (matchesByRound.isEmpty) {
       return Center(
         child: ReusableText(
           text: 'no_matches_available_generic'.tr,
           textSize: 100.sp,
-          textColor:
-              Theme.of(
-                context,
-              ).textTheme.bodyLarge!.color!, // Theme-based color
+          textColor: Theme.of(context).textTheme.bodyLarge!.color!,
           textFontWeight: FontWeight.w600,
         ),
       );
     }
 
-    final sortedRounds = matchesByRound.keys.toList()..sort();
+    final roundsToDisplay = [currentRound, nextRound];
 
     return SingleChildScrollView(
-      controller: _scrollController,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...sortedRounds.map((round) {
-              final matches = matchesByRound[round]!;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      vertical: 10.h,
-                      horizontal: 15.w,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(
-                            context,
-                          ).colorScheme.surface, // Theme-based surface
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(12.r),
+          children:
+              roundsToDisplay.map((round) {
+                final matches = matchesByRound[round] ?? [];
+                if (matches.isEmpty) return const SizedBox.shrink();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: 10.h,
+                        horizontal: 15.w,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(12.r),
+                        ),
+                      ),
+                      child: ReusableText(
+                        text:
+                            round == currentRound
+                                ? 'current_round'.tr + ' - Round $currentRound'
+                                : 'next_round'.tr + ' - Round $nextRound',
+                        textSize: 110.sp,
+                        textColor:
+                            Theme.of(context).textTheme.bodyLarge!.color!,
+                        textFontWeight: FontWeight.w700,
                       ),
                     ),
-                    child: ReusableText(
-                      text: 'round'.tr.replaceAll('{number}', round.toString()),
-                      textSize: 110.sp,
-                      textColor:
-                          Theme.of(
-                            context,
-                          ).textTheme.bodyLarge!.color!, // Theme-based color
-                      textFontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: matches.length,
-                    itemBuilder: (context, index) {
-                      final match = matches[index];
-                      final date =
-                          match.startTimestamp != null
-                              ? DateTime.fromMillisecondsSinceEpoch(
-                                match.startTimestamp! * 1000,
-                              )
-                              : null;
-                      final status = _getMatchStatus(match);
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: matches.length,
+                      itemBuilder: (context, index) {
+                        final match = matches[index];
+                        final date =
+                            match.startTimestamp != null
+                                ? DateTime.fromMillisecondsSinceEpoch(
+                                  match.startTimestamp! * 1000,
+                                )
+                                : null;
+                        final status = _getMatchStatus(match);
 
-                      return GestureDetector(
-                        onTap: () {
-                          navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
-                            context,
-                            MatchDetailsSqueletteScreen(
-                              matchId: match.id!,
-                              homeTeamId: match.homeTeam!.id.toString(),
-                              awayTeamId: match.awayTeam!.id.toString(),
-                              homeShortName: match.homeTeam!.shortName!,
-                              awayShortName: match.awayTeam!.shortName!,
-                              leagueName: widget.leagueName,
-                              matchDate: date!,
-                              matchStatus: status,
-                              homeScore: match.homeScore!.current!,
-                              awayScore: match.awayScore!.current!,
+                        return GestureDetector(
+                          onTap: () {
+                            navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                              context,
+                              MatchDetailsSqueletteScreen(
+                                matchId: match.id!,
+                                homeTeamId: match.homeTeam!.id.toString(),
+                                awayTeamId: match.awayTeam!.id.toString(),
+                                homeShortName: match.homeTeam!.shortName!,
+                                awayShortName: match.awayTeam!.shortName!,
+                                leagueName: widget.leagueName,
+                                matchDate: date!,
+                                matchStatus: status,
+                                homeScore: match.homeScore?.current ?? 0,
+                                awayScore: match.awayScore?.current ?? 0,
+                                seasonId: widget.seasonId,
+                                uniqueTournamentId: widget.leagueId,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(20.w),
+                            decoration: BoxDecoration(
+                              color:
+                                  Theme.of(context).colorScheme.surfaceVariant,
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(12.r),
+                              ),
                             ),
-                          );
-                        },
-                        child: Container(
-                          padding: EdgeInsets.all(20.w),
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(context)
-                                    .colorScheme
-                                    .surfaceVariant, // Theme-based variant
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(12.r),
-                            ),
-                          ),
-                          margin: EdgeInsets.only(bottom: 12.h),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              SizedBox(
-                                width: 180.w,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    ReusableText(
-                                      text:
-                                          date != null
-                                              ? "${date.day}.${date.month}.${date.year}"
-                                              : "N/A",
-                                      textSize: 90.sp,
-                                      textColor:
-                                          Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium!
-                                              .color!, // Theme-based color
-                                    ),
-                                    if (status.isNotEmpty)
+                            margin: EdgeInsets.only(bottom: 12.h),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                SizedBox(
+                                  width: 180.w,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
                                       ReusableText(
-                                        text: status,
-                                        textSize: 80.sp,
-                                        textColor:
-                                            Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant, // Theme-based color
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: 20.w),
-                              Container(
-                                width: 2.w,
-                                height: 80.h,
-                                color: Theme.of(context).colorScheme.onSurface
-                                    .withOpacity(0.5), // Theme-based divider
-                              ),
-                              Expanded(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(width: 30.w),
-                                    CountryFlagWidget(
-                                      flag: match.homeTeam!.id.toString(),
-                                      isTeamFlag:
-                                          true, // Specify that this is a team flag
-                                    ),
-                                    SizedBox(width: 10.w),
-                                    ReusableText(
-                                      text:
-                                          match.homeTeam?.shortName ??
-                                          "Unknown",
-                                      textSize: 100.sp,
-                                      textColor:
-                                          Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge!
-                                              .color!, // Theme-based color
-                                      textFontWeight: FontWeight.w600,
-                                    ),
-                                    SizedBox(width: 20.w),
-                                    ReusableText(
-                                      text:
-                                          '${match.homeScore?.current ?? "-"} - ${match.awayScore?.current ?? "-"}',
-                                      textSize: 100.sp,
-                                      textColor:
-                                          Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge!
-                                              .color!, // Theme-based color
-                                      textFontWeight: FontWeight.w600,
-                                    ),
-                                    SizedBox(width: 20.w),
-                                    SizedBox(
-                                      width: 200.w,
-                                      child: ReusableText(
                                         text:
-                                            match.awayTeam?.shortName ??
-                                            "Unknown",
+                                            date != null
+                                                ? "${date.day}.${date.month}.${date.year}"
+                                                : "N/A",
+                                        textSize: 90.sp,
+                                        textColor:
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium!.color!,
+                                      ),
+                                      if (status.isNotEmpty)
+                                        ReusableText(
+                                          text: status,
+                                          textSize: 80.sp,
+                                          textColor:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: 20.w),
+                                Container(
+                                  width: 2.w,
+                                  height: 80.h,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.5),
+                                ),
+                                Expanded(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: [
+                                      SizedBox(width: 30.w),
+                                      Row(
+                                        children: [
+                                          CountryFlagWidget(
+                                            flag: match.homeTeam!.id.toString(),
+                                            isTeamFlag: true,
+                                          ),
+                                          SizedBox(width: 10.w),
+                                          ReusableText(
+                                            text:
+                                                match.homeTeam?.shortName ??
+                                                "Unknown",
+                                            textSize: 100.sp,
+                                            textColor:
+                                                Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge!.color!,
+                                            textFontWeight: FontWeight.w600,
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(width: 20.w),
+                                      ReusableText(
+                                        text:
+                                            '${match.homeScore?.current ?? " VS "}${match.homeScore?.current != null ? " - " : ""}${match.awayScore?.current ?? ""}',
                                         textSize: 100.sp,
                                         textColor:
-                                            Theme.of(context)
-                                                .textTheme
-                                                .bodyLarge!
-                                                .color!, // Theme-based color
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.bodyLarge!.color!,
                                         textFontWeight: FontWeight.w600,
                                       ),
-                                    ),
-                                    SizedBox(width: 10.w),
-                                    CountryFlagWidget(
-                                      flag: match.awayTeam!.id.toString(),
-                                      isTeamFlag:
-                                          true, // Specify that this is a team flag
-                                    ),
-                                  ],
+                                      SizedBox(width: 20.w),
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 200.w,
+                                            child: ReusableText(
+                                              text:
+                                                  match.awayTeam?.shortName ??
+                                                  "Unknown",
+                                              textSize: 100.sp,
+                                              textColor:
+                                                  Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyLarge!.color!,
+                                              textFontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          SizedBox(width: 10.w),
+                                          CountryFlagWidget(
+                                            flag: match.awayTeam!.id.toString(),
+                                            isTeamFlag: true,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              );
-            }).toList(),
-            if (_matchesBloc.state is MatchesPerRoundLoaded &&
-                (_matchesBloc.state as MatchesPerRoundLoaded).isLoadingMore)
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color:
-                        Theme.of(
-                          context,
-                        ).colorScheme.primary, // Theme-based color
-                  ),
-                ),
-              ),
-          ],
+                        );
+                      },
+                    ),
+                    SizedBox(height: 20.h),
+                  ],
+                );
+              }).toList(),
         ),
       ),
     );
