@@ -20,7 +20,8 @@ class AppThemes {
       // Text/icons on primary color
       onSecondary: Colors.white,
       // Text/icons on secondary color
-      onSurface: darkGray,
+      // Modify it if its no good to darkGray
+      onSurface: Colors.white,
       // Text/icons on surfaces (dark gray for contrast)
       background: Colors.grey[50]!,
       // Matches scaffold background

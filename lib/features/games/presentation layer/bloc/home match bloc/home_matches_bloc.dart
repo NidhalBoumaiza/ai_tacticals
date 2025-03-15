@@ -8,7 +8,6 @@ import '../../../domain layer/entities/matches_entities.dart';
 import '../../../domain layer/usecases/get_home_matches_use_case.dart';
 
 part 'home_matches_event.dart';
-
 part 'home_matches_state.dart';
 
 class HomeMatchesBloc extends Bloc<HomeMatchesEvent, HomeMatchesState> {
@@ -19,6 +18,21 @@ class HomeMatchesBloc extends Bloc<HomeMatchesEvent, HomeMatchesState> {
     : super(HomeMatchesInitial()) {
     on<FetchHomeMatches>(_onFetchHomeMatches);
     on<FetchLiveMatchUpdates>(_onFetchLiveMatchUpdates);
+  }
+
+  List<MatchEventEntity> _deduplicateMatches(List<MatchEventEntity> matches) {
+    final seenIds = <String>{};
+    final deduplicated =
+        matches.where((match) {
+          final compositeId =
+              '${match.id}-${match.homeTeam?.id}-${match.awayTeam?.id}-${match.startTimestamp}';
+          final added = seenIds.add(compositeId);
+          if (!added) {
+            print('Duplicate match in bloc: $compositeId');
+          }
+          return added;
+        }).toList();
+    return deduplicated;
   }
 
   Future<void> _onFetchHomeMatches(
@@ -41,8 +55,31 @@ class HomeMatchesBloc extends Bloc<HomeMatchesEvent, HomeMatchesState> {
         emit(HomeMatchesError(message: errorMessage));
       },
       (matches) {
-        _matchesCache[cacheKey] = matches;
-        emit(HomeMatchesLoaded(matches: matches));
+        // Deduplicate matches before caching
+        final allMatches = <MatchEventEntity>[];
+        matches.tournamentTeamEvents?.forEach((teamId, matchList) {
+          allMatches.addAll(matchList);
+        });
+        final deduplicatedMatches = _deduplicateMatches(allMatches);
+
+        // Rebuild tournamentTeamEvents with deduplicated matches
+        final deduplicatedEvents = <String, List<MatchEventEntity>>{};
+        for (var match in deduplicatedMatches) {
+          final homeTeamId = match.homeTeam?.id.toString();
+          final awayTeamId = match.awayTeam?.id.toString();
+          if (homeTeamId != null) {
+            deduplicatedEvents.putIfAbsent(homeTeamId, () => []).add(match);
+          }
+          if (awayTeamId != null && homeTeamId != awayTeamId) {
+            deduplicatedEvents.putIfAbsent(awayTeamId, () => []).add(match);
+          }
+        }
+
+        final deduplicatedEntity = MatchEventsPerTeamEntity(
+          tournamentTeamEvents: deduplicatedEvents,
+        );
+        _matchesCache[cacheKey] = deduplicatedEntity;
+        emit(HomeMatchesLoaded(matches: deduplicatedEntity));
       },
     );
   }
@@ -59,8 +96,31 @@ class HomeMatchesBloc extends Bloc<HomeMatchesEvent, HomeMatchesState> {
         // Keep current state if live update fails
       },
       (matches) {
-        _matchesCache[cacheKey] = matches;
-        emit(HomeMatchesLoaded(matches: matches));
+        // Deduplicate matches before caching
+        final allMatches = <MatchEventEntity>[];
+        matches.tournamentTeamEvents?.forEach((teamId, matchList) {
+          allMatches.addAll(matchList);
+        });
+        final deduplicatedMatches = _deduplicateMatches(allMatches);
+
+        // Rebuild tournamentTeamEvents with deduplicated matches
+        final deduplicatedEvents = <String, List<MatchEventEntity>>{};
+        for (var match in deduplicatedMatches) {
+          final homeTeamId = match.homeTeam?.id.toString();
+          final awayTeamId = match.awayTeam?.id.toString();
+          if (homeTeamId != null) {
+            deduplicatedEvents.putIfAbsent(homeTeamId, () => []).add(match);
+          }
+          if (awayTeamId != null && homeTeamId != awayTeamId) {
+            deduplicatedEvents.putIfAbsent(awayTeamId, () => []).add(match);
+          }
+        }
+
+        final deduplicatedEntity = MatchEventsPerTeamEntity(
+          tournamentTeamEvents: deduplicatedEvents,
+        );
+        _matchesCache[cacheKey] = deduplicatedEntity;
+        emit(HomeMatchesLoaded(matches: deduplicatedEntity));
       },
     );
   }

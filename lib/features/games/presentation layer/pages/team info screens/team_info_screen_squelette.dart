@@ -1,3 +1,4 @@
+import 'package:analysis_ai/core/utils/cache_manager.dart'; // Add this import for customCacheManager
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/pages/team%20info%20screens/squad_screen.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/pages/team%20info%20screens/statics_screen.dart';
@@ -44,7 +45,10 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor:
+          Theme.of(
+            context,
+          ).scaffoldBackgroundColor, // Light: grey[50], Dark: 0xFF37383c
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
@@ -53,110 +57,133 @@ class _LeagueInfosScreenState extends State<TeamInfoScreenSquelette>
               SliverAppBar(
                 pinned: true,
                 floating: false,
-                snap: false,
-                expandedHeight: 360.h,
-                backgroundColor: Theme.of(context).colorScheme.surface,
+                expandedHeight: 300.h,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                // 0xFFfbc02d
+                elevation: 2,
+                shadowColor: Theme.of(context).shadowColor.withOpacity(0.3),
                 leading: IconButton(
                   icon: Icon(
                     Icons.arrow_back_ios,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color:
+                        Theme.of(context)
+                            .colorScheme
+                            .onPrimary, // White or contrasting color on yellow
                     size: 50.sp,
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    color: Theme.of(context).colorScheme.surface,
-                    padding: EdgeInsets.only(left: 0, top: 70.h),
+                  background: Padding(
+                    padding: EdgeInsets.only(top: 100.h, left: 30.w),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            SizedBox(width: 120.w),
-                            CachedNetworkImage(
+                        Container(
+                          width: 120.w,
+                          height: 120.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Theme.of(context).colorScheme.surfaceVariant,
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary.withOpacity(0.7),
+                              width: 2,
+                            ), // White border on yellow
+                          ),
+                          child: ClipOval(
+                            child: CachedNetworkImage(
                               imageUrl:
                                   "https://img.sofascore.com/api/v1/team/${widget.teamId}/image/small",
+                              cacheManager: customCacheManager,
+                              // Use customCacheManager for consistent caching
+                              fit: BoxFit.cover,
+                              width: 120.w,
+                              height: 120.w,
+                              cacheKey: 'team-${widget.teamId}-small',
+                              // Unique cache key (e.g., 'team-123-small')
                               placeholder:
                                   (context, url) => Shimmer.fromColors(
                                     baseColor:
-                                        Theme.of(context).colorScheme.surface,
-                                    highlightColor:
-                                        Theme.of(
-                                          context,
-                                        ).colorScheme.surfaceVariant,
+                                        Theme.of(context).colorScheme.primary,
+                                    highlightColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withOpacity(0.7),
                                     child: Container(
-                                      width: 45,
-                                      height: 45,
+                                      width: 120.w,
+                                      height: 120.w,
                                       color:
-                                          Theme.of(context).colorScheme.surface,
+                                          Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                               errorWidget:
                                   (context, url, error) => Icon(
                                     Icons.error,
-                                    color: Theme.of(context).colorScheme.error,
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
+                                    size: 60.sp,
                                   ),
-                              fit: BoxFit.cover,
-                              width: 45,
-                              height: 45,
-                              cacheKey: widget.teamId.toString(),
+                              fadeInDuration: const Duration(milliseconds: 300),
+                              // Smooth fade in
+                              fadeOutDuration: const Duration(
+                                milliseconds: 300,
+                              ), // Smooth fade out
                             ),
-                            SizedBox(width: 20.w),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ReusableText(
-                                      text: widget.teamName,
-                                      textSize: 120.sp,
-                                      textFontWeight: FontWeight.w600,
-                                      textColor:
-                                          Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
+                          ),
+                        ),
+                        SizedBox(width: 30.w),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ReusableText(
+                                text: widget.teamName,
+                                textSize: 130.sp,
+                                textFontWeight: FontWeight.bold,
+                                textColor:
+                                    Theme.of(context)
+                                        .colorScheme
+                                        .onPrimary, // White or contrasting color on yellow
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(0),
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: false,
-                    indicatorColor: Theme.of(context).colorScheme.primary,
-                    indicatorPadding: EdgeInsets.zero,
-                    labelPadding: EdgeInsets.symmetric(horizontal: 0.w),
-                    tabs: [
-                      Tab(
-                        iconMargin: EdgeInsets.zero,
-                        child: ReusableText(
-                          text: 'squad'.tr,
-                          textSize: 120.sp,
-                          textFontWeight: FontWeight.w600,
-                          textColor: Theme.of(context).colorScheme.onSurface,
-                        ),
+                bottom: TabBar(
+                  controller: _tabController,
+                  isScrollable: false,
+                  indicatorColor: Theme.of(context).colorScheme.onPrimary,
+                  // White indicator on yellow
+                  indicatorWeight: 3,
+                  labelPadding: EdgeInsets.symmetric(horizontal: 20.w),
+                  tabs: [
+                    Tab(
+                      child: ReusableText(
+                        text: 'squad'.tr,
+                        textSize: 110.sp,
+                        textFontWeight: FontWeight.bold,
+                        textColor:
+                            Theme.of(
+                              context,
+                            ).colorScheme.onPrimary, // White on yellow
                       ),
-                      Tab(
-                        child: ReusableText(
-                          text: 'statics'.tr,
-                          textSize: 120.sp,
-                          textFontWeight: FontWeight.w600,
-                          textColor: Theme.of(context).colorScheme.onSurface,
-                        ),
+                    ),
+                    Tab(
+                      child: ReusableText(
+                        text: 'statics'.tr,
+                        textSize: 110.sp,
+                        textFontWeight: FontWeight.bold,
+                        textColor:
+                            Theme.of(
+                              context,
+                            ).colorScheme.onPrimary, // White on yellow
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ];

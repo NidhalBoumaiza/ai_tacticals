@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:analysis_ai/core/app_colors.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../../core/cubit/theme cubit/theme_cubit.dart';
@@ -67,11 +69,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
     super.initState();
     _selectedDate = DateTime.now();
     _focusedDay = _selectedDate;
-    _calendarFormat = CalendarFormat.month;
+    _calendarFormat = CalendarFormat.week; // Start with week view
     _scrollController = ScrollController();
     _fetchMatchesForDate(_selectedDate, isInitial: true);
 
-    _liveUpdateTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+    _liveUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted) _fetchLiveUpdates(_selectedDate);
     });
 
@@ -137,6 +139,24 @@ class _MatchesScreenState extends State<MatchesScreen> {
     }
     if (statusType == 'notstarted' || statusType == 'scheduled') return 'NS';
     return '';
+  }
+
+  List<MatchEventEntity> _deduplicateMatches(List<MatchEventEntity> matches) {
+    final seenIds = <String>{};
+    final deduplicated =
+        matches.where((match) {
+          final compositeId =
+              '${match.id}-${match.homeTeam?.id}-${match.awayTeam?.id}-${match.startTimestamp}';
+          final added = seenIds.add(compositeId);
+          if (!added) {
+            print('Duplicate match detected: $compositeId');
+          }
+          return added;
+        }).toList();
+    print(
+      'Total matches: ${matches.length}, Deduplicated: ${deduplicated.length}',
+    );
+    return deduplicated;
   }
 
   Map<String, List<MatchEventEntity>> _groupMatchesByLeague(
@@ -269,7 +289,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   imageUrl:
                       "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small",
                   cacheManager: _cacheManager,
-                  fadeInDuration: Duration(milliseconds: 300),
+                  fadeInDuration: const Duration(milliseconds: 300),
                   placeholder:
                       (context, url) => Container(
                         width: 50.w,
@@ -345,7 +365,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   imageUrl:
                       "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small",
                   cacheManager: _cacheManager,
-                  fadeInDuration: Duration(milliseconds: 300),
+                  fadeInDuration: const Duration(milliseconds: 300),
                   placeholder:
                       (context, url) => Container(
                         width: 50.w,
@@ -370,7 +390,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
   }
 
   List<Widget> _buildMatchSection(List<MatchEventEntity> matches) {
-    final groupedMatches = _groupMatchesByLeague(matches);
+    final deduplicatedMatches = _deduplicateMatches(matches);
+    final groupedMatches = _groupMatchesByLeague(deduplicatedMatches);
     final priorityLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
     final otherLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
 
@@ -442,12 +463,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
         preferredSize: Size.fromHeight(120.h),
         child: AppBar(
           backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-          // 0xFFfbc02d
           elevation: 0,
           title: ReusableText(
             text: 'matches'.tr,
             textSize: 130.sp,
-            textColor: Theme.of(context).appBarTheme.foregroundColor, // Black
+            textColor: Theme.of(context).appBarTheme.foregroundColor,
             textFontWeight: FontWeight.w800,
           ),
           centerTitle: true,
@@ -500,10 +520,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
           ],
         ),
       ),
-      backgroundColor:
-          Theme.of(
-            context,
-          ).scaffoldBackgroundColor, // Light: grey[50], Dark: 0xFF37383c
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           BlocBuilder<HomeMatchesBloc, HomeMatchesState>(
@@ -548,12 +565,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 matchesPerTeam.forEach(
                   (teamId, matchList) => allMatches.addAll(matchList),
                 );
+                final deduplicatedMatches = _deduplicateMatches(allMatches);
                 final matchesToDisplay =
                     _showLiveMatchesOnly
-                        ? allMatches
+                        ? deduplicatedMatches
                             .where((match) => match.isLive ?? false)
                             .toList()
-                        : allMatches;
+                        : deduplicatedMatches;
 
                 if (matchesToDisplay.isEmpty) {
                   return Center(
@@ -573,7 +591,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   controller: _scrollController,
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(30.w, 150.h, 30.w, 60.h),
-                    // Adjusted for app bar
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: _buildMatchSection(matchesToDisplay),
@@ -581,83 +598,111 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   ),
                 );
               }
-              return Center(
-                child: ReusableText(
-                  text: 'waiting_for_matches'.tr,
-                  textSize: 100.sp,
-                  textColor: Theme.of(context).colorScheme.onSurface,
+              return Container(
+                height: 100.w,
+                width: 100.w,
+                decoration: BoxDecoration(
+                  color: AppColor.primaryColor,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Center(
+                  child: Lottie.asset(
+                    'assets/lottie/animationBallLoading.json',
+                    height: 150.h,
+                  ),
                 ),
               );
             },
           ),
           if (_isCalendarVisible)
-            Positioned(
-              top: 120.h, // Position below app bar
-              left: 30.w,
-              right: 30.w,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(12.r),
-                color: Theme.of(context).colorScheme.surface,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 20.w,
-                    vertical: 10.h,
-                  ),
-                  child: TableCalendar(
-                    firstDay: DateTime(2000),
-                    lastDay: DateTime(2050),
-                    focusedDay: _focusedDay,
-                    calendarFormat: _calendarFormat,
-                    selectedDayPredicate:
-                        (day) => isSameDay(day, _selectedDate),
-                    onDaySelected: (selectedDay, focusedDay) {
-                      setState(() {
-                        _selectedDate = selectedDay;
-                        _focusedDay = focusedDay;
-                        _isCalendarVisible = false;
-                      });
-                      _fetchMatchesForDate(selectedDay, isInitial: true);
-                    },
-                    onFormatChanged:
-                        (format) => setState(() => _calendarFormat = format),
-                    onPageChanged:
-                        (focusedDay) =>
-                            setState(() => _focusedDay = focusedDay),
-                    locale: Get.locale?.toString(),
-                    calendarStyle: CalendarStyle(
-                      defaultTextStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      weekendTextStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      selectedDecoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      todayDecoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withOpacity(0.5),
-                        shape: BoxShape.circle,
-                      ),
+            Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: EdgeInsets.only(top: 130.h, left: 30.w, right: 30.w),
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12.r),
+                  color: Theme.of(context).colorScheme.surface,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: 900.h,
+                      maxWidth: MediaQuery.of(context).size.width - 60.w,
                     ),
-                    headerStyle: HeaderStyle(
-                      titleTextStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 100.sp,
-                      ),
-                      formatButtonTextStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      leftChevronIcon: Icon(
-                        Icons.chevron_left,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                      rightChevronIcon: Icon(
-                        Icons.chevron_right,
-                        color: Theme.of(context).colorScheme.onSurface,
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 5.h,
+                        ),
+                        child: TableCalendar(
+                          firstDay: DateTime(2000),
+                          lastDay: DateTime(2050),
+                          focusedDay: _focusedDay,
+                          calendarFormat: _calendarFormat,
+                          selectedDayPredicate:
+                              (day) => isSameDay(day, _selectedDate),
+                          onDaySelected: (selectedDay, focusedDay) {
+                            if (!mounted) return;
+                            setState(() {
+                              _selectedDate = selectedDay;
+                              _focusedDay = focusedDay;
+                              _isCalendarVisible = false;
+                            });
+                            _fetchMatchesForDate(selectedDay, isInitial: true);
+                          },
+                          onFormatChanged: (format) {
+                            if (!mounted) return;
+                            setState(() => _calendarFormat = format);
+                          },
+                          onPageChanged: (focusedDay) {
+                            if (!mounted) return;
+                            setState(() => _focusedDay = focusedDay);
+                          },
+                          locale: Get.locale?.toString(),
+                          rowHeight: 90.h,
+                          calendarStyle: CalendarStyle(
+                            defaultTextStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 30.sp,
+                            ),
+                            weekendTextStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 30.sp,
+                            ),
+                            selectedDecoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            todayDecoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          headerStyle: HeaderStyle(
+                            formatButtonVisible: true,
+                            titleCentered: true,
+                            titleTextStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 40.sp,
+                            ),
+                            formatButtonTextStyle: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 30.sp,
+                            ),
+                            leftChevronIcon: Icon(
+                              Icons.chevron_left,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              size: 30.sp,
+                            ),
+                            rightChevronIcon: Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(context).colorScheme.onSurface,
+                              size: 30.sp,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

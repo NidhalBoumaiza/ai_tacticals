@@ -18,33 +18,25 @@ List<PersistentBottomNavBarItem> navBarsItems(BuildContext context) {
       icon: const Icon(FontAwesomeIcons.futbol, size: 25),
       title: 'matches'.tr,
       activeColorPrimary: Theme.of(context).colorScheme.primary,
-      inactiveColorPrimary: Theme.of(
-        context,
-      ).colorScheme.onSurface.withOpacity(0.6),
+      inactiveColorPrimary: Theme.of(context).colorScheme.onSurface,
     ),
     PersistentBottomNavBarItem(
       icon: const Icon(FontAwesomeIcons.trophy, size: 25),
       title: 'leagues'.tr,
       activeColorPrimary: Theme.of(context).colorScheme.primary,
-      inactiveColorPrimary: Theme.of(
-        context,
-      ).colorScheme.onSurface.withOpacity(0.6),
+      inactiveColorPrimary: Theme.of(context).colorScheme.onSurface,
     ),
     PersistentBottomNavBarItem(
       icon: const Icon(FontAwesomeIcons.star, size: 25),
       title: 'Drawer tool'.tr,
       activeColorPrimary: Theme.of(context).colorScheme.primary,
-      inactiveColorPrimary: Theme.of(
-        context,
-      ).colorScheme.onSurface.withOpacity(0.6),
+      inactiveColorPrimary: Theme.of(context).colorScheme.onSurface,
     ),
     PersistentBottomNavBarItem(
       icon: const Icon(FontAwesomeIcons.circleUser, size: 25),
       title: 'profile'.tr,
       activeColorPrimary: Theme.of(context).colorScheme.primary,
-      inactiveColorPrimary: Theme.of(
-        context,
-      ).colorScheme.onSurface.withOpacity(0.6),
+      inactiveColorPrimary: Theme.of(context).colorScheme.onSurface,
     ),
   ];
 }

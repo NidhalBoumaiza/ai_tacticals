@@ -2,6 +2,7 @@ import '../../domain layer/entities/league_entity.dart';
 import '../../domain layer/entities/matches_entities.dart';
 import '../../domain layer/entities/team_standing _entity.dart';
 
+// matches_models.dart (partial update)
 class MatchEventsPerTeamModel {
   final Map<String, List<MatchEventModel>>? tournamentTeamEvents;
   final List<MatchEventModel>? events;
@@ -31,9 +32,9 @@ class MatchEventsPerTeamModel {
     List<MatchEventModel>? parsedEvents;
     if (eventsData != null) {
       parsedEvents =
-          eventsData.map((e) {
-            return MatchEventModel.fromJson(e as Map<String, dynamic>);
-          }).toList();
+          eventsData
+              .map((e) => MatchEventModel.fromJson(e as Map<String, dynamic>))
+              .toList();
     }
 
     return MatchEventsPerTeamModel(
@@ -44,26 +45,46 @@ class MatchEventsPerTeamModel {
 
   MatchEventsPerTeamEntity toEntity() {
     if (events != null && events!.isNotEmpty) {
+      // Handle events from getHomeMatches
       final Map<String, List<MatchEventEntity>> groupedByTeam = {};
       for (var match in events!) {
-        final homeTeamId = match.homeTeam?.id.toString();
-        final awayTeamId = match.awayTeam?.id.toString();
         final matchEntity = match.toEntity();
+        // Add the match to both teams, but we'll deduplicate in the UI
+        final homeTeamId = match.homeTeam?.id.toString() ?? 'unknown';
+        final awayTeamId = match.awayTeam?.id.toString() ?? 'unknown';
 
-        if (homeTeamId != null) {
-          groupedByTeam.putIfAbsent(homeTeamId, () => []).add(matchEntity);
-        }
-        if (awayTeamId != null) {
-          groupedByTeam.putIfAbsent(awayTeamId, () => []).add(matchEntity);
-        }
+        groupedByTeam.putIfAbsent(homeTeamId, () => []).add(matchEntity);
+        groupedByTeam.putIfAbsent(awayTeamId, () => []).add(matchEntity);
       }
       return MatchEventsPerTeamEntity(tournamentTeamEvents: groupedByTeam);
     }
 
+    // Process tournamentTeamEvents
+    final Map<String, List<MatchEventEntity>> deduplicatedTeamEvents = {};
+    tournamentTeamEvents?.forEach((teamId, matchList) {
+      if (!deduplicatedTeamEvents.containsKey(teamId)) {
+        deduplicatedTeamEvents[teamId] = [];
+      }
+      final uniqueMatches = <String, MatchEventEntity>{};
+      for (var match in matchList) {
+        final matchEntity = match.toEntity();
+        final matchKey =
+            '${matchEntity.homeTeam?.id}_${matchEntity.awayTeam?.id}_${matchEntity.startTimestamp}_${matchEntity.status?.type}';
+        if (!uniqueMatches.containsKey(matchKey)) {
+          uniqueMatches[matchKey] = matchEntity;
+        }
+      }
+      deduplicatedTeamEvents[teamId]!.addAll(uniqueMatches.values);
+      // Sort by startTimestamp and limit to 5 matches
+      deduplicatedTeamEvents[teamId]!.sort(
+        (a, b) => (a.startTimestamp ?? 0).compareTo(b.startTimestamp ?? 0),
+      );
+      deduplicatedTeamEvents[teamId] =
+          deduplicatedTeamEvents[teamId]!.take(5).toList();
+    });
+
     return MatchEventsPerTeamEntity(
-      tournamentTeamEvents: tournamentTeamEvents?.map(
-        (key, value) => MapEntry(key, value.map((e) => e.toEntity()).toList()),
-      ),
+      tournamentTeamEvents: deduplicatedTeamEvents,
     );
   }
 

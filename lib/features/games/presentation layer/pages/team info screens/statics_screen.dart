@@ -68,7 +68,10 @@ class _StatsScreenState extends State<StatsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor:
+          Theme.of(
+            context,
+          ).scaffoldBackgroundColor, // Light: grey[50], Dark: 0xFF37383c
       body: BlocBuilder<StatsBloc, StatsState>(
         builder: (context, state) {
           if (_statsBloc.isStatsCached(
@@ -89,7 +92,7 @@ class _StatsScreenState extends State<StatsScreen> {
             return Center(
               child: CircularProgressIndicator(
                 color: Theme.of(context).colorScheme.primary,
-              ),
+              ), // 0xFFfbc02d
             );
           } else if (state is StatsLoaded) {
             return _buildStatsContent(state.stats);
@@ -98,21 +101,28 @@ class _StatsScreenState extends State<StatsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset("assets/images/Empty.png"),
+                  Image.asset("assets/images/Empty.png", height: 300.h),
+                  SizedBox(height: 30.h),
                   ReusableText(
                     text: 'no_data_found_for_this'.tr,
                     textSize: 120.sp,
-                    textColor: Theme.of(context).colorScheme.onSurface,
-                    textFontWeight: FontWeight.w900,
+                    textColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.7),
+                    textFontWeight: FontWeight.bold,
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             );
           }
           return Center(
-            child: Text(
-              'no_stats_available'.tr,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            child: ReusableText(
+              text: 'no_stats_available'.tr,
+              textSize: 100.sp,
+              textColor: Theme.of(
+                context,
+              ).colorScheme.onSurface.withOpacity(0.7),
             ),
           );
         },
@@ -122,7 +132,7 @@ class _StatsScreenState extends State<StatsScreen> {
 
   Widget _buildStatsContent(StatsEntity stats) {
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
+      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -167,39 +177,32 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   Widget _buildStatSection(String title, List<Map<String, dynamic?>> stats) {
-    return Container(
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+      color: Theme.of(context).colorScheme.surface,
+      // White (light) or grey[850] (dark)
       margin: EdgeInsets.only(bottom: 30.h),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).shadowColor.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 25.w),
+        padding: EdgeInsets.all(20.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ReusableText(
               text: title,
-              textSize: 110.sp,
+              textSize: 120.sp,
               textColor: Theme.of(context).colorScheme.onSurface,
-              textFontWeight: FontWeight.w700,
+              textFontWeight: FontWeight.bold,
             ),
-            SizedBox(height: 25.h),
+            SizedBox(height: 20.h),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 30.w,
-                mainAxisSpacing: 25.h,
-                childAspectRatio: 3.2,
+                crossAxisSpacing: 20.w,
+                mainAxisSpacing: 20.h,
+                childAspectRatio: 2.5,
               ),
               itemCount: stats.length,
               itemBuilder: (context, index) {
@@ -217,19 +220,17 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   Widget _buildStatItem({required String label, required dynamic value}) {
-    final displayValue =
-        value == null
-            ? 'na'.tr
-            : value is double
-            ? '${value.toStringAsFixed(1)}%'
-            : value.toString();
+    final displayValue = _formatStat(value);
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(12.r),
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+        ),
       ),
-      padding: EdgeInsets.symmetric(horizontal: 25.w, vertical: 18.h),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 15.h),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -243,11 +244,12 @@ class _StatsScreenState extends State<StatsScreen> {
               textFontWeight: FontWeight.w500,
             ),
           ),
+          SizedBox(width: 10.w),
           ReusableText(
             text: displayValue,
             textSize: 110.sp,
             textColor: Theme.of(context).colorScheme.onSurface,
-            textFontWeight: FontWeight.w700,
+            textFontWeight: FontWeight.bold,
           ),
         ],
       ),

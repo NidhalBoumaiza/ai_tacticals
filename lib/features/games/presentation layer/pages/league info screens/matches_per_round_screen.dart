@@ -1,4 +1,3 @@
-// matches_per_round_screen.dart
 import 'package:analysis_ai/core/utils/navigation_with_transition.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
 import 'package:analysis_ai/features/games/domain%20layer/entities/matches_entities.dart';
@@ -293,6 +292,8 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                                     SizedBox(width: 30.w),
                                     CountryFlagWidget(
                                       flag: match.homeTeam!.id.toString(),
+                                      isTeamFlag:
+                                          true, // Specify that this is a team flag
                                     ),
                                     SizedBox(width: 10.w),
                                     ReusableText(
@@ -338,6 +339,8 @@ class _MatchesPerRoundScreenState extends State<MatchesPerRoundScreen> {
                                     SizedBox(width: 10.w),
                                     CountryFlagWidget(
                                       flag: match.awayTeam!.id.toString(),
+                                      isTeamFlag:
+                                          true, // Specify that this is a team flag
                                     ),
                                   ],
                                 ),

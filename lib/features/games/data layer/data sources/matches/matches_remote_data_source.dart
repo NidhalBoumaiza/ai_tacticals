@@ -1,3 +1,4 @@
+// matches_remote_data_source.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -8,12 +9,12 @@ import '../../../../../core/error/exceptions.dart';
 import '../../models/matches_models.dart';
 
 abstract class MatchesRemoteDataSource {
-  Future<List<MatchEventModel>> getMatchesPerTeam(
+  Future<MatchEventsPerTeamModel> getMatchesPerTeam(
     int uniqueTournamentId,
     int seasonId,
   );
 
-  Future<List<MatchEventModel>> getHomeMatches(String date);
+  Future<MatchEventsPerTeamModel> getHomeMatches(String date);
 
   Future<List<MatchEventModel>> getMatchesPerRound(
     int leagueId,
@@ -28,7 +29,7 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
   MatchesRemoteDataSourceImpl({required this.client});
 
   @override
-  Future<List<MatchEventModel>> getMatchesPerTeam(
+  Future<MatchEventsPerTeamModel> getMatchesPerTeam(
     int uniqueTournamentId,
     int seasonId,
   ) async {
@@ -43,30 +44,57 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final events = json['tournamentTeamEvents'] as Map<String, dynamic>?;
+        print('Raw API response for getMatchesPerTeam: $json');
 
-        // Flatten nested structure into a list
-        final List<MatchEventModel> matchList = [];
-        if (events != null) {
-          events.forEach((outerKey, innerMap) {
-            if (innerMap is Map<String, dynamic>) {
-              innerMap.forEach((teamId, matches) {
-                final matchEvents =
-                    (matches as List<dynamic>?)
-                        ?.map(
-                          (e) => MatchEventModel.fromJson(
-                            e as Map<String, dynamic>,
-                          ),
-                        )
-                        .toList() ??
-                    [];
-                matchList.addAll(matchEvents);
-              });
-            }
-          });
+        final events = json['tournamentTeamEvents'] as Map<String, dynamic>?;
+        if (events == null) {
+          return MatchEventsPerTeamModel(tournamentTeamEvents: {});
         }
 
-        return matchList;
+        // Consolidate all matches by teamId
+        final Map<String, List<MatchEventModel>> teamMatches = {};
+        events.forEach((outerKey, innerMap) {
+          if (innerMap is Map<String, dynamic>) {
+            innerMap.forEach((teamId, matches) {
+              final teamIdStr = teamId.toString();
+              if (!teamMatches.containsKey(teamIdStr)) {
+                teamMatches[teamIdStr] = [];
+              }
+
+              final matchList =
+                  (matches as List<dynamic>?)
+                      ?.map(
+                        (e) =>
+                            MatchEventModel.fromJson(e as Map<String, dynamic>),
+                      )
+                      .toList() ??
+                  [];
+
+              // Deduplicate matches within this team
+              final uniqueMatches = <String, MatchEventModel>{};
+              for (var match in matchList) {
+                final matchKey =
+                    '${match.homeTeam?.id}_${match.awayTeam?.id}_${match.startTimestamp}_${match.status?.type}';
+                if (!uniqueMatches.containsKey(matchKey)) {
+                  uniqueMatches[matchKey] = match;
+                }
+              }
+
+              teamMatches[teamIdStr]!.addAll(uniqueMatches.values);
+            });
+          }
+        });
+
+        // Sort matches for each team by startTimestamp
+        teamMatches.forEach((teamId, matches) {
+          matches.sort(
+            (a, b) => (a.startTimestamp ?? 0).compareTo(b.startTimestamp ?? 0),
+          );
+          teamMatches[teamId] = matches.take(5).toList();
+        });
+
+        print('Processed teamMatches after deduplication: $teamMatches');
+        return MatchEventsPerTeamModel(tournamentTeamEvents: teamMatches);
       } else {
         throw ServerException('Failed to load matches: ${response.statusCode}');
       }
@@ -80,7 +108,7 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
   }
 
   @override
-  Future<List<MatchEventModel>> getHomeMatches(String date) async {
+  Future<MatchEventsPerTeamModel> getHomeMatches(String date) async {
     final url = Uri.parse(
       'https://www.sofascore.com/api/v1/sport/football/scheduled-events/$date',
     );
@@ -95,12 +123,31 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
         final events = json['events'] as List<dynamic>?;
 
         if (events == null || events.isEmpty) {
-          return [];
+          return MatchEventsPerTeamModel(tournamentTeamEvents: {});
         }
 
-        return events
-            .map((e) => MatchEventModel.fromJson(e as Map<String, dynamic>))
-            .toList();
+        final Map<String, List<MatchEventModel>> teamMatches = {};
+        for (var event in events) {
+          final match = MatchEventModel.fromJson(event as Map<String, dynamic>);
+          final homeTeamId = match.homeTeam?.id.toString() ?? 'unknown';
+          final awayTeamId = match.awayTeam?.id.toString() ?? 'unknown';
+
+          if (!teamMatches.containsKey(homeTeamId)) {
+            teamMatches[homeTeamId] = [];
+          }
+          if (!teamMatches[homeTeamId]!.any((m) => m.id == match.id)) {
+            teamMatches[homeTeamId]!.add(match);
+          }
+
+          if (!teamMatches.containsKey(awayTeamId)) {
+            teamMatches[awayTeamId] = [];
+          }
+          if (!teamMatches[awayTeamId]!.any((m) => m.id == match.id)) {
+            teamMatches[awayTeamId]!.add(match);
+          }
+        }
+
+        return MatchEventsPerTeamModel(tournamentTeamEvents: teamMatches);
       } else {
         throw ServerException(
           'Failed to load home matches: ${response.statusCode}',
@@ -115,6 +162,7 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
     }
   }
 
+  @override
   Future<List<MatchEventModel>> getMatchesPerRound(
     int leagueId,
     int seasonId,

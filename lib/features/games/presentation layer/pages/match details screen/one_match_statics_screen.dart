@@ -164,7 +164,7 @@ class MatchDetailsContent extends StatelessWidget {
           Padding(
             padding: EdgeInsets.all(16.w),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 ReusableText(
                   text: 'match_information'.tr,
@@ -216,6 +216,7 @@ class MatchDetailsContent extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
           SizedBox(width: 8.w),

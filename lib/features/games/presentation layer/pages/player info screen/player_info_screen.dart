@@ -38,9 +38,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshData();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshData());
   }
 
   Future<void> _refreshData() async {
@@ -62,6 +60,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _expandedSection.removeListener(() {}); // Remove any listeners if necessary
     _expandedSection.dispose();
     super.dispose();
   }
@@ -72,7 +71,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
               width: 110.w,
@@ -80,6 +78,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Theme.of(context).colorScheme.surfaceVariant,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                  width: 2,
+                ),
               ),
               child: ClipOval(
                 child: CachedNetworkImage(
@@ -93,10 +95,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                         child: Container(
                           width: 110.w,
                           height: 110.w,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius: BorderRadius.circular(55.w),
-                          ),
+                          color: Theme.of(context).colorScheme.surface,
                         ),
                       ),
                   errorWidget:
@@ -106,34 +105,23 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                   fit: BoxFit.cover,
-                  width: 110.w,
-                  height: 110.w,
-                  cacheKey: widget.playerId.toString(),
                 ),
               ),
             ),
             SizedBox(width: 25.w),
-            ReusableText(
-              text: widget.playerName,
-              textSize: 130.sp,
-              textColor: Theme.of(context).colorScheme.primary,
-              textFontWeight: FontWeight.w700,
+            Expanded(
+              child: ReusableText(
+                text: widget.playerName,
+                textSize: 130.sp,
+                textColor: Theme.of(context).colorScheme.onSurface,
+                textFontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.surface,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        elevation: 6,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 4,
+        shadowColor: Theme.of(context).shadowColor.withOpacity(0.3),
       ),
       body: RefreshIndicator(
         onRefresh: _refreshData,
@@ -141,13 +129,13 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         child: CustomScrollView(
           controller: _scrollController,
-          cacheExtent: 1000,
           slivers: [
             _buildStatsSummary(),
             _buildPerformanceSection(),
             _buildNationalTeamSection(),
             _buildTransferHistory(),
             _buildMediaSection(),
+            SliverFillRemaining(hasScrollBody: false, child: SizedBox.shrink()),
           ],
         ),
       ),
@@ -155,17 +143,12 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   }
 
   Widget _buildStatsSummary() => SliverPadding(
-    padding: EdgeInsets.all(16.w),
+    padding: EdgeInsets.all(30.w),
     sliver: SliverToBoxAdapter(
       child: BlocBuilder<PlayerAttributesBloc, PlayerAttributesState>(
-        buildWhen:
-            (previous, current) =>
-                current is PlayerAttributesLoading ||
-                current is PlayerAttributesError ||
-                current is PlayerAttributesLoaded,
         builder: (context, state) {
           if (state is PlayerAttributesLoading) {
-            return ShimmerLoading(width: double.infinity, height: 300.h);
+            return ShimmerLoading(width: double.infinity);
           }
           if (state is PlayerAttributesError) {
             return _buildErrorWidget(state.message, context);
@@ -183,62 +166,43 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   );
 
   Widget _buildPerformanceSection() => SliverPadding(
-    padding: EdgeInsets.symmetric(horizontal: 16.w),
+    padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 15.h),
     sliver: SliverToBoxAdapter(
       child: BlocBuilder<LastYearSummaryBloc, LastYearSummaryState>(
-        buildWhen:
-            (previous, current) =>
-                current is LastYearSummaryLoading ||
-                current is LastYearSummaryError ||
-                current is LastYearSummaryLoaded,
         builder:
-            (context, state) => ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Card(
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.3),
-                    width: 0.3,
-                  ),
-                ),
-                color: Theme.of(context).colorScheme.surface.withOpacity(0.1),
-                child: Padding(
-                  padding: EdgeInsets.all(16.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'performance_trend'.tr,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.info_outline,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 20,
-                            ),
-                            onPressed: () => _showPerformanceInfo(context),
-                          ),
-                        ],
-                      ),
-                      SizedBox(
-                        height: 200.h,
-                        child: ClipRect(
-                          child: _buildEnhancedLineChart(state, context),
+            (context, state) => Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              color: Theme.of(context).colorScheme.surface,
+              child: Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ReusableText(
+                          text: 'performance_trend'.tr,
+                          textSize: 120.sp,
+                          textColor: Theme.of(context).colorScheme.onSurface,
+                          textFontWeight: FontWeight.bold,
                         ),
-                      ),
-                    ],
-                  ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.info_outline,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 50.sp,
+                          ),
+                          onPressed: () => _showPerformanceInfo(context),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20.h),
+                    SizedBox(child: _buildEnhancedLineChart(state, context)),
+                  ],
                 ),
               ),
             ),
@@ -268,150 +232,164 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
 
       if (validSpots.isEmpty) {
         return Center(
-          child: Text(
-            'no_valid_data_to_display'.tr,
-            style: TextStyle(color: Theme.of(context).colorScheme.primary),
+          child: ReusableText(
+            text: 'no_valid_data_to_display'.tr,
+            textSize: 100.sp,
+            textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
           ),
         );
       }
 
-      return LineChart(
-        LineChartData(
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: true,
-            getDrawingHorizontalLine:
-                (value) => FlLine(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                  strokeWidth: 0.5,
-                ),
-          ),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 40,
-                getTitlesWidget:
-                    (value, meta) => Text(
-                      value.toInt().toString(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-              ),
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: 300.h),
+        child: LineChart(
+          LineChartData(
+            gridData: FlGridData(
+              show: true,
+              drawVerticalLine: true,
+              getDrawingHorizontalLine:
+                  (value) => FlLine(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.2),
+                    strokeWidth: 0.5,
+                  ),
             ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 30,
-                getTitlesWidget: (value, meta) {
-                  final index = value.toInt();
-                  if (index >= 0 && index < sortedSummary.length) {
-                    final date = sortedSummary[index].date;
-                    if (date != null) {
-                      return SideTitleWidget(
-                        meta: meta,
-                        child: Text(
-                          DateFormat('MM/yy').format(date),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+            titlesData: FlTitlesData(
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 40,
+                  getTitlesWidget:
+                      (value, meta) => Text(
+                        value.toInt().toString(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
                         ),
-                      );
+                      ),
+                ),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 30,
+                  getTitlesWidget: (value, meta) {
+                    final index = value.toInt();
+                    if (index >= 0 && index < sortedSummary.length) {
+                      final date = sortedSummary[index].date;
+                      if (date != null) {
+                        return SideTitleWidget(
+                          meta: meta,
+                          child: Text(
+                            DateFormat('MM/yy').format(date),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.7),
+                            ),
+                          ),
+                        );
+                      }
                     }
-                  }
-                  return const Text('');
-                },
+                    return const Text('');
+                  },
+                ),
+              ),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
               ),
             ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
+            borderData: FlBorderData(
+              show: true,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+              ),
             ),
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
+            minY: 0,
+            maxY: 10,
+            extraLinesData: ExtraLinesData(
+              horizontalLines: [
+                HorizontalLine(
+                  y: 7,
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                  strokeWidth: 1,
+                  dashArray: [5, 5],
+                ),
+              ],
             ),
-          ),
-          borderData: FlBorderData(
-            show: true,
-            border: Border.all(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+            lineTouchData: LineTouchData(
+              touchTooltipData: LineTouchTooltipData(
+                getTooltipItems:
+                    (spots) =>
+                        spots.map((spot) {
+                          final date = sortedSummary[spot.x.toInt()].date;
+                          return LineTooltipItem(
+                            '${DateFormat('MMM dd').format(date!)}\n',
+                            TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${'rating'.tr}: ${spot.y.toStringAsFixed(1)}',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+              ),
             ),
-          ),
-          minY: 0,
-          maxY: 10,
-          extraLinesData: ExtraLinesData(
-            horizontalLines: [
-              HorizontalLine(
-                y: 7,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
-                strokeWidth: 1,
-                dashArray: [5, 5],
+            lineBarsData: [
+              LineChartBarData(
+                spots: validSpots,
+                isCurved: true,
+                color: Theme.of(context).colorScheme.primary,
+                barWidth: 2,
+                belowBarData: BarAreaData(
+                  show: true,
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                ),
               ),
             ],
           ),
-          lineTouchData: LineTouchData(
-            touchTooltipData: LineTouchTooltipData(
-              getTooltipItems:
-                  (spots) =>
-                      spots.map((spot) {
-                        final date = sortedSummary[spot.x.toInt()].date;
-                        return LineTooltipItem(
-                          '${DateFormat('MMM dd').format(date!)}',
-                          TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          children: [
-                            TextSpan(
-                              text:
-                                  '\n${'rating'.tr}: ${spot.y.toStringAsFixed(1)}',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-            ),
-          ),
-          lineBarsData: [
-            LineChartBarData(
-              spots: validSpots,
-              isCurved: true,
-              color: Theme.of(context).colorScheme.primary,
-              barWidth: 2,
-              belowBarData: BarAreaData(
-                show: true,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
-              ),
-            ),
-          ],
         ),
       );
     }
-    return ShimmerLoading(width: double.infinity, height: 200.h);
+    return ShimmerLoading(width: double.infinity);
   }
 
   Widget _buildNationalTeamSection() => SliverPadding(
-    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-    sliver: BlocBuilder<NationalTeamStatsBloc, NationalTeamStatsState>(
-      buildWhen:
-          (previous, current) =>
-              current is NationalTeamStatsLoading ||
-              current is NationalTeamStatsError ||
-              current is NationalTeamStatsLoaded,
-      builder: (context, state) {
-        if (state is NationalTeamStatsLoading) {
-          return SliverToBoxAdapter(child: ShimmerLoading(height: 150.h));
-        }
-        if (state is NationalTeamStatsError) {
-          return _buildErrorWidget(state.message, context);
-        }
-        if (state is NationalTeamStatsLoaded) {
-          return SliverToBoxAdapter(
-            child: StatsGrid(
+    padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 15.h),
+    sliver: SliverToBoxAdapter(
+      child: BlocBuilder<NationalTeamStatsBloc, NationalTeamStatsState>(
+        builder: (context, state) {
+          if (state is NationalTeamStatsLoading) return ShimmerLoading();
+          if (state is NationalTeamStatsError) {
+            return Padding(
+              // Return a RenderBox widget instead of SliverToBoxAdapter
+              padding: EdgeInsets.all(20.w),
+              child: ReusableText(
+                text: '${'error'.tr}: ${state.message}',
+                textSize: 100.sp,
+                textColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.7),
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+          if (state is NationalTeamStatsLoaded) {
+            return StatsGrid(
               items: [
                 StatItem(
                   Icons.flag,
@@ -440,150 +418,165 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ],
-            ),
-          );
-        }
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
-      },
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
     ),
   );
 
   Widget _buildTransferHistory() => SliverPadding(
-    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-    sliver: BlocBuilder<TransferHistoryBloc, TransferHistoryState>(
-      buildWhen:
-          (previous, current) =>
-              current is TransferHistoryLoading ||
-              current is TransferHistoryError ||
-              current is TransferHistoryLoaded,
-      builder: (context, state) {
-        if (state is TransferHistoryLoading) {
-          return SliverToBoxAdapter(child: ShimmerLoading(height: 100.h));
-        }
-        if (state is TransferHistoryError) {
-          return _buildErrorWidget(state.message, context);
-        }
-        if (state is TransferHistoryLoaded) {
-          if (state.transfers.isEmpty) {
-            return SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Text(
-                  'no_transfer_history_available'.tr,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+    padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 15.h),
+    sliver: SliverToBoxAdapter(
+      child: BlocBuilder<TransferHistoryBloc, TransferHistoryState>(
+        builder: (context, state) {
+          if (state is TransferHistoryLoading) return ShimmerLoading();
+          if (state is TransferHistoryError)
+            return _buildErrorWidget(state.message, context);
+          if (state is TransferHistoryLoaded) {
+            if (state.transfers.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.all(20.w),
+                child: ReusableText(
+                  text: 'no_transfer_history_available'.tr,
+                  textSize: 100.sp,
+                  textColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
                 ),
-              ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ReusableText(
+                  text: 'transfer_history'.tr,
+                  textSize: 120.sp,
+                  textColor: Theme.of(context).colorScheme.onSurface,
+                  textFontWeight: FontWeight.bold,
+                ),
+                SizedBox(height: 20.h),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: state.transfers.length,
+                  itemBuilder:
+                      (context, index) => TransferTimelineItem(
+                        transfer: state.transfers[index],
+                        isFirst: index == 0,
+                        isLast: index == state.transfers.length - 1,
+                      ),
+                ),
+              ],
             );
           }
-          return SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => TransferTimelineItem(
-                transfer: state.transfers[index],
-                isFirst: index == 0,
-                isLast: index == state.transfers.length - 1,
-              ),
-              childCount: state.transfers.length,
-              semanticIndexOffset: 2,
-            ),
-          );
-        }
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
-      },
+          return const SizedBox.shrink();
+        },
+      ),
     ),
   );
 
   Widget _buildMediaSection() => SliverPadding(
-    padding: EdgeInsets.all(16.w),
-    sliver: BlocBuilder<MediaBloc, MediaState>(
-      buildWhen:
-          (previous, current) =>
-              current is MediaLoading ||
-              current is MediaError ||
-              current is MediaLoaded,
-      builder: (context, state) {
-        if (state is MediaLoading) {
-          return SliverToBoxAdapter(child: ShimmerGridLoading());
-        }
-        if (state is MediaError) {
-          return _buildErrorWidget(state.message, context);
-        }
-        if (state is MediaLoaded) {
-          if (state.media.isEmpty) {
-            return SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Text(
-                  'no_media_available'.tr,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+    padding: EdgeInsets.all(30.w),
+    sliver: SliverToBoxAdapter(
+      child: BlocBuilder<MediaBloc, MediaState>(
+        builder: (context, state) {
+          if (state is MediaLoading) return ShimmerGridLoading();
+          if (state is MediaError)
+            return _buildErrorWidget(state.message, context);
+          if (state is MediaLoaded) {
+            if (state.media.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.all(20.w),
+                child: ReusableText(
+                  text: 'no_media_available'.tr,
+                  textSize: 100.sp,
+                  textColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
                 ),
-              ),
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ReusableText(
+                  text: 'media'.tr,
+                  textSize: 120.sp,
+                  textColor: Theme.of(context).colorScheme.onSurface,
+                  textFontWeight: FontWeight.bold,
+                ),
+                SizedBox(height: 20.h),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 15.w,
+                    mainAxisSpacing: 15.h,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount: state.media.length,
+                  itemBuilder:
+                      (context, index) => MediaThumbnail(
+                        media: state.media[index],
+                        onTap:
+                            () =>
+                                _showMediaPreview(context, state.media[index]),
+                      ),
+                ),
+              ],
             );
           }
-          return SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              childAspectRatio: 1,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: MediaThumbnail(
-                  media: state.media[index],
-                  onTap: () => _showMediaPreview(context, state.media[index]),
-                ),
-              ),
-              childCount: state.media.length,
-              semanticIndexOffset: 2,
-            ),
-          );
-        }
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
-      },
+          return const SizedBox.shrink();
+        },
+      ),
     ),
   );
 
-  Widget _buildErrorWidget(String message, BuildContext context) =>
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.all(8.w),
-          child: Text(
-            '${'error'.tr}: $message',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      );
+  Widget _buildErrorWidget(String message, BuildContext context) {
+    // Return a RenderBox widget instead of SliverToBoxAdapter
+    return Padding(
+      padding: EdgeInsets.all(20.w),
+      child: ReusableText(
+        text: '${'error'.tr}: $message',
+        textSize: 100.sp,
+        textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
 
   void _showPerformanceInfo(BuildContext context) {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text(
-              'performance_trend_info'.tr,
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            title: ReusableText(
+              text: 'performance_trend_info'.tr,
+              textSize: 120.sp,
+              textColor: Theme.of(context).colorScheme.onSurface,
+              textFontWeight: FontWeight.bold,
             ),
-            content: Text(
-              'performance_trend_description'.tr,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            content: ReusableText(
+              text: 'performance_trend_description'.tr,
+              textSize: 100.sp,
+              textColor: Theme.of(
+                context,
+              ).colorScheme.onSurface.withOpacity(0.7),
             ),
             backgroundColor: Theme.of(context).colorScheme.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'close'.tr,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                child: ReusableText(
+                  text: 'close'.tr,
+                  textSize: 100.sp,
+                  textColor: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],
@@ -596,9 +589,11 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text(
-              media.title ?? 'media_preview'.tr,
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            title: ReusableText(
+              text: media.title ?? 'media_preview'.tr,
+              textSize: 120.sp,
+              textColor: Theme.of(context).colorScheme.onSurface,
+              textFontWeight: FontWeight.bold,
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -606,29 +601,33 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                 if (media.thumbnailUrl != null)
                   CachedNetworkImage(
                     imageUrl: media.thumbnailUrl!,
-                    height: 200,
+                    height: 200.h,
                     fit: BoxFit.cover,
                     errorWidget:
-                        (context, url, error) => Icon(
+                        (_, __, ___) => Icon(
                           Icons.error,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          size: 60.sp,
                         ),
                   ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 20.h),
                 if (media.url != null)
                   GestureDetector(
                     onTap: () async {
                       final uri = Uri.parse(media.url!);
                       if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri);
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                              'cannot_launch_url'.tr,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
+                            content: ReusableText(
+                              text: 'cannot_launch_url'.tr,
+                              textSize: 100.sp,
+                              textColor:
+                                  Theme.of(context).colorScheme.onSurface,
                             ),
                             backgroundColor:
                                 Theme.of(context).colorScheme.surface,
@@ -636,25 +635,26 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                         );
                       }
                     },
-                    child: Text(
-                      media.url!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        decoration: TextDecoration.underline,
-                      ),
+                    child: ReusableText(
+                      text: media.url!,
+                      textSize: 90.sp,
+                      textColor: Theme.of(context).colorScheme.primary,
+                      textDecoration: TextDecoration.underline,
                     ),
                   ),
               ],
             ),
             backgroundColor: Theme.of(context).colorScheme.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'close'.tr,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                child: ReusableText(
+                  text: 'close'.tr,
+                  textSize: 100.sp,
+                  textColor: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ],
@@ -662,6 +662,9 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     );
   }
 }
+
+// Keep other widgets (AnimatedStatsCard, TransferTimelineItem, StatItem, StatsGrid, MediaThumbnail, ShimmerLoading, ShimmerGridLoading) as they are
+// since they don't seem to be the primary cause of the sliver mismatch.
 
 class AnimatedStatsCard extends StatelessWidget {
   final PlayerAttributesEntity attributes;
@@ -689,113 +692,114 @@ class AnimatedStatsCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => expanded.value = !expanded.value,
-      child: ValueListenableBuilder<bool>(
-        valueListenable: expanded,
-        builder: (context, isExpanded, child) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.surface,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        color: Theme.of(context).colorScheme.surface,
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: ValueListenableBuilder<bool>(
+            valueListenable: expanded,
+            builder:
+                (context, isExpanded, child) => Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ReusableText(
+                          text: 'attributes_radar'.tr,
+                          textSize: 120.sp,
+                          textColor: Theme.of(context).colorScheme.onSurface,
+                          textFontWeight: FontWeight.bold,
+                        ),
+                        Icon(
+                          isExpanded ? Icons.expand_less : Icons.expand_more,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          size: 60.sp,
+                        ),
+                      ],
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child:
+                          isExpanded
+                              ? SizedBox(
+                                height: 250.h,
+                                child: RadarChart(
+                                  RadarChartData(
+                                    radarBackgroundColor: Colors.transparent,
+                                    radarBorderData: BorderSide(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.2),
+                                      width: 0.5,
+                                    ),
+                                    gridBorderData: BorderSide(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.2),
+                                      width: 0.3,
+                                    ),
+                                    titleTextStyle: TextStyle(
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                      fontSize: 12.sp,
+                                    ),
+                                    tickCount: 5,
+                                    ticksTextStyle: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.7),
+                                      fontSize: 10.sp,
+                                    ),
+                                    dataSets: [
+                                      RadarDataSet(
+                                        fillColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.1),
+                                        borderColor:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                        borderWidth: 2,
+                                        entryRadius: 2,
+                                        dataEntries:
+                                            data
+                                                .map(
+                                                  (value) =>
+                                                      RadarEntry(value: value),
+                                                )
+                                                .toList(),
+                                      ),
+                                    ],
+                                    radarShape: RadarShape.polygon,
+                                    titlePositionPercentageOffset: 0.2,
+                                    getTitle: (index, angle) {
+                                      final titles = [
+                                        'attacking'.tr,
+                                        'technical'.tr,
+                                        'tactical'.tr,
+                                        'defending'.tr,
+                                        'creativity'.tr,
+                                      ];
+                                      return RadarChartTitle(
+                                        text: titles[index],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              )
+                              : const SizedBox.shrink(),
+                    ),
                   ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).shadowColor.withOpacity(0.4),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'attributes_radar'.tr,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      Icon(
-                        Icons.expand_more,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ],
-                  ),
-                  if (isExpanded)
-                    SizedBox(
-                      height: 250.h,
-                      child: ClipRect(
-                        child: RadarChart(
-                          RadarChartData(
-                            radarBackgroundColor: Colors.transparent,
-                            radarBorderData: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
-                              width: 0.5,
-                            ),
-                            gridBorderData: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
-                              width: 0.3,
-                            ),
-                            titleTextStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontSize: 14,
-                            ),
-                            tickCount: 5,
-                            ticksTextStyle: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontSize: 10,
-                            ),
-                            dataSets: [
-                              RadarDataSet(
-                                fillColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withOpacity(0.15),
-                                borderColor:
-                                    Theme.of(context).colorScheme.primary,
-                                borderWidth: 2,
-                                entryRadius: 2,
-                                dataEntries:
-                                    data
-                                        .map(
-                                          (value) => RadarEntry(value: value),
-                                        )
-                                        .toList(),
-                              ),
-                            ],
-                            radarShape: RadarShape.polygon,
-                            titlePositionPercentageOffset: 0.2,
-                            getTitle: (index, angle) {
-                              final titles = [
-                                'attacking'.tr,
-                                'technical'.tr,
-                                'tactical'.tr,
-                                'defending'.tr,
-                                'creativity'.tr,
-                              ];
-                              return RadarChartTitle(text: titles[index]);
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
@@ -816,8 +820,8 @@ class TransferTimelineItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(left: 24.w),
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
+      margin: EdgeInsets.only(left: 30.w),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 20.h),
       decoration: BoxDecoration(
         border: Border(
           left: BorderSide(
@@ -830,12 +834,12 @@ class TransferTimelineItem extends StatelessWidget {
         leading: Icon(
           Icons.swap_horiz,
           color: Theme.of(context).colorScheme.primary,
-          size: 30,
+          size: 50.sp,
         ),
         title: RichText(
           text: TextSpan(
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14.sp,
               color: Theme.of(context).colorScheme.onSurface,
             ),
             children: [
@@ -862,30 +866,32 @@ class TransferTimelineItem extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              transfer.date != null
-                  ? DateFormat('MMM yyyy').format(transfer.date!)
-                  : 'n_a'.tr,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+            ReusableText(
+              text:
+                  transfer.date != null
+                      ? DateFormat('MMM yyyy').format(transfer.date!)
+                      : 'n_a'.tr,
+              textSize: 90.sp,
+              textColor: Theme.of(
+                context,
+              ).colorScheme.onSurface.withOpacity(0.7),
             ),
             if (transfer.fee != null)
-              Chip(
-                label: Text(
-                  NumberFormat.compactCurrency(
-                    symbol: transfer.currency ?? '',
-                  ).format(transfer.fee),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.surface,
+              Padding(
+                padding: EdgeInsets.only(top: 10.h),
+                child: Chip(
+                  label: ReusableText(
+                    text: NumberFormat.compactCurrency(
+                      symbol: transfer.currency ?? '',
+                    ).format(transfer.fee),
+                    textSize: 90.sp,
+                    textColor: Theme.of(context).colorScheme.onSurface,
                   ),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.2),
+                  visualDensity: VisualDensity.compact,
                 ),
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.primary.withOpacity(0.3),
-                visualDensity: VisualDensity.compact,
               ),
           ],
         ),
@@ -911,37 +917,26 @@ class StatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(12.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            Theme.of(context).colorScheme.surface.withOpacity(0.1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        borderRadius: BorderRadius.circular(12.r),
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
-          SizedBox(height: 8.h),
-          Text(
-            title,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 12,
-            ),
+          Icon(icon, size: 50.sp, color: Theme.of(context).colorScheme.primary),
+          SizedBox(height: 15.h),
+          ReusableText(
+            text: title,
+            textSize: 90.sp,
+            textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+          ReusableText(
+            text: value,
+            textSize: 110.sp,
+            textColor: Theme.of(context).colorScheme.onSurface,
+            textFontWeight: FontWeight.bold,
           ),
         ],
       ),
@@ -956,14 +951,26 @@ class StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 1.5,
-      children: items,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ReusableText(
+          text: 'national_team'.tr,
+          textSize: 120.sp,
+          textColor: Theme.of(context).colorScheme.onSurface,
+          textFontWeight: FontWeight.bold,
+        ),
+        SizedBox(height: 20.h),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 15,
+          mainAxisSpacing: 15,
+          childAspectRatio: 1.2,
+          children: items,
+        ),
+      ],
     );
   }
 }
@@ -978,32 +985,37 @@ class MediaThumbnail extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.hardEdge,
-          children: [
-            CachedNetworkImage(
-              imageUrl: media.thumbnailUrl ?? '',
-              fit: BoxFit.cover,
-              errorWidget:
-                  (_, __, ___) => Container(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surface.withOpacity(0.3),
-                  ),
-              fadeInDuration: const Duration(milliseconds: 200),
-              fadeOutDuration: const Duration(milliseconds: 200),
-            ),
-            Center(
-              child: Icon(
-                Icons.play_circle_filled,
-                size: 40,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12.r),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CachedNetworkImage(
+                imageUrl: media.thumbnailUrl ?? '',
+                fit: BoxFit.cover,
+                errorWidget:
+                    (_, __, ___) => Container(
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                    ),
+                fadeInDuration: const Duration(milliseconds: 200),
+                fadeOutDuration: const Duration(milliseconds: 200),
               ),
-            ),
-          ],
+              Center(
+                child: Icon(
+                  Icons.play_circle_filled,
+                  size: 60.sp,
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1020,13 +1032,15 @@ class ShimmerLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
       baseColor: Theme.of(context).colorScheme.surface.withOpacity(0.3),
-      highlightColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+      highlightColor: Theme.of(
+        context,
+      ).colorScheme.surfaceVariant.withOpacity(0.5),
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12.r),
         ),
       ),
     );
@@ -1040,17 +1054,13 @@ class ShimmerGridLoading extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 3,
-      crossAxisSpacing: 8,
-      mainAxisSpacing: 8,
+      crossAxisSpacing: 15,
+      mainAxisSpacing: 15,
       childAspectRatio: 1,
-      children: [
-        ShimmerLoading(width: double.infinity, height: double.infinity),
-        ShimmerLoading(width: double.infinity, height: double.infinity),
-        ShimmerLoading(width: double.infinity, height: double.infinity),
-        ShimmerLoading(width: double.infinity, height: double.infinity),
-        ShimmerLoading(width: double.infinity, height: double.infinity),
-        ShimmerLoading(width: double.infinity, height: double.infinity),
-      ],
+      children: List.generate(
+        6,
+        (_) => ShimmerLoading(width: double.infinity, height: double.infinity),
+      ),
     );
   }
 }

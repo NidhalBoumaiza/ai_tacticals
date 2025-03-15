@@ -1,8 +1,9 @@
+// matches_repository_impl.dart
 import 'package:analysis_ai/core/network/network_info.dart';
 import 'package:dartz/dartz.dart';
 
-import '../../../../core/error/exceptions.dart';
-import '../../../../core/error/failures.dart';
+import '../../../../../core/error/exceptions.dart';
+import '../../../../../core/error/failures.dart';
 import '../../domain layer/entities/matches_entities.dart';
 import '../../domain layer/repositories/matches_repository.dart';
 import '../data sources/matches/matches_local_data_source.dart';
@@ -32,6 +33,7 @@ class MatchesRepositoryImpl implements MatchesRepository {
           seasonId,
         );
         final entity = _convertToEntity(remoteMatches);
+        print('Converted entity in repository: $entity');
         await localDataSource.cacheMatchesPerTeam(
           entity,
           uniqueTournamentId,
@@ -114,20 +116,7 @@ class MatchesRepositoryImpl implements MatchesRepository {
     }
   }
 
-  MatchEventsPerTeamEntity _convertToEntity(List<MatchEventModel> matches) {
-    final Map<String, List<MatchEventModel>> groupedMatches = {};
-    for (var match in matches) {
-      // Group by homeTeam ID (or adjust logic based on your needs)
-      final teamId = match.homeTeam?.id?.toString() ?? 'unknown';
-      if (!groupedMatches.containsKey(teamId)) {
-        groupedMatches[teamId] = [];
-      }
-      groupedMatches[teamId]!.add(match);
-    }
-    return MatchEventsPerTeamEntity(
-      tournamentTeamEvents: groupedMatches.map(
-        (key, value) => MapEntry(key, value.map((m) => m.toEntity()).toList()),
-      ),
-    );
+  MatchEventsPerTeamEntity _convertToEntity(MatchEventsPerTeamModel matches) {
+    return matches.toEntity();
   }
 }

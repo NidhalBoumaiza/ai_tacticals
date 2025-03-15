@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/app_themes.dart';
@@ -35,6 +36,10 @@ import 'injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize date formatting for the specified locale
+  await initializeDateFormatting('fr_FR', null);
+
   await di.init();
   final AppLifecycleObserver observer = AppLifecycleObserver();
   WidgetsBinding.instance.addObserver(observer);
