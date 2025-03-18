@@ -27,9 +27,7 @@ class HomeMatchesBloc extends Bloc<HomeMatchesEvent, HomeMatchesState> {
           final compositeId =
               '${match.id}-${match.homeTeam?.id}-${match.awayTeam?.id}-${match.startTimestamp}';
           final added = seenIds.add(compositeId);
-          if (!added) {
-            print('Duplicate match in bloc: $compositeId');
-          }
+          if (!added) {}
           return added;
         }).toList();
     return deduplicated;

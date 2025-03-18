@@ -33,7 +33,7 @@ class MatchesRepositoryImpl implements MatchesRepository {
           seasonId,
         );
         final entity = _convertToEntity(remoteMatches);
-        print('Converted entity in repository: $entity');
+
         await localDataSource.cacheMatchesPerTeam(
           entity,
           uniqueTournamentId,

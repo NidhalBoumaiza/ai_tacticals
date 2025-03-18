@@ -1,8 +1,6 @@
 import '../error/failures.dart';
 
 String mapFailureToMessage(Failure failure) {
-  print("Failure type: ");
-  print(failure.runtimeType);
   switch (failure.runtimeType) {
     case ServerFailure:
       return (failure as ServerFailure).message; // Access instance getter

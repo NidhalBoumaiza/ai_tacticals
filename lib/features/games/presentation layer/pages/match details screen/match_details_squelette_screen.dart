@@ -86,7 +86,9 @@ class _MatchDetailsSqueletteScreenState
                   icon: Icon(
                     Icons.arrow_back_ios,
                     color:
-                        Theme.of(context).appBarTheme.backgroundColor, // Black
+                        Theme.of(
+                          context,
+                        ).appBarTheme.foregroundColor, // Theme-based color
                     size: 60.sp, // Slightly larger for better touch target
                   ),
                   onPressed: () => Navigator.pop(context),
@@ -94,9 +96,9 @@ class _MatchDetailsSqueletteScreenState
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     color:
-                        Theme.of(context)
-                            .colorScheme
-                            .surface, // White (light) or grey[850] (dark)
+                        Theme.of(
+                          context,
+                        ).appBarTheme.backgroundColor, // Theme-based color
                     padding: EdgeInsets.only(top: 50.h),
                     child: Column(
                       children: [

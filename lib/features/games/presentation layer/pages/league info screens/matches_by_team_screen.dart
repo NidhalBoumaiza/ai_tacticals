@@ -129,7 +129,6 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
     }
 
     // Log the processed data for debugging
-    print('Processed matchesPerTeam in UI: $matchesPerTeam');
 
     // Build a map of teamId to teamName for consistent naming
     final Map<String, String> teamIdToName = {};

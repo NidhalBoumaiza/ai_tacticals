@@ -105,14 +105,9 @@ class MatchesPerRoundBloc
 
     // Iterate to find the current and next rounds
     while (round <= 38) {
-      print(
-        'Checking round $round for league ${event.leagueId}, season ${event.seasonId}',
-      );
-
       List<MatchEventEntity> matches;
       if (_matchesCache[cacheKey]!.containsKey(round)) {
         matches = _matchesCache[cacheKey]![round]!;
-        print('Using cached data for round $round: ${matches.length} matches');
       } else {
         final result = await getMatchesPerRound(
           leagueId: event.leagueId,
@@ -131,7 +126,6 @@ class MatchesPerRoundBloc
 
         matches = result.getOrElse(() => []);
         _matchesCache[cacheKey]![round] = matches;
-        print('Fetched data for round $round: ${matches.length} matches');
       }
 
       if (matches.isNotEmpty) {
@@ -152,17 +146,7 @@ class MatchesPerRoundBloc
             secondMatch.homeScore?.current != null &&
             secondMatch.awayScore?.current != null;
 
-        print(
-          'Round $round - First Match Played: $isFirstMatchPlayed, Second Match Played: $isSecondMatchPlayed',
-        );
-        print(
-          'First Match: ${firstMatch.homeTeam?.shortName} vs ${firstMatch.awayTeam?.shortName}, Start: ${firstMatch.startTimestamp}, Scores: ${firstMatch.homeScore?.current}-${firstMatch.awayScore?.current}',
-        );
-        if (secondMatch != null) {
-          print(
-            'Second Match: ${secondMatch.homeTeam?.shortName} vs ${secondMatch.awayTeam?.shortName}, Start: ${secondMatch.startTimestamp}, Scores: ${secondMatch.homeScore?.current}-${secondMatch.awayScore?.current}',
-          );
-        }
+        if (secondMatch != null) {}
 
         // Check if the entire round is played
         bool allPlayed = matches.every(
@@ -222,7 +206,7 @@ class MatchesPerRoundBloc
       currentRound: _matchesCache[cacheKey]![currentRound] ?? [],
       nextRound: _matchesCache[cacheKey]![nextRound] ?? [],
     };
-    print('Displaying rounds - Current: $currentRound, Next: $nextRound');
+
     emit(
       MatchesPerRoundLoaded(
         matches: matchesToDisplay,

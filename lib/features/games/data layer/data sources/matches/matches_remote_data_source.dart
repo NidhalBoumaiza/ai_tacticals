@@ -44,7 +44,6 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
-        print('Raw API response for getMatchesPerTeam: $json');
 
         final events = json['tournamentTeamEvents'] as Map<String, dynamic>?;
         if (events == null) {
@@ -93,7 +92,6 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
           teamMatches[teamId] = matches.take(5).toList();
         });
 
-        print('Processed teamMatches after deduplication: $teamMatches');
         return MatchEventsPerTeamModel(tournamentTeamEvents: teamMatches);
       } else {
         throw ServerException('Failed to load matches: ${response.statusCode}');

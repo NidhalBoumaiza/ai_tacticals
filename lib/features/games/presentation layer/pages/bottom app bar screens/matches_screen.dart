@@ -148,14 +148,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
           final compositeId =
               '${match.id}-${match.homeTeam?.id}-${match.awayTeam?.id}-${match.startTimestamp}';
           final added = seenIds.add(compositeId);
-          if (!added) {
-            print('Duplicate match detected: $compositeId');
-          }
+          if (!added) {}
           return added;
         }).toList();
-    print(
-      'Total matches: ${matches.length}, Deduplicated: ${deduplicated.length}',
-    );
+
     return deduplicated;
   }
 

@@ -1,17 +1,3 @@
-// main.dart
-import 'package:analysis_ai/features/auth/presentation%20layer/bloc/login_bloc/login_bloc.dart';
-import 'package:analysis_ai/features/auth/presentation%20layer/bloc/signup_bloc/signup_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/countries_bloc/countries_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/leagues_bloc/leagues_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/manager%20bloc/manager_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/matches_bloc/matches_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/player%20match%20stats%20bloc/player_match_stats_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/player%20per%20match%20bloc/player_per_match_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/players_bloc/players_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/standing%20bloc/standing_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/stats%20bloc/stats_bloc.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/cubit/bnv%20cubit/bnv_cubit.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/cubit/seasons%20cubit/seasons_cubit.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,14 +8,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/app_themes.dart';
 import 'core/cubit/theme cubit/theme_cubit.dart';
-import 'features/auth/presentation%20layer/pages/starter_screen.dart';
+import 'features/auth/presentation layer/bloc/login_bloc/login_bloc.dart';
+import 'features/auth/presentation layer/bloc/signup_bloc/signup_bloc.dart';
+import 'features/auth/presentation layer/pages/starter_screen.dart';
+import 'features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
 import 'features/games/presentation layer/bloc/home match bloc/home_matches_bloc.dart';
 import 'features/games/presentation layer/bloc/last year summery bloc/last_year_summary_bloc.dart';
+import 'features/games/presentation layer/bloc/leagues_bloc/leagues_bloc.dart';
+import 'features/games/presentation layer/bloc/manager bloc/manager_bloc.dart';
 import 'features/games/presentation layer/bloc/matches per round bloc/matches_per_round_bloc.dart';
+import 'features/games/presentation layer/bloc/matches_bloc/matches_bloc.dart';
 import 'features/games/presentation layer/bloc/media bloc/media_bloc.dart';
 import 'features/games/presentation layer/bloc/national team bloc/national_team_stats_bloc.dart';
+import 'features/games/presentation layer/bloc/player match stats bloc/player_match_stats_bloc.dart';
+import 'features/games/presentation layer/bloc/player per match bloc/player_per_match_bloc.dart';
 import 'features/games/presentation layer/bloc/player statics bloc/player_attributes_bloc.dart';
+import 'features/games/presentation layer/bloc/players_bloc/players_bloc.dart';
+import 'features/games/presentation layer/bloc/standing bloc/standing_bloc.dart';
+import 'features/games/presentation layer/bloc/stats bloc/stats_bloc.dart';
 import 'features/games/presentation layer/bloc/transfert history bloc/transfer_history_bloc.dart';
+import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
+import 'features/games/presentation layer/cubit/seasons cubit/seasons_cubit.dart';
 import 'features/games/presentation layer/pages/bottom app bar screens/home_screen_squelette.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
@@ -61,7 +60,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => ThemeCubit()), // Single instance
+        BlocProvider(create: (context) => ThemeCubit()),
         BlocProvider(create: (context) => di.sl<BnvCubit>()..changeIndex(0)),
         BlocProvider(create: (context) => di.sl<LoginBloc>()),
         BlocProvider(create: (context) => di.sl<SignupBloc>()),

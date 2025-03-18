@@ -36,9 +36,10 @@ dependencies:
   flutter_svg: ^1.1.6
   flutter_cache_manager: ^3.3.1
   video_player: ^2.9.3
-  path_provider: ^2.1.5
+  image_picker: ^1.1.2
   permission_handler: ^11.4.0
- 
+
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -49,4 +50,4 @@ flutter:
   assets:
     - assets/images/
     - assets/lottie/
-    - assets/fonts/
+#    - assets/fonts/

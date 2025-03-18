@@ -38,7 +38,11 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshData());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshData();
+
+      _scrollController.addListener(() {});
+    });
   }
 
   Future<void> _refreshData() async {
@@ -128,13 +132,17 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         child: CustomScrollView(
           controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          // Ensure scrolling is always enabled
           slivers: [
             _buildStatsSummary(),
             _buildPerformanceSection(),
             _buildNationalTeamSection(),
             _buildTransferHistory(),
             _buildMediaSection(),
-            SliverFillRemaining(hasScrollBody: false),
+            // Replace SliverFillRemaining with a small spacer to avoid consuming all space
+            SliverToBoxAdapter(child: SizedBox(height: 50.h)),
+            // Minimum spacer
           ],
         ),
       ),
@@ -147,7 +155,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       child: BlocBuilder<PlayerAttributesBloc, PlayerAttributesState>(
         builder: (context, state) {
           if (state is PlayerAttributesLoading) {
-            return ShimmerLoading(width: double.infinity, height: 200.h);
+            return ShimmerLoading(
+              width: double.infinity,
+              height: 250.h,
+            ); // Increased height
           }
           if (state is PlayerAttributesError) {
             return ErrorCard(message: state.message, onRetry: _refreshData);
@@ -170,7 +181,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       child: BlocBuilder<LastYearSummaryBloc, LastYearSummaryState>(
         builder: (context, state) {
           if (state is LastYearSummaryLoading) {
-            return ShimmerLoading(width: double.infinity, height: 300.h);
+            return ShimmerLoading(
+              width: double.infinity,
+              height: 350.h,
+            ); // Increased height
           }
           if (state is LastYearSummaryError) {
             return ErrorCard(message: state.message, onRetry: _refreshData);
@@ -229,7 +243,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
           (a, b) => (a.date ?? DateTime(0)).compareTo(b.date ?? DateTime(0)),
         );
 
-      // Validate data points more strictly
       final validSpots =
           sortedSummary
               .asMap()
@@ -240,11 +253,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                     entry.value.date != null &&
                     entry.value.rating! >= 0 &&
                     entry.value.rating! <= 10,
-              ) // Ensure rating is within bounds
+              )
               .map((entry) => FlSpot(entry.key.toDouble(), entry.value.rating!))
               .toList();
 
-      // Do not render the chart if there are fewer than 2 valid data points
       if (validSpots.length < 2) {
         return Center(
           child: ReusableText(
@@ -259,22 +271,18 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       }
 
       return ClipRect(
-        // Clip the chart to prevent overflow
         child: ConstrainedBox(
           constraints: BoxConstraints(maxHeight: 500.h),
-          // Optional: Increase to 350.h if needed
           child: Padding(
             padding: EdgeInsets.only(top: 25.0.h),
             child: LineChart(
               LineChartData(
                 gridData: FlGridData(show: false),
-                // Disable all grid lines
                 titlesData: FlTitlesData(
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 20,
-                      // Increased from 20 to 40 for better label visibility
+                      reservedSize: 40, // Increased for better label visibility
                       getTitlesWidget:
                           (value, meta) => Text(
                             value.toInt().toString(),
@@ -324,11 +332,9 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                   ),
                 ),
                 borderData: FlBorderData(show: false),
-                // Disable border to avoid artifacts
                 minY: 0,
                 maxY: 10,
                 extraLinesData: const ExtraLinesData(horizontalLines: []),
-                // No extra lines
                 lineTouchData: LineTouchData(
                   enabled: true,
                   touchTooltipData: LineTouchTooltipData(
@@ -366,7 +372,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                     isCurved: true,
                     color: Theme.of(context).colorScheme.primary,
                     barWidth: 5,
-                    // Keeping the thicker line as per your previous request
                     belowBarData: BarAreaData(
                       show: true,
                       color: Theme.of(
@@ -374,9 +379,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                       ).colorScheme.primary.withOpacity(0.1),
                     ),
                     dotData: FlDotData(show: true),
-                    // Show dots for data points
-                    preventCurveOverShooting:
-                        true, // Prevent curve overshooting
+                    preventCurveOverShooting: true,
                   ),
                 ],
               ),
@@ -385,7 +388,10 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
         ),
       );
     }
-    return ShimmerLoading(width: double.infinity, height: 300.h);
+    return ShimmerLoading(
+      width: double.infinity,
+      height: 350.h,
+    ); // Increased height
   }
 
   Widget _buildNationalTeamSection() => SliverPadding(
@@ -394,7 +400,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       child: BlocBuilder<NationalTeamStatsBloc, NationalTeamStatsState>(
         builder: (context, state) {
           if (state is NationalTeamStatsLoading) {
-            return ShimmerLoading(height: 200.h);
+            return ShimmerLoading(height: 250.h); // Increased height
           }
           if (state is NationalTeamStatsError) {
             return ErrorCard(message: state.message, onRetry: _refreshData);
@@ -443,7 +449,7 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
       child: BlocBuilder<TransferHistoryBloc, TransferHistoryState>(
         builder: (context, state) {
           if (state is TransferHistoryLoading) {
-            return ShimmerLoading(height: 200.h);
+            return ShimmerLoading(height: 250.h); // Increased height
           }
           if (state is TransferHistoryError) {
             return ErrorCard(message: state.message, onRetry: _refreshData);
@@ -541,7 +547,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                         onTap: () async {
                           if (state.media[index].url == null ||
                               state.media[index].url!.isEmpty) {
-                            // Show a message if the URL is null or empty
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: ReusableText(
@@ -560,12 +565,9 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                           try {
                             await launchUrl(
                               uri,
-                              mode:
-                                  LaunchMode
-                                      .externalApplication, // Open in external browser
+                              mode: LaunchMode.externalApplication,
                             );
                           } catch (e) {
-                            // Handle any unexpected errors
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: ReusableText(
@@ -658,7 +660,6 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                   GestureDetector(
                     onTap: () async {
                       if (media.url == null || media.url!.isEmpty) {
-                        // Show a message if the URL is null or empty
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: ReusableText(
@@ -677,27 +678,9 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
                       try {
                         await launchUrl(
                           uri,
-                          mode:
-                              LaunchMode
-                                  .externalApplication, // Open in external browser
+                          mode: LaunchMode.externalApplication,
                         );
-                        // } else {
-                        //   // Show a message if the URL cannot be launched
-                        //   ScaffoldMessenger.of(context).showSnackBar(
-                        //     SnackBar(
-                        //       content: ReusableText(
-                        //         text: 'cannot_launch_url'.tr,
-                        //         textSize: 100.sp,
-                        //         textColor:
-                        //             Theme.of(context).colorScheme.onSurface,
-                        //       ),
-                        //       backgroundColor:
-                        //           Theme.of(context).colorScheme.surface,
-                        //     ),
-                        //   );
-                        // }
                       } catch (e) {
-                        // Handle any unexpected errors
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: ReusableText(
@@ -739,6 +722,8 @@ class _PlayerStatsScreenState extends State<PlayerStatsScreen> {
     );
   }
 }
+
+// [Rest of the widget classes (ErrorCard, AnimatedStatsCard, TransferTimelineItem, StatItem, StatsGrid, MediaThumbnail, ShimmerLoading, ShimmerGridLoading) remain unchanged]
 
 // Reusable Error Card Widget
 class ErrorCard extends StatelessWidget {
@@ -963,7 +948,7 @@ class TransferTimelineItem extends StatelessWidget {
         children: [
           // Vertical line for the timeline, positioned on the left
           Positioned(
-            left: 40.w,
+            left: 20.w,
             // Align with the icon's center
             top: isFirst ? 25.h : 0,
             // Start from the middle of the icon for the first item
