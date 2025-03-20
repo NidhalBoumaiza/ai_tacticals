@@ -7,7 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 
-import 'video_editing_state.dart'; // Adjust import path as needed
+import '../../../../../screen_recorder.dart';
+import 'video_editing_state.dart';
 
 class VideoEditingCubit extends Cubit<VideoEditingState> {
   final ImagePicker _picker = ImagePicker();
@@ -279,43 +280,71 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     emit(state.copyWith(lines: [], redoLines: [], selectedDrawingIndex: null));
   }
 
-  void startRecording() {
+  Future<void> startRecording(BuildContext context) async {
     final controller = state.controller;
     if (controller != null && controller.value.isInitialized) {
-      final startTime = controller.value.position.inMilliseconds;
-      emit(
-        state.copyWith(
-          isRecording: true,
-          recordingStartTime: startTime,
-          recordingEndTime: null,
-          playbackEvents: [],
-          selectedDrawingIndex: null,
-        ),
-      );
-      if (controller.value.isPlaying) {
+      final tempDir = await getTemporaryDirectory();
+      final outputPath =
+          '${tempDir.path}/screen_record_${DateTime.now().millisecondsSinceEpoch}.mp4';
+
+      try {
+        await ScreenRecorder.startRecording(outputPath);
         emit(
           state.copyWith(
-            playbackEvents: List.from(state.playbackEvents)
-              ..add({'action': 'play', 'timestamp': startTime}),
+            isRecording: true,
+            recordingStartTime: controller.value.position.inMilliseconds,
+            recordingEndTime: null,
+            // Don't clear playbackEvents unless necessary
+            selectedDrawingIndex: null,
+            screenRecordingPath: outputPath,
           ),
         );
+        if (controller.value.isPlaying) {
+          emit(
+            state.copyWith(
+              playbackEvents: List.from(state.playbackEvents)..add({
+                'action': 'play',
+                'timestamp': controller.value.position.inMilliseconds,
+              }),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint("Error starting screen recording: $e");
+        emit(state.copyWith(isRecording: false));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to start screen recording: $e")),
+        );
       }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("No video loaded to record.")));
     }
   }
 
-  void stopRecording() {
+  Future<void> stopRecording(BuildContext context) async {
     final controller = state.controller;
     if (controller != null &&
         controller.value.isInitialized &&
         state.isRecording) {
-      final endTime = controller.value.position.inMilliseconds;
-      emit(
-        state.copyWith(
-          isRecording: false,
-          recordingEndTime: endTime,
-          selectedDrawingIndex: null,
-        ),
-      );
+      try {
+        final recordedPath = await ScreenRecorder.stopRecording();
+        emit(
+          state.copyWith(
+            isRecording: false,
+            recordingEndTime: controller.value.position.inMilliseconds,
+            screenRecordingPath: recordedPath ?? state.screenRecordingPath,
+            selectedDrawingIndex: null,
+          ),
+        );
+      } catch (e) {
+        debugPrint("Error stopping screen recording: $e");
+        emit(state.copyWith(isRecording: false));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to stop screen recording: $e")),
+        );
+      }
     }
   }
 
@@ -488,6 +517,12 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     state.controller?.dispose();
     if (state.originalVideoPath != null) {
       final file = File(state.originalVideoPath!);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+    if (state.screenRecordingPath != null) {
+      final file = File(state.screenRecordingPath!);
       if (await file.exists()) {
         await file.delete();
       }

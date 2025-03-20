@@ -67,8 +67,8 @@ class EditingVideoScreen extends StatelessWidget {
                 return IconButton(
                   icon: Icon(Icons.save_alt),
                   onPressed:
-                      state.recordingEndTime != null
-                          ? () => _saveVideoWithDrawings(context)
+                      state.screenRecordingPath != null
+                          ? () => _saveScreenRecording(context)
                           : null,
                   tooltip: "Download Recorded Video",
                 );
@@ -83,87 +83,117 @@ class EditingVideoScreen extends StatelessWidget {
               SizedBox(height: 50.h),
               BlocBuilder<VideoEditingCubit, VideoEditingState>(
                 builder: (context, state) {
-                  return GestureDetector(
-                    onTapDown: (details) {
-                      if (state.isDrawing &&
-                          state.drawingMode != DrawingMode.free) {
-                        context.read<VideoEditingCubit>().addPoint(
-                          details.localPosition,
-                        );
-                        context.read<VideoEditingCubit>().endDrawing();
-                      } else if (!state.isDrawing) {
-                        context.read<VideoEditingCubit>().selectDrawing(
-                          details.localPosition,
-                        );
-                      }
-                    },
-                    onTap: () {
-                      if (!state.isDrawing &&
-                          state.selectedDrawingIndex == null) {
-                        context.read<VideoEditingCubit>().toggleTimeline();
-                      }
-                    },
-                    onPanStart: (details) {
-                      if (state.isDrawing) {
-                        context.read<VideoEditingCubit>().addPoint(
-                          details.localPosition,
-                        );
-                      } else {
-                        context.read<VideoEditingCubit>().selectDrawing(
-                          details.localPosition,
-                        );
-                      }
-                    },
-                    onPanUpdate: (details) {
-                      if (state.isDrawing) {
-                        context.read<VideoEditingCubit>().addPoint(
-                          details.localPosition,
-                        );
-                      } else if (state.selectedDrawingIndex != null) {
-                        context.read<VideoEditingCubit>().moveSelectedDrawing(
-                          details.localPosition,
-                        );
-                      }
-                    },
-                    onPanEnd: (_) {
-                      if (state.isDrawing) {
-                        context.read<VideoEditingCubit>().endDrawing();
-                      } else if (state.selectedDrawingIndex != null) {
-                        context.read<VideoEditingCubit>().deselectDrawing();
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black),
+                  return Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      GestureDetector(
+                        onTapDown: (details) {
+                          if (state.isDrawing &&
+                              state.drawingMode != DrawingMode.free) {
+                            context.read<VideoEditingCubit>().addPoint(
+                              details.localPosition,
+                            );
+                            context.read<VideoEditingCubit>().endDrawing();
+                          } else if (!state.isDrawing) {
+                            context.read<VideoEditingCubit>().selectDrawing(
+                              details.localPosition,
+                            );
+                          }
+                        },
+                        onTap: () {
+                          if (!state.isDrawing &&
+                              state.selectedDrawingIndex == null) {
+                            context.read<VideoEditingCubit>().toggleTimeline();
+                          }
+                        },
+                        onPanStart: (details) {
+                          if (state.isDrawing) {
+                            context.read<VideoEditingCubit>().addPoint(
+                              details.localPosition,
+                            );
+                          } else {
+                            context.read<VideoEditingCubit>().selectDrawing(
+                              details.localPosition,
+                            );
+                          }
+                        },
+                        onPanUpdate: (details) {
+                          if (state.isDrawing) {
+                            context.read<VideoEditingCubit>().addPoint(
+                              details.localPosition,
+                            );
+                          } else if (state.selectedDrawingIndex != null) {
+                            context
+                                .read<VideoEditingCubit>()
+                                .moveSelectedDrawing(details.localPosition);
+                          }
+                        },
+                        onPanEnd: (_) {
+                          if (state.isDrawing) {
+                            context.read<VideoEditingCubit>().endDrawing();
+                          } else if (state.selectedDrawingIndex != null) {
+                            context.read<VideoEditingCubit>().deselectDrawing();
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black),
+                          ),
+                          height: state.controller != null ? 600.h : null,
+                          width: double.infinity,
+                          child: Stack(
+                            alignment: Alignment.bottomCenter,
+                            children: [
+                              if (state.controller != null &&
+                                  state.controller!.value.isInitialized)
+                                AspectRatio(
+                                  aspectRatio:
+                                      state.controller!.value.aspectRatio,
+                                  child: VideoPlayer(state.controller!),
+                                )
+                              else
+                                Center(
+                                  child: Text("Aucune vidéo sélectionnée"),
+                                ),
+                              if (state.controller != null)
+                                CustomPaint(
+                                  size: Size(double.infinity, 600.h),
+                                  painter: DrawingPainter(
+                                    context
+                                        .read<VideoEditingCubit>()
+                                        .getDrawingsForCurrentFrame(),
+                                    state.isDrawing ? state.points : [],
+                                    state.drawingMode,
+                                    state.drawingColor,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
-                      height: state.controller != null ? 600.h : null,
-                      width: double.infinity,
-                      child: Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          if (state.controller != null &&
-                              state.controller!.value.isInitialized)
-                            AspectRatio(
-                              aspectRatio: state.controller!.value.aspectRatio,
-                              child: VideoPlayer(state.controller!),
-                            )
-                          else
-                            Center(child: Text("Aucune vidéo sélectionnée")),
-                          if (state.controller != null)
-                            CustomPaint(
-                              size: Size(double.infinity, 600.h),
-                              painter: DrawingPainter(
-                                context
-                                    .read<VideoEditingCubit>()
-                                    .getDrawingsForCurrentFrame(),
-                                state.isDrawing ? state.points : [],
-                                state.drawingMode,
-                                state.drawingColor,
+                      if (state.isRecording)
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.fiber_manual_record,
+                                color: Colors.red,
+                                size: 24.0,
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
+                              SizedBox(width: 4.0),
+                              Text(
+                                "Recording",
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -260,6 +290,7 @@ class EditingVideoScreen extends StatelessWidget {
                 },
               ),
               SizedBox(height: 20.h),
+              // In EditingVideoScreen.dart
               BlocBuilder<VideoEditingCubit, VideoEditingState>(
                 builder: (context, state) {
                   return Row(
@@ -268,10 +299,9 @@ class EditingVideoScreen extends StatelessWidget {
                       ElevatedButton(
                         onPressed:
                             state.controller != null && !state.isRecording
-                                ? () =>
-                                    context
-                                        .read<VideoEditingCubit>()
-                                        .startRecording()
+                                ? () => context
+                                    .read<VideoEditingCubit>()
+                                    .startRecording(context)
                                 : null,
                         child: Text("Start Record"),
                       ),
@@ -279,10 +309,9 @@ class EditingVideoScreen extends StatelessWidget {
                       ElevatedButton(
                         onPressed:
                             state.controller != null && state.isRecording
-                                ? () =>
-                                    context
-                                        .read<VideoEditingCubit>()
-                                        .stopRecording()
+                                ? () => context
+                                    .read<VideoEditingCubit>()
+                                    .stopRecording(context)
                                 : null,
                         child: Text("Stop Record"),
                       ),
@@ -394,17 +423,18 @@ class EditingVideoScreen extends StatelessWidget {
     return "$hours:$minutes:$seconds";
   }
 
-  Future<void> _saveVideoWithDrawings(BuildContext context) async {
+  Future<void> _saveScreenRecording(BuildContext context) async {
     final cubit = context.read<VideoEditingCubit>();
     final state = cubit.state;
 
-    if (state.controller == null ||
-        state.originalVideoPath == null ||
-        state.recordingStartTime == null ||
-        state.recordingEndTime == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("No recorded video to save.")));
+    if (state.screenRecordingPath == null || state.originalVideoPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "No screen recording or original video available to save.",
+          ),
+        ),
+      );
       return;
     }
 
@@ -414,73 +444,41 @@ class EditingVideoScreen extends StatelessWidget {
         await downloadsDir.create(recursive: true);
       }
       final outputPath =
-          '${downloadsDir.path}/recorded_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          '${downloadsDir.path}/screen_record_with_audio_${DateTime.now().millisecondsSinceEpoch}.mp4';
 
-      final originalVideoFile = File(state.originalVideoPath!);
-      if (!await originalVideoFile.exists()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Original video file is missing")),
-        );
-        throw Exception(
-          "Original video file does not exist: ${state.originalVideoPath}",
-        );
+      // Use FFmpeg to merge the original video's audio with the recorded video
+      final command =
+          '-i ${state.screenRecordingPath} -i ${state.originalVideoPath} -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest $outputPath';
+      await FFmpegKit.execute(command);
+
+      final recordedFile = File(state.screenRecordingPath!);
+      if (await recordedFile.exists()) {
+        await recordedFile.delete(); // Clean up the temporary silent recording
       }
 
-      final startTimeMs = state.recordingStartTime!;
-      final endTimeMs = state.recordingEndTime!;
-      final durationSec = (endTimeMs - startTimeMs) / 1000.0;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Screen recording with audio saved to Downloads: $outputPath",
+          ),
+        ),
+      );
 
-      final tempDir = await getTemporaryDirectory();
-      final tempVideoPath = '${tempDir.path}/temp_recorded.mp4';
-
-      String extractCommand =
-          '-i "${state.originalVideoPath}" -ss ${startTimeMs / 1000.0} -t $durationSec -c:v copy -c:a copy "$tempVideoPath"';
-      final extractSession = await FFmpegKit.execute(extractCommand);
-      final extractReturnCode = await extractSession.getReturnCode();
-
-      if (extractReturnCode?.isValueSuccess() != true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to extract recorded portion")),
-        );
-        return;
-      }
-
-      final tempVideoFile = File(tempVideoPath);
-      if (!await tempVideoFile.exists()) {
-        throw Exception("Temp video file does not exist: $tempVideoPath");
-      }
-
-      if (state.lines.isEmpty) {
-        String finalCommand =
-            '-i "$tempVideoPath" -c:v copy -c:a copy "$outputPath"';
-        final finalSession = await FFmpegKit.execute(finalCommand);
-        final finalReturnCode = await finalSession.getReturnCode();
-
-        if (finalReturnCode?.isValueSuccess() == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Video saved to Downloads: $outputPath")),
-          );
-
-          await tempVideoFile.delete();
-
-          final newController = VideoPlayerController.file(File(outputPath));
-          await newController.initialize();
-          newController.addListener(cubit.updateControllerState);
-          cubit.emit(
-            state.copyWith(controller: newController, isPlaying: false),
-          );
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Failed to save video")));
-        }
-      } else {
-        // Add overlay logic here if needed
-      }
+      final newController = VideoPlayerController.file(File(outputPath));
+      await newController.initialize();
+      newController.addListener(cubit.updateControllerState);
+      cubit.emit(
+        state.copyWith(
+          controller: newController,
+          isPlaying: false,
+          originalVideoPath: outputPath,
+          screenRecordingPath: null,
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error saving video: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error saving screen recording: $e")),
+      );
     }
   }
 

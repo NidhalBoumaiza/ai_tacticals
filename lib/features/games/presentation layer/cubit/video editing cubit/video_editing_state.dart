@@ -20,6 +20,7 @@ class VideoEditingState {
   final DrawingMode drawingMode;
   final int? selectedDrawingIndex;
   final Color drawingColor;
+  final String? screenRecordingPath;
 
   VideoEditingState({
     this.controller,
@@ -37,7 +38,8 @@ class VideoEditingState {
     this.playbackEvents = const [],
     this.drawingMode = DrawingMode.none,
     this.selectedDrawingIndex,
-    this.drawingColor = Colors.green, // Default color
+    this.drawingColor = Colors.green,
+    this.screenRecordingPath,
   });
 
   VideoEditingState copyWith({
@@ -46,7 +48,6 @@ class VideoEditingState {
     bool? isPlaying,
     bool? showTimeline,
     bool? isDrawing,
-
     List<Offset>? points,
     List<Map<String, dynamic>>? lines,
     List<Map<String, dynamic>>? redoLines,
@@ -58,6 +59,7 @@ class VideoEditingState {
     DrawingMode? drawingMode,
     int? selectedDrawingIndex,
     Color? drawingColor,
+    String? screenRecordingPath,
   }) {
     return VideoEditingState(
       controller: controller ?? this.controller,
@@ -76,12 +78,12 @@ class VideoEditingState {
       drawingMode: drawingMode ?? this.drawingMode,
       selectedDrawingIndex: selectedDrawingIndex ?? this.selectedDrawingIndex,
       drawingColor: drawingColor ?? this.drawingColor,
+      screenRecordingPath: screenRecordingPath ?? this.screenRecordingPath,
     );
   }
 
-  // Optional: Add a toString method for easier debugging
   @override
   String toString() {
-    return 'VideoEditingState(isPlaying: $isPlaying, isDrawing: $isDrawing, drawingMode: $drawingMode, lines: ${lines.length}, points: ${points.length}, redoLines: ${redoLines.length}, isRecording: $isRecording, selectedDrawingIndex: $selectedDrawingIndex)';
+    return 'VideoEditingState(isPlaying: $isPlaying, isDrawing: $isDrawing, drawingMode: $drawingMode, lines: ${lines.length}, points: ${points.length}, redoLines: ${redoLines.length}, isRecording: $isRecording, selectedDrawingIndex: $selectedDrawingIndex, screenRecordingPath: $screenRecordingPath)';
   }
 }
