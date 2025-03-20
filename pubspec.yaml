@@ -38,6 +38,11 @@ dependencies:
   video_player: ^2.9.3
   image_picker: ^1.1.2
   permission_handler: ^11.4.0
+  path_provider: ^2.1.5
+  ffmpeg_kit_flutter: ^6.0.3
+  flutter_speed_dial: ^7.0.0
+  flutter_colorpicker: ^1.1.0
+ 
 
 
 dev_dependencies:
