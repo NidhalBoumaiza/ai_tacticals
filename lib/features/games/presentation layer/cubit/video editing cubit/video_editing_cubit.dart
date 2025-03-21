@@ -282,40 +282,43 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
   void startRecording() {
     final controller = state.controller;
     if (controller != null && controller.value.isInitialized) {
-      final startTime = controller.value.position.inMilliseconds;
-      emit(
-        state.copyWith(
-          isRecording: true,
-          recordingStartTime: startTime,
-          recordingEndTime: null,
-          playbackEvents: [],
-          selectedDrawingIndex: null,
-        ),
-      );
-      if (controller.value.isPlaying) {
-        emit(
-          state.copyWith(
-            playbackEvents: List.from(state.playbackEvents)
-              ..add({'action': 'play', 'timestamp': startTime}),
-          ),
-        );
-      }
+      state.screenRecorderController.start(); // Start screen recording
+      emit(state.copyWith(
+        isRecording: true,
+        recordingStartTime: controller.value.position.inMilliseconds,
+      ));
     }
   }
 
-  void stopRecording() {
+  void stopRecording() async {
     final controller = state.controller;
-    if (controller != null &&
-        controller.value.isInitialized &&
-        state.isRecording) {
-      final endTime = controller.value.position.inMilliseconds;
-      emit(
-        state.copyWith(
-          isRecording: false,
-          recordingEndTime: endTime,
-          selectedDrawingIndex: null,
-        ),
-      );
+    if (controller != null && state.isRecording) {
+      state.screenRecorderController.stop(); // Stop screen recording
+      final frames = await state.screenRecorderController.exporter.exportFrames(); // Export frames
+      emit(state.copyWith(
+        isRecording: false,
+        recordingEndTime: controller.value.position.inMilliseconds,
+      ));
+
+      if (frames != null) {
+        // Save frames as GIF
+        final gif = await state.screenRecorderController.exporter.exportGif();
+        if (gif != null) {
+          final downloadsDir = Directory('/storage/emulated/0/Download');
+          if (!await downloadsDir.exists()) {
+            await downloadsDir.create(recursive: true);
+          }
+          final gifPath = '${downloadsDir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.gif';
+          await File(gifPath).writeAsBytes(gif);
+          // Show a snackbar to notify the user
+          // Note: You need access to the `BuildContext` to show a SnackBar.
+          // If you don't have access to `context` here, you can emit a state to show a message in the UI.
+          emit(state.copyWith(
+            showSnackbar: true,
+            snackbarMessage: "Recording saved as GIF: $gifPath",
+          ));
+        }
+      }
     }
   }
 

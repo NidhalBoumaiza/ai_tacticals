@@ -11,6 +11,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:screen_recorder/screen_recorder.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../cubit/video editing cubit/video_editing_cubit.dart';
@@ -23,364 +24,326 @@ class EditingVideoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => VideoEditingCubit(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text("Éditeur de Vidéo"),
-          actions: [
-            BlocBuilder<VideoEditingCubit, VideoEditingState>(
-              builder: (context, state) {
-                return IconButton(
-                  icon: Icon(Icons.undo),
-                  onPressed:
-                      state.lines.isNotEmpty
-                          ? () => context.read<VideoEditingCubit>().undo()
-                          : null,
-                );
-              },
-            ),
-            BlocBuilder<VideoEditingCubit, VideoEditingState>(
-              builder: (context, state) {
-                return IconButton(
-                  icon: Icon(Icons.redo),
-                  onPressed:
-                      state.redoLines.isNotEmpty
-                          ? () => context.read<VideoEditingCubit>().redo()
-                          : null,
-                );
-              },
-            ),
-            BlocBuilder<VideoEditingCubit, VideoEditingState>(
-              builder: (context, state) {
-                return IconButton(
-                  icon: Icon(Icons.clear),
-                  onPressed:
-                      state.lines.isNotEmpty
-                          ? () =>
-                              context.read<VideoEditingCubit>().clearDrawings()
-                          : null,
-                  tooltip: "Clear Drawings",
-                );
-              },
-            ),
-            BlocBuilder<VideoEditingCubit, VideoEditingState>(
-              builder: (context, state) {
-                return IconButton(
-                  icon: Icon(Icons.save_alt),
-                  onPressed:
-                      state.recordingEndTime != null
-                          ? () => _saveVideoWithDrawings(context)
-                          : null,
-                  tooltip: "Download Recorded Video",
-                );
-              },
-            ),
-          ],
-        ),
-        body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 50.w),
-          child: Column(
-            children: [
-              SizedBox(height: 50.h),
+      child: BlocListener<VideoEditingCubit, VideoEditingState>(
+        listener: (context, state) {
+          if (state.showSnackbar) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.snackbarMessage!)),
+            );
+            // Reset the snackbar state
+            context.read<VideoEditingCubit>().emit(state.copyWith(
+              showSnackbar: false,
+              snackbarMessage: null,
+            ));
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text("Éditeur de Vidéo"),
+            actions: [
               BlocBuilder<VideoEditingCubit, VideoEditingState>(
                 builder: (context, state) {
-                  return GestureDetector(
-                    onTapDown: (details) {
-                      if (state.isDrawing &&
-                          state.drawingMode != DrawingMode.free) {
-                        context.read<VideoEditingCubit>().addPoint(
-                          details.localPosition,
-                        );
-                        context.read<VideoEditingCubit>().endDrawing();
-                      } else if (!state.isDrawing) {
-                        context.read<VideoEditingCubit>().selectDrawing(
-                          details.localPosition,
-                        );
-                      }
-                    },
-                    onTap: () {
-                      if (!state.isDrawing &&
-                          state.selectedDrawingIndex == null) {
-                        context.read<VideoEditingCubit>().toggleTimeline();
-                      }
-                    },
-                    onPanStart: (details) {
-                      if (state.isDrawing) {
-                        context.read<VideoEditingCubit>().addPoint(
-                          details.localPosition,
-                        );
-                      } else {
-                        context.read<VideoEditingCubit>().selectDrawing(
-                          details.localPosition,
-                        );
-                      }
-                    },
-                    onPanUpdate: (details) {
-                      if (state.isDrawing) {
-                        context.read<VideoEditingCubit>().addPoint(
-                          details.localPosition,
-                        );
-                      } else if (state.selectedDrawingIndex != null) {
-                        context.read<VideoEditingCubit>().moveSelectedDrawing(
-                          details.localPosition,
-                        );
-                      }
-                    },
-                    onPanEnd: (_) {
-                      if (state.isDrawing) {
-                        context.read<VideoEditingCubit>().endDrawing();
-                      } else if (state.selectedDrawingIndex != null) {
-                        context.read<VideoEditingCubit>().deselectDrawing();
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black),
-                      ),
-                      height: state.controller != null ? 600.h : null,
-                      width: double.infinity,
-                      child: Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          if (state.controller != null &&
-                              state.controller!.value.isInitialized)
-                            AspectRatio(
-                              aspectRatio: state.controller!.value.aspectRatio,
-                              child: VideoPlayer(state.controller!),
-                            )
-                          else
-                            Center(child: Text("Aucune vidéo sélectionnée")),
-                          if (state.controller != null)
-                            CustomPaint(
-                              size: Size(double.infinity, 600.h),
-                              painter: DrawingPainter(
-                                context
-                                    .read<VideoEditingCubit>()
-                                    .getDrawingsForCurrentFrame(),
-                                state.isDrawing ? state.points : [],
-                                state.drawingMode,
-                                state.drawingColor,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+                  return IconButton(
+                    icon: Icon(Icons.undo),
+                    onPressed: state.lines.isNotEmpty
+                        ? () => context.read<VideoEditingCubit>().undo()
+                        : null,
                   );
                 },
               ),
               BlocBuilder<VideoEditingCubit, VideoEditingState>(
                 builder: (context, state) {
-                  if (state.showTimeline && state.controller != null) {
-                    return Container(
-                      color: Colors.black54,
-                      padding: EdgeInsets.symmetric(vertical: 10.h),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Slider(
-                            value:
-                                state.controller!.value.position.inSeconds
-                                    .toDouble(),
-                            min: 0,
-                            max:
-                                state.controller!.value.duration.inSeconds
-                                    .toDouble(),
-                            onChanged: (value) {
-                              state.controller!.seekTo(
-                                Duration(seconds: value.toInt()),
-                              );
-                            },
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _formatDuration(
-                                    state.controller!.value.position,
-                                  ),
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                                Text(
-                                  _formatDuration(
-                                    state.controller!.value.duration,
-                                  ),
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  return SizedBox.shrink();
-                },
-              ),
-              SizedBox(height: 50.h),
-              BlocBuilder<VideoEditingCubit, VideoEditingState>(
-                builder: (context, state) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.replay_10),
-                        onPressed:
-                            state.controller != null
-                                ? () =>
-                                    context
-                                        .read<VideoEditingCubit>()
-                                        .seekBackward()
-                                : null,
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          state.isPlaying ? Icons.pause : Icons.play_arrow,
-                        ),
-                        onPressed:
-                            state.controller != null
-                                ? () =>
-                                    context
-                                        .read<VideoEditingCubit>()
-                                        .togglePlayPause()
-                                : null,
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.forward_10),
-                        onPressed:
-                            state.controller != null
-                                ? () =>
-                                    context
-                                        .read<VideoEditingCubit>()
-                                        .seekForward()
-                                : null,
-                      ),
-                    ],
+                  return IconButton(
+                    icon: Icon(Icons.redo),
+                    onPressed: state.redoLines.isNotEmpty
+                        ? () => context.read<VideoEditingCubit>().redo()
+                        : null,
                   );
                 },
               ),
-              SizedBox(height: 20.h),
               BlocBuilder<VideoEditingCubit, VideoEditingState>(
                 builder: (context, state) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed:
-                            state.controller != null && !state.isRecording
-                                ? () =>
-                                    context
-                                        .read<VideoEditingCubit>()
-                                        .startRecording()
-                                : null,
-                        child: Text("Start Record"),
-                      ),
-                      SizedBox(width: 20.w),
-                      ElevatedButton(
-                        onPressed:
-                            state.controller != null && state.isRecording
-                                ? () =>
-                                    context
-                                        .read<VideoEditingCubit>()
-                                        .stopRecording()
-                                : null,
-                        child: Text("Stop Record"),
-                      ),
-                    ],
+                  return IconButton(
+                    icon: Icon(Icons.clear),
+                    onPressed: state.lines.isNotEmpty
+                        ? () => context.read<VideoEditingCubit>().clearDrawings()
+                        : null,
+                    tooltip: "Clear Drawings",
                   );
                 },
               ),
-              SizedBox(height: 50.h),
               BlocBuilder<VideoEditingCubit, VideoEditingState>(
                 builder: (context, state) {
-                  return ElevatedButton(
-                    onPressed:
-                        state.isPickerActive
-                            ? null
-                            : () async {
-                              var status = await Permission.videos.request();
-                              if (status.isGranted) {
-                                context.read<VideoEditingCubit>().pickVideo();
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Video permission denied"),
-                                  ),
-                                );
-                              }
-                            },
-                    child: Text("Pick a video"),
+                  return IconButton(
+                    icon: Icon(Icons.save_alt),
+                    onPressed: state.recordingEndTime != null
+                        ? () => _saveVideoWithDrawings(context)
+                        : null,
+                    tooltip: "Download Recorded Video",
                   );
                 },
               ),
             ],
           ),
-        ),
-        floatingActionButton: BlocBuilder<VideoEditingCubit, VideoEditingState>(
-          builder: (context, state) {
-            final cubit = context.read<VideoEditingCubit>();
-            final isOpen = ValueNotifier<bool>(false);
-            return SpeedDial(
-              icon: state.isDrawing ? Icons.stop : Icons.edit,
-              activeIcon: Icons.close,
-              spacing: 10,
-              childPadding: EdgeInsets.all(5),
-              spaceBetweenChildren: 4,
-              openCloseDial: isOpen,
+          body: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 50.w),
+            child: Column(
               children: [
-                SpeedDialChild(
-                  child: Icon(Icons.brush),
-                  label: 'Draw',
-                  onTap: () {
-                    cubit.setDrawingMode(DrawingMode.free, context);
-                    isOpen.value = false;
+                SizedBox(height: 50.h),
+                BlocBuilder<VideoEditingCubit, VideoEditingState>(
+                  builder: (context, state) {
+                    return GestureDetector(
+                      onTapDown: (details) {
+                        if (state.isDrawing && state.drawingMode != DrawingMode.free) {
+                          context.read<VideoEditingCubit>().addPoint(details.localPosition);
+                          context.read<VideoEditingCubit>().endDrawing();
+                        } else if (!state.isDrawing) {
+                          context.read<VideoEditingCubit>().selectDrawing(details.localPosition);
+                        }
+                      },
+                      onTap: () {
+                        if (!state.isDrawing && state.selectedDrawingIndex == null) {
+                          context.read<VideoEditingCubit>().toggleTimeline();
+                        }
+                      },
+                      onPanStart: (details) {
+                        if (state.isDrawing) {
+                          context.read<VideoEditingCubit>().addPoint(details.localPosition);
+                        } else {
+                          context.read<VideoEditingCubit>().selectDrawing(details.localPosition);
+                        }
+                      },
+                      onPanUpdate: (details) {
+                        if (state.isDrawing) {
+                          context.read<VideoEditingCubit>().addPoint(details.localPosition);
+                        } else if (state.selectedDrawingIndex != null) {
+                          context.read<VideoEditingCubit>().moveSelectedDrawing(details.localPosition);
+                        }
+                      },
+                      onPanEnd: (_) {
+                        if (state.isDrawing) {
+                          context.read<VideoEditingCubit>().endDrawing();
+                        } else if (state.selectedDrawingIndex != null) {
+                          context.read<VideoEditingCubit>().deselectDrawing();
+                        }
+                      },
+                      child: ScreenRecorder(
+                        controller: state.screenRecorderController,
+                        height: 600.h, // Match the container height
+                        width: double.infinity, // Match the container width
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black),
+                          ),
+                          height: state.controller != null ? 600.h : null,
+                          width: double.infinity,
+                          child: Stack(
+                            alignment: Alignment.bottomCenter,
+                            children: [
+                              if (state.controller != null && state.controller!.value.isInitialized)
+                                AspectRatio(
+                                  aspectRatio: state.controller!.value.aspectRatio,
+                                  child: VideoPlayer(state.controller!),
+                                )
+                              else
+                                Center(child: Text("Aucune vidéo sélectionnée")),
+                              if (state.controller != null)
+                                CustomPaint(
+                                  size: Size(double.infinity, 600.h),
+                                  painter: DrawingPainter(
+                                    context.read<VideoEditingCubit>().getDrawingsForCurrentFrame(),
+                                    state.isDrawing ? state.points : [],
+                                    state.drawingMode,
+                                    state.drawingColor,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 ),
-                SpeedDialChild(
-                  child: Icon(Icons.circle_outlined),
-                  label: 'Circle',
-                  onTap: () {
-                    cubit.setDrawingMode(DrawingMode.circle, context);
-                    isOpen.value = false;
+                BlocBuilder<VideoEditingCubit, VideoEditingState>(
+                  builder: (context, state) {
+                    if (state.showTimeline && state.controller != null) {
+                      return Container(
+                        color: Colors.black54,
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Slider(
+                              value: state.controller!.value.position.inSeconds.toDouble(),
+                              min: 0,
+                              max: state.controller!.value.duration.inSeconds.toDouble(),
+                              onChanged: (value) {
+                                state.controller!.seekTo(Duration(seconds: value.toInt()));
+                              },
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _formatDuration(state.controller!.value.position),
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  Text(
+                                    _formatDuration(state.controller!.value.duration),
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return SizedBox.shrink();
                   },
                 ),
-                SpeedDialChild(
-                  child: FaIcon(FontAwesomeIcons.person),
-                  label: 'Player Icon',
-                  onTap: () {
-                    cubit.setDrawingMode(DrawingMode.player, context);
-                    isOpen.value = false;
+                SizedBox(height: 50.h),
+                BlocBuilder<VideoEditingCubit, VideoEditingState>(
+                  builder: (context, state) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.replay_10),
+                          onPressed: state.controller != null
+                              ? () => context.read<VideoEditingCubit>().seekBackward()
+                              : null,
+                        ),
+                        IconButton(
+                          icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
+                          onPressed: state.controller != null
+                              ? () => context.read<VideoEditingCubit>().togglePlayPause()
+                              : null,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.forward_10),
+                          onPressed: state.controller != null
+                              ? () => context.read<VideoEditingCubit>().seekForward()
+                              : null,
+                        ),
+                      ],
+                    );
                   },
                 ),
-                SpeedDialChild(
-                  child: Icon(Icons.arrow_forward),
-                  label: 'Arrow',
-                  onTap: () {
-                    cubit.setDrawingMode(DrawingMode.arrow, context);
-                    isOpen.value = false;
+                SizedBox(height: 20.h),
+                BlocBuilder<VideoEditingCubit, VideoEditingState>(
+                  builder: (context, state) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: state.controller != null && !state.isRecording
+                              ? () => context.read<VideoEditingCubit>().startRecording()
+                              : null,
+                          child: Text("Start Record"),
+                        ),
+                        SizedBox(width: 20.w),
+                        ElevatedButton(
+                          onPressed: state.controller != null && state.isRecording
+                              ? () => context.read<VideoEditingCubit>().stopRecording()
+                              : null,
+                          child: Text("Stop Record"),
+                        ),
+                      ],
+                    );
                   },
                 ),
-                SpeedDialChild(
-                  child: Icon(Icons.color_lens),
-                  label: 'Change Color',
-                  onTap: () {
-                    _showColorPicker(context);
-                    isOpen.value = false;
+                SizedBox(height: 50.h),
+                BlocBuilder<VideoEditingCubit, VideoEditingState>(
+                  builder: (context, state) {
+                    return ElevatedButton(
+                      onPressed: state.isPickerActive
+                          ? null
+                          : () async {
+                        var status = await Permission.videos.request();
+                        if (status.isGranted) {
+                          context.read<VideoEditingCubit>().pickVideo();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Video permission denied")),
+                          );
+                        }
+                      },
+                      child: Text("Pick a video"),
+                    );
                   },
                 ),
               ],
-              onOpen: () {},
-              onClose: () {},
-              onPress: () {
-                if (state.isDrawing) {
-                  cubit.stopDrawing();
-                  isOpen.value = false;
-                } else {
-                  isOpen.value = !isOpen.value;
-                }
-              },
-            );
-          },
+            ),
+          ),
+          floatingActionButton: BlocBuilder<VideoEditingCubit, VideoEditingState>(
+            builder: (context, state) {
+              final cubit = context.read<VideoEditingCubit>();
+              final isOpen = ValueNotifier<bool>(false);
+              return SpeedDial(
+                icon: state.isDrawing ? Icons.stop : Icons.edit,
+                activeIcon: Icons.close,
+                spacing: 10,
+                childPadding: EdgeInsets.all(5),
+                spaceBetweenChildren: 4,
+                openCloseDial: isOpen,
+                children: [
+                  SpeedDialChild(
+                    child: Icon(Icons.brush),
+                    label: 'Draw',
+                    onTap: () {
+                      cubit.setDrawingMode(DrawingMode.free, context);
+                      isOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: Icon(Icons.circle_outlined),
+                    label: 'Circle',
+                    onTap: () {
+                      cubit.setDrawingMode(DrawingMode.circle, context);
+                      isOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: FaIcon(FontAwesomeIcons.person),
+                    label: 'Player Icon',
+                    onTap: () {
+                      cubit.setDrawingMode(DrawingMode.player, context);
+                      isOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: Icon(Icons.arrow_forward),
+                    label: 'Arrow',
+                    onTap: () {
+                      cubit.setDrawingMode(DrawingMode.arrow, context);
+                      isOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: Icon(Icons.color_lens),
+                    label: 'Change Color',
+                    onTap: () {
+                      _showColorPicker(context);
+                      isOpen.value = false;
+                    },
+                  ),
+                ],
+                onOpen: () {},
+                onClose: () {},
+                onPress: () {
+                  if (state.isDrawing) {
+                    cubit.stopDrawing();
+                    isOpen.value = false;
+                  } else {
+                    isOpen.value = !isOpen.value;
+                  }
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -402,9 +365,9 @@ class EditingVideoScreen extends StatelessWidget {
         state.originalVideoPath == null ||
         state.recordingStartTime == null ||
         state.recordingEndTime == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("No recorded video to save.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("No recorded video to save.")),
+      );
       return;
     }
 
@@ -470,30 +433,30 @@ class EditingVideoScreen extends StatelessWidget {
             state.copyWith(controller: newController, isPlaying: false),
           );
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Failed to save video")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to save video")),
+          );
         }
       } else {
         // Add overlay logic here if needed
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error saving video: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error saving video: $e")),
+      );
     }
   }
 
   Future<String?> _saveDrawingAsImage(
-    BuildContext context,
-    int timestamp,
-    VideoPlayerController controller,
-  ) async {
+      BuildContext context,
+      int timestamp,
+      VideoPlayerController controller,
+      ) async {
     final drawingsToSave =
-        context.read<VideoEditingCubit>().state.lines.where((line) {
-          final diff = (line['timestamp'] as int) - timestamp;
-          return diff.abs() < 100;
-        }).toList();
+    context.read<VideoEditingCubit>().state.lines.where((line) {
+      final diff = (line['timestamp'] as int) - timestamp;
+      return diff.abs() < 100;
+    }).toList();
 
     if (drawingsToSave.isEmpty) {
       return null;
@@ -502,10 +465,10 @@ class EditingVideoScreen extends StatelessWidget {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     final paint =
-        Paint()
-          ..color = Colors.green
-          ..strokeWidth = 4.0
-          ..strokeCap = StrokeCap.round;
+    Paint()
+      ..color = Colors.green
+      ..strokeWidth = 4.0
+      ..strokeCap = StrokeCap.round;
 
     for (var drawing in drawingsToSave) {
       switch (drawing['type']) {
@@ -552,11 +515,11 @@ class EditingVideoScreen extends StatelessWidget {
 
   void _drawPlayIcon(Canvas canvas, Offset position, Paint paint) {
     final path =
-        Path()
-          ..moveTo(position.dx - 10, position.dy - 15)
-          ..lineTo(position.dx + 15, position.dy)
-          ..lineTo(position.dx - 10, position.dy + 15)
-          ..close();
+    Path()
+      ..moveTo(position.dx - 10, position.dy - 15)
+      ..lineTo(position.dx + 15, position.dy)
+      ..lineTo(position.dx - 10, position.dy + 15)
+      ..close();
     canvas.drawPath(path, paint..style = PaintingStyle.fill);
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:screen_recorder/screen_recorder.dart';
 import 'package:video_player/video_player.dart';
 
 enum DrawingMode { none, free, circle, player, arrow }
@@ -20,9 +21,16 @@ class VideoEditingState {
   final DrawingMode drawingMode;
   final int? selectedDrawingIndex;
   final Color drawingColor;
+  final bool showSnackbar;
+  final String? snackbarMessage;
 
+  final ScreenRecorderController screenRecorderController; // Add this
   VideoEditingState({
+    this.showSnackbar = false,
+    this.snackbarMessage,
     this.controller,
+    ScreenRecorderController? screenRecorderController,
+
     this.isPickerActive = false,
     this.isPlaying = false,
     this.showTimeline = false,
@@ -38,15 +46,17 @@ class VideoEditingState {
     this.drawingMode = DrawingMode.none,
     this.selectedDrawingIndex,
     this.drawingColor = Colors.green, // Default color
-  });
+  }): screenRecorderController = screenRecorderController ?? ScreenRecorderController();
 
   VideoEditingState copyWith({
+    bool? showSnackbar,
+    String? snackbarMessage,
     VideoPlayerController? controller,
     bool? isPickerActive,
     bool? isPlaying,
     bool? showTimeline,
     bool? isDrawing,
-
+    ScreenRecorderController? screenRecorderController,
     List<Offset>? points,
     List<Map<String, dynamic>>? lines,
     List<Map<String, dynamic>>? redoLines,
@@ -60,6 +70,9 @@ class VideoEditingState {
     Color? drawingColor,
   }) {
     return VideoEditingState(
+      showSnackbar: showSnackbar ?? this.showSnackbar,
+      snackbarMessage: snackbarMessage ?? this.snackbarMessage,
+      screenRecorderController: screenRecorderController ?? this.screenRecorderController,
       controller: controller ?? this.controller,
       isPickerActive: isPickerActive ?? this.isPickerActive,
       isPlaying: isPlaying ?? this.isPlaying,
