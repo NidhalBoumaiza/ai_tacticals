@@ -1,3 +1,4 @@
+import 'package:analysis_ai/features/games/presentation%20layer/cubit/video%20editing%20cubit/video_editing_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:screen_recorder/screen_recorder.dart';
 import 'package:video_player/video_player.dart';
@@ -19,18 +20,17 @@ class VideoEditingState {
   final int? recordingEndTime;
   final List<Map<String, dynamic>> playbackEvents;
   final DrawingMode drawingMode;
-  final int? selectedDrawingIndex;
+  final int? selectedDrawingIndex; // Add this property
   final Color drawingColor;
   final bool showSnackbar;
   final String? snackbarMessage;
-
-  final ScreenRecorderController screenRecorderController; // Add this
+  final int pauseDuration;
+  final List<PauseSegment> pauseSegments;
+  final int? pauseStartTime;
   VideoEditingState({
     this.showSnackbar = false,
     this.snackbarMessage,
     this.controller,
-    ScreenRecorderController? screenRecorderController,
-
     this.isPickerActive = false,
     this.isPlaying = false,
     this.showTimeline = false,
@@ -44,9 +44,12 @@ class VideoEditingState {
     this.recordingEndTime,
     this.playbackEvents = const [],
     this.drawingMode = DrawingMode.none,
-    this.selectedDrawingIndex,
-    this.drawingColor = Colors.green, // Default color
-  }): screenRecorderController = screenRecorderController ?? ScreenRecorderController();
+    this.selectedDrawingIndex, // Add this property
+    this.drawingColor = Colors.green,
+    this.pauseDuration = 0,
+    this.pauseSegments = const [],
+    this.pauseStartTime,
+  });
 
   VideoEditingState copyWith({
     bool? showSnackbar,
@@ -56,7 +59,6 @@ class VideoEditingState {
     bool? isPlaying,
     bool? showTimeline,
     bool? isDrawing,
-    ScreenRecorderController? screenRecorderController,
     List<Offset>? points,
     List<Map<String, dynamic>>? lines,
     List<Map<String, dynamic>>? redoLines,
@@ -66,13 +68,15 @@ class VideoEditingState {
     int? recordingEndTime,
     List<Map<String, dynamic>>? playbackEvents,
     DrawingMode? drawingMode,
-    int? selectedDrawingIndex,
+    int? selectedDrawingIndex, // Add this property
     Color? drawingColor,
+    int? pauseDuration,
+    List<PauseSegment>? pauseSegments,
+    int? pauseStartTime,
   }) {
     return VideoEditingState(
       showSnackbar: showSnackbar ?? this.showSnackbar,
       snackbarMessage: snackbarMessage ?? this.snackbarMessage,
-      screenRecorderController: screenRecorderController ?? this.screenRecorderController,
       controller: controller ?? this.controller,
       isPickerActive: isPickerActive ?? this.isPickerActive,
       isPlaying: isPlaying ?? this.isPlaying,
@@ -87,14 +91,11 @@ class VideoEditingState {
       recordingEndTime: recordingEndTime ?? this.recordingEndTime,
       playbackEvents: playbackEvents ?? this.playbackEvents,
       drawingMode: drawingMode ?? this.drawingMode,
-      selectedDrawingIndex: selectedDrawingIndex ?? this.selectedDrawingIndex,
+      selectedDrawingIndex: selectedDrawingIndex ?? this.selectedDrawingIndex, // Add this property
       drawingColor: drawingColor ?? this.drawingColor,
+      pauseDuration: pauseDuration ?? this.pauseDuration,
+      pauseSegments: pauseSegments ?? this.pauseSegments,
+      pauseStartTime: pauseStartTime ?? this.pauseStartTime,
     );
-  }
-
-  // Optional: Add a toString method for easier debugging
-  @override
-  String toString() {
-    return 'VideoEditingState(isPlaying: $isPlaying, isDrawing: $isDrawing, drawingMode: $drawingMode, lines: ${lines.length}, points: ${points.length}, redoLines: ${redoLines.length}, isRecording: $isRecording, selectedDrawingIndex: $selectedDrawingIndex)';
   }
 }

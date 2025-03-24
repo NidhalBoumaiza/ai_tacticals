@@ -43,6 +43,7 @@ dependencies:
   flutter_speed_dial: ^7.0.0
   flutter_colorpicker: ^1.1.0
   screen_recorder: ^0.3.0
+  video_thumbnail: ^0.5.3
  
 
 
