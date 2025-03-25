@@ -12,6 +12,24 @@ import '../../../domain%20layer/entities/player_per_match_entity.dart';
 import '../../bloc/manager%20bloc/manager_bloc.dart';
 import '../../bloc/player%20per%20match%20bloc/player_per_match_bloc.dart';
 
+class PlayerPosition {
+  final String playerId;
+  double x;
+  double y;
+  final bool isHomeTeam;
+  final Color teamColor;
+  final PlayerPerMatchEntity player;
+
+  PlayerPosition({
+    required this.playerId,
+    required this.x,
+    required this.y,
+    required this.isHomeTeam,
+    required this.teamColor,
+    required this.player,
+  });
+}
+
 class MatchLineupsScreen extends StatefulWidget {
   final int matchId;
 
@@ -24,6 +42,9 @@ class MatchLineupsScreen extends StatefulWidget {
 class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   late final PlayerPerMatchBloc _playerBloc;
   late final ManagerBloc _managerBloc;
+  List<PlayerPosition> homePlayerPositions = [];
+  List<PlayerPosition> awayPlayerPositions = [];
+  String? currentlyDraggingPlayerId;
 
   @override
   void initState() {
@@ -50,141 +71,287 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor:
-          Theme.of(
-            context,
-          ).scaffoldBackgroundColor, // Light: grey[50], Dark: 0xFF37383c
-      body: BlocBuilder<PlayerPerMatchBloc, PlayerPerMatchState>(
-        builder: (context, playerState) {
-          return BlocBuilder<ManagerBloc, ManagerState>(
-            builder: (context, managerState) {
-              // Check cache first and use it if available
-              if (_playerBloc.isMatchCached(widget.matchId) &&
-                  _managerBloc.isMatchCached(widget.matchId)) {
-                final cachedPlayers =
-                    _playerBloc.getCachedPlayers(widget.matchId)!;
-                final cachedManagers =
-                    _managerBloc.getCachedManagers(widget.matchId)!;
-                return _buildContent(cachedPlayers, cachedManagers);
-              }
+  void _initializePlayerPositions(
+      List<PlayerPerMatchEntity> homePlayers,
+      List<PlayerPerMatchEntity> awayPlayers) {
+    homePlayerPositions = [];
+    awayPlayerPositions = [];
 
-              // Handle loading states
-              if (playerState is PlayerPerMatchLoading ||
-                  managerState is ManagerLoading) {
-                return Center(
-                  child: CircularProgressIndicator(
-                    color: Theme.of(context).colorScheme.primary, // 0xFFfbc02d
-                  ),
-                );
-              }
+    final homeGoalkeepers = homePlayers.where((p) => p.position == 'G').toList();
+    final homeDefenders = homePlayers.where((p) => p.position == 'D').toList();
+    final homeMidfielders = homePlayers.where((p) => p.position == 'M').toList();
+    final homeForwards = homePlayers.where((p) => p.position == 'F').toList();
 
-              // Handle error states
-              if (playerState is PlayerPerMatchError ||
-                  managerState is ManagerError) {
-                final errorMessage =
-                    playerState is PlayerPerMatchError
-                        ? playerState.message
-                        : (managerState as ManagerError).message;
-                return Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(30.w),
-                    child: ReusableText(
-                      text: errorMessage.tr,
-                      textSize: 100.sp,
-                      textColor: Theme.of(context).colorScheme.onSurface,
-                      textFontWeight: FontWeight.w600,
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                );
-              }
+    final awayGoalkeepers = awayPlayers.where((p) => p.position == 'G').toList();
+    final awayDefenders = awayPlayers.where((p) => p.position == 'D').toList();
+    final awayMidfielders = awayPlayers.where((p) => p.position == 'M').toList();
+    final awayForwards = awayPlayers.where((p) => p.position == 'F').toList();
 
-              // Handle success states
-              if (playerState is PlayerPerMatchSuccess &&
-                  managerState is ManagerSuccess) {
-                return _buildContent(
-                  playerState.players,
-                  managerState.managers,
-                );
-              }
+    homeGoalkeepers.asMap().forEach((index, player) {
+      homePlayerPositions.add(PlayerPosition(
+        playerId: player.id?.toString() ?? 'home-gk-$index',
+        x: MediaQuery.of(context).size.width / 2 - 50.w,
+        y: 20.h,
+        isHomeTeam: true,
+        teamColor: Colors.blue,
+        player: player,
+      ));
+    });
 
-              return Center(
-                child: ReusableText(
-                  text: 'waiting_for_lineups'.tr,
-                  textSize: 100.sp,
-                  textColor: Theme.of(context).colorScheme.onSurface,
+    homeDefenders.asMap().forEach((index, player) {
+      final screenWidth = MediaQuery.of(context).size.width - 310.w;
+      const minPadding = 40.0;
+      final availableWidth = screenWidth - 2 * minPadding;
+      final xOffset = minPadding +
+          (index % homeDefenders.length) *
+              (availableWidth / (homeDefenders.length - 1).clamp(1, double.infinity));
+
+      homePlayerPositions.add(PlayerPosition(
+        playerId: player.id?.toString() ?? 'home-def-$index',
+        x: xOffset,
+        y: 250.h,
+        isHomeTeam: true,
+        teamColor: Colors.blue,
+        player: player,
+      ));
+    });
+
+    homeMidfielders.asMap().forEach((index, player) {
+      final screenWidth = MediaQuery.of(context).size.width - 310.w;
+      const minPadding = 40.0;
+      final availableWidth = screenWidth - 2 * minPadding;
+      final xOffset = minPadding +
+          (index % homeMidfielders.length) *
+              (availableWidth / (homeMidfielders.length - 1).clamp(1, double.infinity));
+
+      homePlayerPositions.add(PlayerPosition(
+        playerId: player.id?.toString() ?? 'home-mid-$index',
+        x: xOffset,
+        y: 550.h,
+        isHomeTeam: true,
+        teamColor: Colors.blue,
+        player: player,
+      ));
+    });
+
+    homeForwards.asMap().forEach((index, player) {
+      final screenWidth = MediaQuery.of(context).size.width - 310.w;
+      const minPadding = 40.0;
+      final availableWidth = screenWidth - 2 * minPadding;
+      final xOffset = minPadding +
+          (index % homeForwards.length) *
+              (availableWidth / (homeForwards.length - 1).clamp(1, double.infinity));
+
+      homePlayerPositions.add(PlayerPosition(
+        playerId: player.id?.toString() ?? 'home-fwd-$index',
+        x: xOffset,
+        y: 751.h,
+        isHomeTeam: true,
+        teamColor: Colors.blue,
+        player: player,
+      ));
+    });
+
+    awayGoalkeepers.asMap().forEach((index, player) {
+      awayPlayerPositions.add(PlayerPosition(
+        playerId: player.id?.toString() ?? 'away-gk-$index',
+        x: MediaQuery.of(context).size.width / 2 - 50.w,
+        y: 1675.h,
+        isHomeTeam: false,
+        teamColor: Colors.red,
+        player: player,
+      ));
+    });
+
+    awayDefenders.asMap().forEach((index, player) {
+      final screenWidth = MediaQuery.of(context).size.width - 310.w;
+      const minPadding = 40.0;
+      final availableWidth = screenWidth - 2 * minPadding;
+      final xOffset = minPadding +
+          (index % awayDefenders.length) *
+              (availableWidth / (awayDefenders.length - 1).clamp(1, double.infinity));
+
+      awayPlayerPositions.add(PlayerPosition(
+        playerId: player.id?.toString() ?? 'away-def-$index',
+        x: xOffset,
+        y: 1470.h,
+        isHomeTeam: false,
+        teamColor: Colors.red,
+        player: player,
+      ));
+    });
+
+    awayMidfielders.asMap().forEach((index, player) {
+      final screenWidth = MediaQuery.of(context).size.width - 310.w;
+      const minPadding = 40.0;
+      final availableWidth = screenWidth - 2 * minPadding;
+      final xOffset = minPadding +
+          (index % awayMidfielders.length) *
+              (availableWidth / (awayMidfielders.length - 1).clamp(1, double.infinity));
+
+      awayPlayerPositions.add(PlayerPosition(
+        playerId: player.id?.toString() ?? 'away-mid-$index',
+        x: xOffset,
+        y: 1230.h,
+        isHomeTeam: false,
+        teamColor: Colors.red,
+        player: player,
+      ));
+    });
+
+    awayForwards.asMap().forEach((index, player) {
+      final screenWidth = MediaQuery.of(context).size.width - 310.w;
+      const minPadding = 40.0;
+      final availableWidth = screenWidth - 2 * minPadding;
+      final xOffset = minPadding +
+          (index % awayForwards.length) *
+              (availableWidth / (awayForwards.length - 1).clamp(1, double.infinity));
+
+      awayPlayerPositions.add(PlayerPosition(
+        playerId: player.id?.toString() ?? 'away-fwd-$index',
+        x: xOffset,
+        y: 1000.h,
+        isHomeTeam: false,
+        teamColor: Colors.red,
+        player: player,
+      ));
+    });
+  }
+
+  Widget _buildDraggablePlayer(PlayerPosition position) {
+    final isDragging = currentlyDraggingPlayerId == position.playerId;
+
+    return Positioned(
+      left: position.x,
+      top: position.y,
+      child: Draggable(
+        feedback: Transform.scale(
+          scale: 1.1,
+          child: _buildPlayerWidget(position, true),
+        ),
+        childWhenDragging: Container(),
+        child: GestureDetector(
+          onTap: () {
+            if (position.player.id != null) {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => PlayerStatsModal(
+                  matchId: widget.matchId,
+                  playerId: position.player.id!,
+                  playerName: position.player.name ?? 'Unknown Player',
                 ),
               );
-            },
-          );
+            }
+          },
+          child: _buildPlayerWidget(position, isDragging),
+        ),
+        onDragStarted: () {
+          setState(() {
+            currentlyDraggingPlayerId = position.playerId;
+          });
+        },
+        onDragUpdate: (details) {
+          setState(() {
+            final fieldWidth = MediaQuery.of(context).size.width;
+            final fieldHeight = 1900.h;
+
+            double newX = position.x + details.delta.dx;
+            double newY = position.y + details.delta.dy;
+
+            newX = newX.clamp(0.0, fieldWidth - 110.w);
+            newY = position.isHomeTeam
+                ? newY.clamp(0.0, fieldHeight / 2 - 110.h)
+                : newY.clamp(fieldHeight / 2, fieldHeight - 110.h);
+
+            position.x = newX;
+            position.y = newY;
+          });
+        },
+        onDragEnd: (details) {
+          setState(() {
+            currentlyDraggingPlayerId = null;
+          });
         },
       ),
     );
   }
 
-  Widget _buildContent(
-    Map<String, List<PlayerPerMatchEntity>> players,
-    Map<String, ManagerEntity?> managers,
-  ) {
-    final homePlayers = players['home'] ?? [];
-    final awayPlayers = players['away'] ?? [];
-    final homeManager = managers['homeManager'];
-    final awayManager = managers['awayManager'];
-
-    final homeStarting = homePlayers.where((p) => !p.substitute).toList();
-    final homeSubs = homePlayers.where((p) => p.substitute).toList();
-    final awayStarting = awayPlayers.where((p) => !p.substitute).toList();
-    final awaySubs = awayPlayers.where((p) => p.substitute).toList();
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.all(30.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildFootballField(homeStarting, awayStarting),
-            SizedBox(height: 60.h),
-            _buildSubstitutesSection(
-              homeManager,
-              homeSubs,
-              awayManager,
-              awaySubs,
+  Widget _buildPlayerWidget(PlayerPosition position, bool isDragging) {
+    return Transform.scale(
+      scale: isDragging ? 1.1 : 1.0,
+      child: Column(
+        children: [
+          Container(
+            width: 110.w,
+            height: 110.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(context).colorScheme.surfaceVariant,
+              border: Border.all(
+                color: position.teamColor.withOpacity(isDragging ? 1.0 : 0.7),
+                width: isDragging ? 3 : 2,
+              ),
             ),
-          ],
-        ),
+            child: ClipOval(
+              child: CachedNetworkImage(
+                imageUrl:
+                'https://img.sofascore.com/api/v1/player/${position.player.id}/image',
+                placeholder: (context, url) => Shimmer.fromColors(
+                  baseColor: Theme.of(context).colorScheme.surface,
+                  highlightColor: Theme.of(context).colorScheme.surfaceVariant,
+                  child: Container(
+                    width: 110.w,
+                    height: 110.w,
+                    color: Theme.of(context).colorScheme.surface,
+                  ),
+                ),
+                errorWidget: (context, url, error) => Icon(
+                  Icons.person,
+                  size: 60.w,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                fit: BoxFit.cover,
+                width: 110.w,
+                height: 110.w,
+                cacheKey: position.player.id.toString(),
+              ),
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: position.teamColor.withOpacity(isDragging ? 0.4 : 0.2),
+              borderRadius: BorderRadius.circular(6.r),
+            ),
+            constraints: BoxConstraints(maxWidth: 150.w),
+            child: ReusableText(
+              text: position.player.name ?? 'N/A',
+              textSize: 80.sp,
+              textColor: Theme.of(context).colorScheme.onSurface,
+              textFontWeight: FontWeight.w700,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildFootballField(
-    List<PlayerPerMatchEntity> homePlayers,
-    List<PlayerPerMatchEntity> awayPlayers,
-  ) {
-    final homeGoalkeepers =
-        homePlayers.where((p) => p.position == 'G').toList();
-    final homeDefenders = homePlayers.where((p) => p.position == 'D').toList();
-    final homeMidfielders =
-        homePlayers.where((p) => p.position == 'M').toList();
-    final homeForwards = homePlayers.where((p) => p.position == 'F').toList();
-
-    final awayGoalkeepers =
-        awayPlayers.where((p) => p.position == 'G').toList();
-    final awayDefenders = awayPlayers.where((p) => p.position == 'D').toList();
-    final awayMidfielders =
-        awayPlayers.where((p) => p.position == 'M').toList();
-    final awayForwards = awayPlayers.where((p) => p.position == 'F').toList();
+      List<PlayerPerMatchEntity> homePlayers,
+      List<PlayerPerMatchEntity> awayPlayers) {
+    if (homePlayerPositions.isEmpty && awayPlayerPositions.isEmpty) {
+      _initializePlayerPositions(homePlayers, awayPlayers);
+    }
 
     return Container(
       height: 1900.h,
       width: double.infinity,
       decoration: BoxDecoration(
-        color:
-            Theme.of(
-              context,
-            ).colorScheme.surface, // White (light) or grey[850] (dark)
+        color: Theme.of(context).colorScheme.surface,
         border: Border.all(
           color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
           width: 3,
@@ -218,9 +385,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                   width: 2,
                 ),
               ),
@@ -242,94 +407,8 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
           _buildPenaltyArea(false),
           _buildGoalArea(true),
           _buildGoalArea(false),
-          ...homeGoalkeepers.asMap().entries.map(
-            (entry) => _positionPlayer(
-              entry.value,
-              true,
-              Colors.blue,
-              entry.key,
-              1,
-              20.h,
-              true,
-            ),
-          ),
-          ...homeDefenders.asMap().entries.map(
-            (entry) => _positionPlayer(
-              entry.value,
-              true,
-              Colors.blue,
-              entry.key,
-              homeDefenders.length,
-              250.h,
-              false,
-            ),
-          ),
-          ...homeMidfielders.asMap().entries.map(
-            (entry) => _positionPlayer(
-              entry.value,
-              true,
-              Colors.blue,
-              entry.key,
-              homeMidfielders.length,
-              550.h,
-              false,
-            ),
-          ),
-          ...homeForwards.asMap().entries.map(
-            (entry) => _positionPlayer(
-              entry.value,
-              true,
-              Colors.blue,
-              entry.key,
-              homeForwards.length,
-              751.h,
-              false,
-            ),
-          ),
-          ...awayGoalkeepers.asMap().entries.map(
-            (entry) => _positionPlayer(
-              entry.value,
-              false,
-              Colors.red,
-              entry.key,
-              1,
-              1675.h,
-              true,
-            ),
-          ),
-          ...awayDefenders.asMap().entries.map(
-            (entry) => _positionPlayer(
-              entry.value,
-              false,
-              Colors.red,
-              entry.key,
-              awayDefenders.length,
-              1470.h,
-              false,
-            ),
-          ),
-          ...awayMidfielders.asMap().entries.map(
-            (entry) => _positionPlayer(
-              entry.value,
-              false,
-              Colors.red,
-              entry.key,
-              awayMidfielders.length,
-              1230.h,
-              false,
-            ),
-          ),
-          ...awayForwards.asMap().entries.map(
-            (entry) => _positionPlayer(
-              entry.value,
-              false,
-              Colors.red,
-              entry.key,
-              awayForwards.length,
-              1000.h,
-              false,
-            ),
-          ),
+          ...homePlayerPositions.map((position) => _buildDraggablePlayer(position)),
+          ...awayPlayerPositions.map((position) => _buildDraggablePlayer(position)),
         ],
       ),
     );
@@ -339,9 +418,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     return Positioned(
       left: 120.w,
       right: 120.w,
-      top: isHomeTeam ? -5.h : 1547.h,
+      top: isHomeTeam ? -5.h : 1589.h,
       child: Container(
-        height: 340.h,
+        height: 300.h,
         decoration: BoxDecoration(
           border: Border.all(
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -356,9 +435,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     return Positioned(
       left: 270.w,
       right: 270.w,
-      top: isHomeTeam ? -5.h : 1718.h,
+      top: isHomeTeam ? -5.h : 1797.h,
       child: Container(
-        height: 60.h,
+        height: 90.h,
         decoration: BoxDecoration(
           border: Border.all(
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -369,102 +448,32 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     );
   }
 
-  Widget _positionPlayer(
-    PlayerPerMatchEntity player,
-    bool isHomeTeam,
-    Color teamColor,
-    int index,
-    int playersInZone,
-    double baseYOffset,
-    bool isGoalkeeper,
-  ) {
-    double xOffset;
-    double yOffset = baseYOffset;
+  Widget _buildContent(
+      Map<String, List<PlayerPerMatchEntity>> players,
+      Map<String, ManagerEntity?> managers) {
+    final homePlayers = players['home'] ?? [];
+    final awayPlayers = players['away'] ?? [];
+    final homeManager = managers['homeManager'];
+    final awayManager = managers['awayManager'];
 
-    if (isGoalkeeper) {
-      xOffset = MediaQuery.of(context).size.width / 2 - 50.w;
-    } else {
-      final screenWidth = MediaQuery.of(context).size.width - 310.w;
-      const minPadding = 40.0;
-      final availableWidth = screenWidth - 2 * minPadding;
-      xOffset =
-          minPadding +
-          (index % playersInZone) *
-              (availableWidth / (playersInZone - 1).clamp(1, double.infinity));
-    }
+    final homeStarting = homePlayers.where((p) => !p.substitute).toList();
+    final homeSubs = homePlayers.where((p) => p.substitute).toList();
+    final awayStarting = awayPlayers.where((p) => !p.substitute).toList();
+    final awaySubs = awayPlayers.where((p) => p.substitute).toList();
 
-    return Positioned(
-      left: xOffset,
-      top: yOffset,
-      child: GestureDetector(
-        onTap: () {
-          if (player.id != null) {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder:
-                  (context) => PlayerStatsModal(
-                    matchId: widget.matchId,
-                    playerId: player.id!,
-                    playerName: player.name ?? 'Unknown Player',
-                  ),
-            );
-          }
-        },
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(30.w),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 110.w,
-              height: 110.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.surfaceVariant,
-                border: Border.all(color: teamColor.withOpacity(0.7), width: 2),
-              ),
-              child: ClipOval(
-                child: CachedNetworkImage(
-                  imageUrl:
-                      'https://img.sofascore.com/api/v1/player/${player.id}/image',
-                  placeholder:
-                      (context, url) => Shimmer.fromColors(
-                        baseColor: Theme.of(context).colorScheme.surface,
-                        highlightColor:
-                            Theme.of(context).colorScheme.surfaceVariant,
-                        child: Container(
-                          width: 110.w,
-                          height: 110.w,
-                          color: Theme.of(context).colorScheme.surface,
-                        ),
-                      ),
-                  errorWidget:
-                      (context, url, error) => Icon(
-                        Icons.person,
-                        size: 60.w,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                  fit: BoxFit.cover,
-                  width: 110.w,
-                  height: 110.w,
-                  cacheKey: player.id.toString(),
-                ),
-              ),
-            ),
-            SizedBox(height: 10.h),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-              decoration: BoxDecoration(
-                color: teamColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(6.r),
-              ),
-              constraints: BoxConstraints(maxWidth: 150.w),
-              child: ReusableText(
-                text: player.name ?? 'N/A',
-                textSize: 80.sp,
-                textColor: Theme.of(context).colorScheme.onSurface,
-                textFontWeight: FontWeight.w700,
-                textAlign: TextAlign.center,
-              ),
+            _buildFootballField(homeStarting, awayStarting),
+            SizedBox(height: 60.h),
+            _buildSubstitutesSection(
+              homeManager,
+              homeSubs,
+              awayManager,
+              awaySubs,
             ),
           ],
         ),
@@ -473,11 +482,10 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   }
 
   Widget _buildSubstitutesSection(
-    ManagerEntity? homeManager,
-    List<PlayerPerMatchEntity> homeSubs,
-    ManagerEntity? awayManager,
-    List<PlayerPerMatchEntity> awaySubs,
-  ) {
+      ManagerEntity? homeManager,
+      List<PlayerPerMatchEntity> homeSubs,
+      ManagerEntity? awayManager,
+      List<PlayerPerMatchEntity> awaySubs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -494,16 +502,12 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
         SizedBox(height: 60.h),
         _buildManagerHeader('away_manager'.tr, awayManager, Colors.red),
         SizedBox(height: 20.h),
-        _buildSubsList('away_substitutes'.tr, homeSubs, Colors.red),
+        _buildSubsList('away_substitutes'.tr, awaySubs, Colors.red),
       ],
     );
   }
 
-  Widget _buildManagerHeader(
-    String title,
-    ManagerEntity? manager,
-    Color color,
-  ) {
+  Widget _buildManagerHeader(String title, ManagerEntity? manager, Color color) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
@@ -524,9 +528,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               ReusableText(
                 text: 'no_manager_data_available'.tr,
                 textSize: 100.sp,
-                textColor: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withOpacity(0.7),
+                textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               )
             else
               Row(
@@ -545,27 +547,21 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                     child: ClipOval(
                       child: CachedNetworkImage(
                         imageUrl:
-                            "https://img.sofascore.com/api/v1/manager/${manager.id}/image",
-                        placeholder:
-                            (context, url) => Shimmer.fromColors(
-                              baseColor: Theme.of(context).colorScheme.surface,
-                              highlightColor:
-                                  Theme.of(context).colorScheme.surfaceVariant,
-                              child: Container(
-                                width: 110.w,
-                                height: 110.w,
-                                color: Theme.of(context).colorScheme.surface,
-                              ),
-                            ),
-                        errorWidget:
-                            (context, url, error) => Icon(
-                              Icons.person,
-                              size: 60.w,
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                            ),
+                        "https://img.sofascore.com/api/v1/manager/${manager.id}/image",
+                        placeholder: (context, url) => Shimmer.fromColors(
+                          baseColor: Theme.of(context).colorScheme.surface,
+                          highlightColor: Theme.of(context).colorScheme.surfaceVariant,
+                          child: Container(
+                            width: 110.w,
+                            height: 110.w,
+                            color: Theme.of(context).colorScheme.surface,
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Icon(
+                          Icons.person,
+                          size: 60.w,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                         fit: BoxFit.cover,
                         width: 110.w,
                         height: 110.w,
@@ -590,11 +586,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     );
   }
 
-  Widget _buildSubsList(
-    String title,
-    List<PlayerPerMatchEntity> subs,
-    Color color,
-  ) {
+  Widget _buildSubsList(String title, List<PlayerPerMatchEntity> subs, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -616,8 +608,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: subs.length,
-            itemBuilder:
-                (context, index) => _buildPlayerRow(subs[index], color),
+            itemBuilder: (context, index) => _buildPlayerRow(subs[index], color),
           ),
       ],
     );
@@ -631,12 +622,11 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
-            builder:
-                (context) => PlayerStatsModal(
-                  matchId: widget.matchId,
-                  playerId: player.id!,
-                  playerName: player.name ?? 'Unknown Player',
-                ),
+            builder: (context) => PlayerStatsModal(
+              matchId: widget.matchId,
+              playerId: player.id!,
+              playerName: player.name ?? 'Unknown Player',
+            ),
           );
         }
       },
@@ -655,24 +645,21 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               child: ClipOval(
                 child: CachedNetworkImage(
                   imageUrl:
-                      'https://img.sofascore.com/api/v1/player/${player.id}/image',
-                  placeholder:
-                      (context, url) => Shimmer.fromColors(
-                        baseColor: Theme.of(context).colorScheme.surface,
-                        highlightColor:
-                            Theme.of(context).colorScheme.surfaceVariant,
-                        child: Container(
-                          width: 110.w,
-                          height: 110.w,
-                          color: Theme.of(context).colorScheme.surface,
-                        ),
-                      ),
-                  errorWidget:
-                      (context, url, error) => Icon(
-                        Icons.person,
-                        size: 60.w,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                  'https://img.sofascore.com/api/v1/player/${player.id}/image',
+                  placeholder: (context, url) => Shimmer.fromColors(
+                    baseColor: Theme.of(context).colorScheme.surface,
+                    highlightColor: Theme.of(context).colorScheme.surfaceVariant,
+                    child: Container(
+                      width: 110.w,
+                      height: 110.w,
+                      color: Theme.of(context).colorScheme.surface,
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Icon(
+                    Icons.person,
+                    size: 60.w,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   fit: BoxFit.cover,
                   width: 110.w,
                   height: 110.w,
@@ -699,9 +686,8 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                         ReusableText(
                           text: player.jerseyNumber?.toString() ?? 'N/A',
                           textSize: 90.sp,
-                          textColor: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.7),
+                          textColor:
+                          Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ],
                     ),
@@ -711,6 +697,71 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: BlocBuilder<PlayerPerMatchBloc, PlayerPerMatchState>(
+        builder: (context, playerState) {
+          return BlocBuilder<ManagerBloc, ManagerState>(
+            builder: (context, managerState) {
+              if (_playerBloc.isMatchCached(widget.matchId) &&
+                  _managerBloc.isMatchCached(widget.matchId)) {
+                final cachedPlayers = _playerBloc.getCachedPlayers(widget.matchId)!;
+                final cachedManagers = _managerBloc.getCachedManagers(widget.matchId)!;
+                return _buildContent(cachedPlayers, cachedManagers);
+              }
+
+              if (playerState is PlayerPerMatchLoading ||
+                  managerState is ManagerLoading) {
+                return Center(
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                );
+              }
+
+              if (playerState is PlayerPerMatchError ||
+                  managerState is ManagerError) {
+                final errorMessage = playerState is PlayerPerMatchError
+                    ? playerState.message
+                    : (managerState as ManagerError).message;
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(30.w),
+                    child: ReusableText(
+                      text: errorMessage.tr,
+                      textSize: 100.sp,
+                      textColor: Theme.of(context).colorScheme.onSurface,
+                      textFontWeight: FontWeight.w600,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+
+              if (playerState is PlayerPerMatchSuccess &&
+                  managerState is ManagerSuccess) {
+                return _buildContent(
+                  playerState.players,
+                  managerState.managers,
+                );
+              }
+
+              return Center(
+                child: ReusableText(
+                  text: 'waiting_for_lineups'.tr,
+                  textSize: 100.sp,
+                  textColor: Theme.of(context).colorScheme.onSurface,
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

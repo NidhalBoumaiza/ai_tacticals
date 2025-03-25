@@ -1,6 +1,7 @@
+import 'dart:ui';
+
 import 'package:analysis_ai/features/games/presentation%20layer/cubit/video%20editing%20cubit/video_editing_cubit.dart';
 import 'package:flutter/material.dart';
-import 'package:screen_recorder/screen_recorder.dart';
 import 'package:video_player/video_player.dart';
 
 enum DrawingMode { none, free, circle, player, arrow }
@@ -16,17 +17,17 @@ class VideoEditingState {
   final List<Map<String, dynamic>> redoLines;
   final String? originalVideoPath;
   final bool isRecording;
-  final int? recordingStartTime;
-  final int? recordingEndTime;
+  final Duration? recordingStartTime; // Changed to Duration?
+  final Duration? recordingEndTime; // Changed to Duration?
   final List<Map<String, dynamic>> playbackEvents;
   final DrawingMode drawingMode;
-  final int? selectedDrawingIndex; // Add this property
+  final int? selectedDrawingIndex;
   final Color drawingColor;
   final bool showSnackbar;
   final String? snackbarMessage;
-  final int pauseDuration;
   final List<PauseSegment> pauseSegments;
-  final int? pauseStartTime;
+  final Duration? pauseStartTime; // Changed to Duration?
+
   VideoEditingState({
     this.showSnackbar = false,
     this.snackbarMessage,
@@ -44,9 +45,8 @@ class VideoEditingState {
     this.recordingEndTime,
     this.playbackEvents = const [],
     this.drawingMode = DrawingMode.none,
-    this.selectedDrawingIndex, // Add this property
+    this.selectedDrawingIndex,
     this.drawingColor = Colors.green,
-    this.pauseDuration = 0,
     this.pauseSegments = const [],
     this.pauseStartTime,
   });
@@ -64,15 +64,14 @@ class VideoEditingState {
     List<Map<String, dynamic>>? redoLines,
     String? originalVideoPath,
     bool? isRecording,
-    int? recordingStartTime,
-    int? recordingEndTime,
+    Duration? recordingStartTime,
+    Duration? recordingEndTime,
     List<Map<String, dynamic>>? playbackEvents,
     DrawingMode? drawingMode,
-    int? selectedDrawingIndex, // Add this property
+    int? selectedDrawingIndex,
     Color? drawingColor,
-    int? pauseDuration,
     List<PauseSegment>? pauseSegments,
-    int? pauseStartTime,
+    Duration? pauseStartTime,
   }) {
     return VideoEditingState(
       showSnackbar: showSnackbar ?? this.showSnackbar,
@@ -91,9 +90,8 @@ class VideoEditingState {
       recordingEndTime: recordingEndTime ?? this.recordingEndTime,
       playbackEvents: playbackEvents ?? this.playbackEvents,
       drawingMode: drawingMode ?? this.drawingMode,
-      selectedDrawingIndex: selectedDrawingIndex ?? this.selectedDrawingIndex, // Add this property
+      selectedDrawingIndex: selectedDrawingIndex ?? this.selectedDrawingIndex,
       drawingColor: drawingColor ?? this.drawingColor,
-      pauseDuration: pauseDuration ?? this.pauseDuration,
       pauseSegments: pauseSegments ?? this.pauseSegments,
       pauseStartTime: pauseStartTime ?? this.pauseStartTime,
     );
