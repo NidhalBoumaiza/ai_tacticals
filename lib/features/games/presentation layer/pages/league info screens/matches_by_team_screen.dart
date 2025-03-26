@@ -347,37 +347,34 @@ class _GamesPerRoundScreenState extends State<GamesPerRoundScreen> {
                                       SizedBox(width: 20.w),
                                       Row(
                                         children: [
-                                          SizedBox(
-                                            width: 240.w,
-                                            child: Row(
-                                              children: [
-                                                ReusableText(
-                                                  text:
-                                                      match
-                                                          .awayTeam
-                                                          ?.shortName ??
-                                                      "Unknown",
-                                                  textSize: 100.sp,
-                                                  textColor:
-                                                      Theme.of(context)
-                                                          .textTheme
-                                                          .bodyLarge!
-                                                          .color!,
-                                                  textFontWeight:
-                                                      FontWeight.w600,
-                                                ),
-                                                SizedBox(width: 10.w),
-                                                CountryFlagWidget(
-                                                  flag:
-                                                      match.awayTeam!.id
-                                                          .toString(),
-                                                  height: 50.w,
-                                                  width: 50.w,
-                                                  isTeamFlag:
-                                                      true, // Specify that this is a team flag
-                                                ),
-                                              ],
-                                            ),
+                                          Row(
+                                            children: [
+                                              ReusableText(
+                                                text:
+                                                    match
+                                                        .awayTeam
+                                                        ?.shortName ??
+                                                    "Unknown",
+                                                textSize: 100.sp,
+                                                textColor:
+                                                    Theme.of(context)
+                                                        .textTheme
+                                                        .bodyLarge!
+                                                        .color!,
+                                                textFontWeight:
+                                                    FontWeight.w600,
+                                              ),
+                                              SizedBox(width: 10.w),
+                                              CountryFlagWidget(
+                                                flag:
+                                                    match.awayTeam!.id
+                                                        .toString(),
+                                                height: 50.w,
+                                                width: 50.w,
+                                                isTeamFlag:
+                                                    true, // Specify that this is a team flag
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),

@@ -1,8 +1,11 @@
+import 'dart:math';
 import 'package:analysis_ai/features/games/presentation%20layer/pages/match%20details%20screen/player_stats_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -11,6 +14,129 @@ import '../../../domain%20layer/entities/manager_entity.dart';
 import '../../../domain%20layer/entities/player_per_match_entity.dart';
 import '../../bloc/manager%20bloc/manager_bloc.dart';
 import '../../bloc/player%20per%20match%20bloc/player_per_match_bloc.dart';
+
+enum DrawingMode { free, circle, arrow, player, none }
+
+class FieldDrawingPainter extends CustomPainter {
+  final List<Map<String, dynamic>> drawings;
+  final List<Offset> currentPoints;
+  final DrawingMode drawingMode;
+  final Color drawingColor;
+
+  FieldDrawingPainter(
+      this.drawings,
+      this.currentPoints,
+      this.drawingMode,
+      this.drawingColor,
+      );
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = drawingColor
+      ..strokeWidth = 4.0
+      ..strokeCap = StrokeCap.round;
+
+    for (var drawing in drawings) {
+      paint.color = drawing['color'] ?? drawingColor;
+
+      switch (drawing['type']) {
+        case 'free':
+          final points = drawing['points'] as List<Offset>;
+          for (int i = 0; i < points.length - 1; i++) {
+            if (points[i] != null && points[i + 1] != null) {
+              canvas.drawLine(points[i], points[i + 1], paint);
+            }
+          }
+          break;
+        case 'circle':
+          if (drawing['points'].length == 2) {
+            final start = drawing['points'][0];
+            final end = drawing['points'][1];
+            final radius = (start - end).distance;
+            canvas.drawCircle(start, radius, paint..style = PaintingStyle.stroke);
+          }
+          break;
+        case 'arrow':
+          if (drawing['points'].length == 2) {
+            _drawArrow(canvas, drawing['points'][0], drawing['points'][1], paint);
+          }
+          break;
+        case 'player':
+          if (drawing['points'].isNotEmpty) {
+            _drawPlayerIcon(canvas, drawing['points'][0], paint);
+          }
+          break;
+      }
+    }
+
+    if (currentPoints.isNotEmpty) {
+      paint.color = drawingColor;
+
+      switch (drawingMode) {
+        case DrawingMode.free:
+          for (int i = 0; i < currentPoints.length - 1; i++) {
+            canvas.drawLine(currentPoints[i], currentPoints[i + 1], paint);
+          }
+          break;
+        case DrawingMode.circle:
+          if (currentPoints.length == 2) {
+            final radius = (currentPoints[0] - currentPoints[1]).distance;
+            canvas.drawCircle(currentPoints[0], radius, paint..style = PaintingStyle.stroke);
+          }
+          break;
+        case DrawingMode.arrow:
+          if (currentPoints.length == 2) {
+            _drawArrow(canvas, currentPoints[0], currentPoints[1], paint);
+          }
+          break;
+        case DrawingMode.player:
+          if (currentPoints.isNotEmpty) {
+            _drawPlayerIcon(canvas, currentPoints[0], paint);
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  void _drawArrow(Canvas canvas, Offset start, Offset end, Paint paint) {
+    canvas.drawLine(start, end, paint);
+    final angle = atan2(end.dy - start.dy, end.dx - start.dx);
+    const arrowSize = 20.0;
+    final path = Path()
+      ..moveTo(end.dx, end.dy)
+      ..lineTo(end.dx - arrowSize * cos(angle - pi / 6), end.dy - arrowSize * sin(angle - pi / 6))
+      ..lineTo(end.dx - arrowSize * cos(angle + pi / 6), end.dy - arrowSize * sin(angle + pi / 6))
+      ..close();
+    canvas.drawPath(path, paint..style = PaintingStyle.fill);
+  }
+
+  void _drawPlayerIcon(Canvas canvas, Offset position, Paint paint) {
+    const size = 30.0;
+    canvas.drawCircle(position, size * 0.2, paint..style = PaintingStyle.fill);
+    final bodyStart = Offset(position.dx, position.dy + size * 0.2);
+    final bodyEnd = Offset(position.dx, position.dy + size * 0.8);
+    canvas.drawLine(bodyStart, bodyEnd, paint);
+    final leftArmStart = Offset(position.dx - size * 0.3, position.dy + size * 0.4);
+    final leftArmEnd = Offset(position.dx + size * 0.3, position.dy + size * 0.4);
+    canvas.drawLine(leftArmStart, leftArmEnd, paint);
+    final leftLegStart = Offset(position.dx - size * 0.2, position.dy + size * 0.8);
+    final leftLegEnd = Offset(position.dx, position.dy + size * 1.2);
+    canvas.drawLine(leftLegStart, leftLegEnd, paint);
+    final rightLegStart = Offset(position.dx + size * 0.2, position.dy + size * 0.8);
+    final rightLegEnd = Offset(position.dx, position.dy + size * 1.2);
+    canvas.drawLine(rightLegStart, rightLegEnd, paint);
+  }
+
+  @override
+  bool shouldRepaint(FieldDrawingPainter oldDelegate) =>
+      drawings != oldDelegate.drawings ||
+          currentPoints != oldDelegate.currentPoints ||
+          drawingMode != oldDelegate.drawingMode ||
+          drawingColor != oldDelegate.drawingColor;
+}
 
 class PlayerPosition {
   final String playerId;
@@ -30,6 +156,96 @@ class PlayerPosition {
   });
 }
 
+class DrawingOverlay extends StatefulWidget {
+  final bool isDrawing;
+  final DrawingMode drawingMode;
+  final Color drawingColor;
+  final List<Map<String, dynamic>> drawings;
+  final Function(Offset) onStartDrawing;
+  final Function(Offset) onUpdateDrawing;
+  final Function() onEndDrawing;
+  final Size fieldSize;
+  final Offset fieldOffset;
+
+  const DrawingOverlay({
+    super.key,
+    required this.isDrawing,
+    required this.drawingMode,
+    required this.drawingColor,
+    required this.drawings,
+    required this.onStartDrawing,
+    required this.onUpdateDrawing,
+    required this.onEndDrawing,
+    required this.fieldSize,
+    required this.fieldOffset,
+  });
+
+  @override
+  _DrawingOverlayState createState() => _DrawingOverlayState();
+}
+
+class _DrawingOverlayState extends State<DrawingOverlay> {
+  List<Offset> currentPoints = [];
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.fieldSize.width,
+      height: widget.fieldSize.height,
+      child: Stack(
+        children: [
+          CustomPaint(
+            size: widget.fieldSize,
+            painter: FieldDrawingPainter(
+              widget.drawings,
+              currentPoints,
+              widget.drawingMode,
+              widget.drawingColor,
+            ),
+          ),
+          if (widget.isDrawing)
+            GestureDetector(
+              onPanStart: (details) {
+                final localPosition = details.localPosition;
+                print('Overlay: Drawing started at $localPosition');
+                setState(() {
+                  currentPoints = [localPosition];
+                  widget.onStartDrawing(localPosition);
+                });
+              },
+              onPanUpdate: (details) {
+                final localPosition = details.localPosition;
+                print('Overlay: Drawing updated to $localPosition');
+                setState(() {
+                  if (widget.drawingMode == DrawingMode.free) {
+                    currentPoints.add(localPosition);
+                  } else if (currentPoints.length < 2) {
+                    currentPoints.add(localPosition);
+                  } else {
+                    currentPoints[1] = localPosition;
+                  }
+                  widget.onUpdateDrawing(localPosition);
+                });
+              },
+              onPanEnd: (_) {
+                print('Overlay: Drawing ended');
+                setState(() {
+                  widget.onEndDrawing();
+                  currentPoints.clear();
+                });
+              },
+              child: Container(
+                width: widget.fieldSize.width,
+                height: widget.fieldSize.height,
+                color: Colors.transparent,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class MatchLineupsScreen extends StatefulWidget {
   final int matchId;
 
@@ -46,20 +262,22 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   List<PlayerPosition> awayPlayerPositions = [];
   String? currentlyDraggingPlayerId;
 
+  // Drawing variables
+  bool isDrawing = false;
+  List<Offset> freeDrawPoints = [];
+  Color drawingColor = Colors.black;
+  DrawingMode drawingMode = DrawingMode.none;
+  List<Map<String, dynamic>> drawings = [];
+  List<Map<String, dynamic>> redoDrawings = [];
+  OverlayEntry? drawingOverlay;
+  final GlobalKey _fieldKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _playerBloc = context.read<PlayerPerMatchBloc>();
     _managerBloc = context.read<ManagerBloc>();
     _initializeData();
-  }
-
-  @override
-  void didUpdateWidget(MatchLineupsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.matchId != widget.matchId) {
-      _initializeData();
-    }
   }
 
   void _initializeData() {
@@ -69,6 +287,123 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     if (!_managerBloc.isMatchCached(widget.matchId)) {
       _managerBloc.add(GetManagers(matchId: widget.matchId));
     }
+  }
+
+  void _startDrawing(Offset position) {
+    freeDrawPoints = [position];
+    setState(() {});
+  }
+
+  void _updateDrawing(Offset position) {
+    if (drawingMode == DrawingMode.free) {
+      freeDrawPoints.add(position);
+    } else if (freeDrawPoints.length < 2) {
+      freeDrawPoints.add(position);
+    } else {
+      freeDrawPoints[1] = position;
+    }
+    setState(() {});
+  }
+
+  void _endDrawing() {
+    if (freeDrawPoints.isNotEmpty) {
+      final newDrawing = {
+        'type': drawingMode.toString().split('.').last,
+        'points': List<Offset>.from(freeDrawPoints),
+        'color': drawingColor,
+      };
+      drawings.add(newDrawing);
+      redoDrawings.clear();
+    }
+    freeDrawPoints.clear();
+    setState(() {});
+  }
+
+  void _clearDrawings() {
+    drawings.clear();
+    redoDrawings.clear();
+    setState(() {});
+  }
+
+  void _undoDrawing() {
+    if (drawings.isNotEmpty) {
+      redoDrawings.add(drawings.removeLast());
+      setState(() {});
+    }
+  }
+
+  void _redoDrawing() {
+    if (redoDrawings.isNotEmpty) {
+      drawings.add(redoDrawings.removeLast());
+      setState(() {});
+    }
+  }
+
+  void _changeDrawingColor(Color color) {
+    drawingColor = color;
+    setState(() {});
+  }
+
+  void _showColorPicker(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Pick a color'),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: drawingColor,
+              onColorChanged: _changeDrawingColor,
+              showLabel: true,
+              pickerAreaHeightPercent: 0.8,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _toggleDrawingOverlay() {
+    if (isDrawing && drawingOverlay == null) {
+      final RenderBox? renderBox = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox == null) {
+        print('Error: Field RenderBox not found');
+        return;
+      }
+      final fieldSize = renderBox.size;
+      final fieldOffset = renderBox.localToGlobal(Offset.zero);
+
+      drawingOverlay = OverlayEntry(
+        builder: (context) => Positioned(
+          left: fieldOffset.dx,
+          top: fieldOffset.dy,
+          child: DrawingOverlay(
+            isDrawing: isDrawing,
+            drawingMode: drawingMode,
+            drawingColor: drawingColor,
+            drawings: drawings,
+            onStartDrawing: _startDrawing,
+            onUpdateDrawing: _updateDrawing,
+            onEndDrawing: _endDrawing,
+            fieldSize: fieldSize,
+            fieldOffset: fieldOffset,
+          ),
+        ),
+      );
+      Overlay.of(context).insert(drawingOverlay!);
+      print('Overlay inserted at $fieldOffset with size $fieldSize');
+    } else if (!isDrawing && drawingOverlay != null) {
+      drawingOverlay!.remove();
+      drawingOverlay = null;
+      print('Overlay removed');
+    }
+    setState(() {}); // Ensure the UI updates after toggling
   }
 
   void _initializePlayerPositions(
@@ -232,7 +567,8 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
         childWhenDragging: Container(),
         child: GestureDetector(
           onTap: () {
-            if (position.player.id != null) {
+            if (!isDrawing && position.player.id != null) {
+              print('Player tapped: ${position.playerId}');
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
@@ -248,31 +584,40 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
           child: _buildPlayerWidget(position, isDragging),
         ),
         onDragStarted: () {
-          setState(() {
-            currentlyDraggingPlayerId = position.playerId;
-          });
+          print('Drag attempt started for ${position.playerId}, isDrawing: $isDrawing');
+          if (!isDrawing) {
+            setState(() {
+              currentlyDraggingPlayerId = position.playerId;
+            });
+          }
         },
         onDragUpdate: (details) {
-          setState(() {
-            final fieldWidth = MediaQuery.of(context).size.width;
-            final fieldHeight = 1900.h;
+          if (!isDrawing) {
+            print('Dragging ${position.playerId} by dx: ${details.delta.dx}, dy: ${details.delta.dy}');
+            setState(() {
+              final fieldWidth = MediaQuery.of(context).size.width;
+              final fieldHeight = 1900.h;
 
-            double newX = position.x + details.delta.dx;
-            double newY = position.y + details.delta.dy;
+              double newX = position.x + details.delta.dx;
+              double newY = position.y + details.delta.dy;
 
-            newX = newX.clamp(0.0, fieldWidth - 110.w);
-            newY = position.isHomeTeam
-                ? newY.clamp(0.0, fieldHeight / 2 - 110.h)
-                : newY.clamp(fieldHeight / 2, fieldHeight - 110.h);
+              newX = newX.clamp(0.0, fieldWidth - 110.w);
+              newY = position.isHomeTeam
+                  ? newY.clamp(0.0, fieldHeight / 2 - 110.h)
+                  : newY.clamp(fieldHeight / 2, fieldHeight - 110.h);
 
-            position.x = newX;
-            position.y = newY;
-          });
+              position.x = newX;
+              position.y = newY;
+            });
+          }
         },
         onDragEnd: (details) {
-          setState(() {
-            currentlyDraggingPlayerId = null;
-          });
+          if (!isDrawing) {
+            print('Drag ended for ${position.playerId} at ${details.offset}');
+            setState(() {
+              currentlyDraggingPlayerId = null;
+            });
+          }
         },
       ),
     );
@@ -296,8 +641,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             ),
             child: ClipOval(
               child: CachedNetworkImage(
-                imageUrl:
-                'https://img.sofascore.com/api/v1/player/${position.player.id}/image',
+                imageUrl: 'https://img.sofascore.com/api/v1/player/${position.player.id}/image',
                 placeholder: (context, url) => Shimmer.fromColors(
                   baseColor: Theme.of(context).colorScheme.surface,
                   highlightColor: Theme.of(context).colorScheme.surfaceVariant,
@@ -340,13 +684,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     );
   }
 
-  Widget _buildFootballField(
-      List<PlayerPerMatchEntity> homePlayers,
-      List<PlayerPerMatchEntity> awayPlayers) {
-    if (homePlayerPositions.isEmpty && awayPlayerPositions.isEmpty) {
-      _initializePlayerPositions(homePlayers, awayPlayers);
-    }
-
+  Widget _buildFieldBackground() {
     return Container(
       height: 1900.h,
       width: double.infinity,
@@ -407,10 +745,26 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
           _buildPenaltyArea(false),
           _buildGoalArea(true),
           _buildGoalArea(false),
-          ...homePlayerPositions.map((position) => _buildDraggablePlayer(position)),
-          ...awayPlayerPositions.map((position) => _buildDraggablePlayer(position)),
         ],
       ),
+    );
+  }
+
+  Widget _buildFootballField(
+      List<PlayerPerMatchEntity> homePlayers,
+      List<PlayerPerMatchEntity> awayPlayers) {
+    if (homePlayerPositions.isEmpty && awayPlayerPositions.isEmpty) {
+      _initializePlayerPositions(homePlayers, awayPlayers);
+    }
+
+    return Stack(
+      key: _fieldKey,
+      clipBehavior: Clip.none,
+      children: [
+        _buildFieldBackground(),
+        ...homePlayerPositions.map((position) => _buildDraggablePlayer(position)),
+        ...awayPlayerPositions.map((position) => _buildDraggablePlayer(position)),
+      ],
     );
   }
 
@@ -546,8 +900,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                     ),
                     child: ClipOval(
                       child: CachedNetworkImage(
-                        imageUrl:
-                        "https://img.sofascore.com/api/v1/manager/${manager.id}/image",
+                        imageUrl: "https://img.sofascore.com/api/v1/manager/${manager.id}/image",
                         placeholder: (context, url) => Shimmer.fromColors(
                           baseColor: Theme.of(context).colorScheme.surface,
                           highlightColor: Theme.of(context).colorScheme.surfaceVariant,
@@ -644,8 +997,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               ),
               child: ClipOval(
                 child: CachedNetworkImage(
-                  imageUrl:
-                  'https://img.sofascore.com/api/v1/player/${player.id}/image',
+                  imageUrl: 'https://img.sofascore.com/api/v1/player/${player.id}/image',
                   placeholder: (context, url) => Shimmer.fromColors(
                     baseColor: Theme.of(context).colorScheme.surface,
                     highlightColor: Theme.of(context).colorScheme.surfaceVariant,
@@ -686,8 +1038,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                         ReusableText(
                           text: player.jerseyNumber?.toString() ?? 'N/A',
                           textSize: 90.sp,
-                          textColor:
-                          Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ],
                     ),
@@ -705,6 +1056,90 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      floatingActionButton: SpeedDial(
+        icon: isDrawing ? Icons.stop : Icons.edit,
+        activeIcon: Icons.close,
+        spacing: 10,
+        childPadding: const EdgeInsets.all(5),
+        spaceBetweenChildren: 4,
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.brush),
+            label: 'Draw',
+            onTap: () {
+              setState(() {
+                drawingMode = DrawingMode.free;
+                isDrawing = true;
+                _toggleDrawingOverlay();
+              });
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.circle_outlined),
+            label: 'Circle',
+            onTap: () {
+              setState(() {
+                drawingMode = DrawingMode.circle;
+                isDrawing = true;
+                _toggleDrawingOverlay();
+              });
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.person),
+            label: 'Player Icon',
+            onTap: () {
+              setState(() {
+                drawingMode = DrawingMode.player;
+                isDrawing = true;
+                _toggleDrawingOverlay();
+              });
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.arrow_forward),
+            label: 'Arrow',
+            onTap: () {
+              setState(() {
+                drawingMode = DrawingMode.arrow;
+                isDrawing = true;
+                _toggleDrawingOverlay();
+              });
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.color_lens),
+            label: 'Change Color',
+            onTap: () => _showColorPicker(context),
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.undo),
+            label: 'Undo',
+            onTap: _undoDrawing,
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.redo),
+            label: 'Redo',
+            onTap: _redoDrawing,
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.clear),
+            label: 'Clear All',
+            onTap: _clearDrawings,
+          ),
+        ],
+        onPress: () {
+          setState(() {
+            isDrawing = !isDrawing;
+            print('SpeedDial pressed, isDrawing: $isDrawing');
+            _toggleDrawingOverlay();
+            if (!isDrawing) {
+              drawingMode = DrawingMode.none;
+              freeDrawPoints.clear();
+            }
+          });
+        },
+      ),
       body: BlocBuilder<PlayerPerMatchBloc, PlayerPerMatchState>(
         builder: (context, playerState) {
           return BlocBuilder<ManagerBloc, ManagerState>(
@@ -764,5 +1199,11 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    drawingOverlay?.remove();
+    super.dispose();
   }
 }
