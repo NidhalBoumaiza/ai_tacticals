@@ -44,6 +44,8 @@ dependencies:
   flutter_colorpicker: ^1.1.0
   screen_recorder: ^0.3.0
   video_thumbnail: ^0.5.3
+  device_info_plus: ^11.3.3
+  gallery_saver_plus: ^3.2.4
  
 
 

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:analysis_ai/features/games/presentation%20layer/pages/match%20details%20screen/player_stats_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -14,7 +15,13 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shimmer/shimmer.dart';
-
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:gallery_saver_plus/gallery_saver.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../../core/widgets/reusable_text.dart';
 import '../../../domain layer/entities/player_per_match_entity.dart';
 
@@ -553,12 +560,60 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
       ),
     );
   }
+
+
   Future<void> _saveFieldAsImage() async {
     try {
-      // Request storage permission (for Android < 13, if needed)
-      if (await Permission.storage.request().isDenied) {
+      // Check and request storage permissions based on Android version
+      bool hasPermission = false;
+
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        final sdkInt = androidInfo.version.sdkInt;
+
+        if (sdkInt < 33) {
+          // Android 12 and below: Request storage permission
+          if (await Permission.storage.isDenied || await Permission.storage.isPermanentlyDenied) {
+            final status = await Permission.storage.request();
+            hasPermission = status.isGranted;
+            if (!hasPermission && status.isPermanentlyDenied) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Storage permission permanently denied. Please enable it in Settings.'),
+                  action: SnackBarAction(label: 'Settings', onPressed: openAppSettings),
+                ),
+              );
+              return;
+            }
+          } else {
+            hasPermission = true;
+          }
+        } else {
+          // Android 13 and above: Request media permissions (photos)
+          if (await Permission.photos.isDenied || await Permission.photos.isPermanentlyDenied) {
+            final status = await Permission.photos.request();
+            hasPermission = status.isGranted;
+            if (!hasPermission && status.isPermanentlyDenied) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Media permission permanently denied. Please enable it in Settings.'),
+                  action: SnackBarAction(label: 'Settings', onPressed: openAppSettings),
+                ),
+              );
+              return;
+            }
+          } else {
+            hasPermission = true;
+          }
+        }
+      } else {
+        // For iOS, assume permission is granted or handled by gallery_saver_plus
+        hasPermission = true;
+      }
+
+      if (!hasPermission) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Storage permission denied')),
+          const SnackBar(content: Text('Permission denied. Cannot save image.')),
         );
         return;
       }
@@ -569,49 +624,29 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      // Get the Downloads directory
-      final directory = await getExternalStorageDirectory(); // Fallback directory
+      // Save the image temporarily
+      final tempDir = await getTemporaryDirectory();
       final String fileName = 'field_${widget.matchId}_${DateTime.now().millisecondsSinceEpoch}.png';
-      String filePath;
+      final String tempPath = '${tempDir.path}/$fileName';
+      final File tempFile = File(tempPath);
+      await tempFile.writeAsBytes(pngBytes);
 
-      if (Platform.isAndroid) {
-        // Use MediaStore to save to Downloads
-        final String relativePath = 'Download'; // Relative path for Downloads folder
-        final contentValues = <String, dynamic>{
-          'title': fileName,
-          'mime_type': 'image/png',
-          'relative_path': relativePath,
-          'is_pending': 1, // Mark as pending until the file is written
-        };
-
-        final uri = await MediaStore.createMediaStoreUri(
-          contentValues: contentValues,
-          collection: 'images',
-        );
-
-        if (uri != null) {
-          final contentResolver = await rootBundle.load('');
-          await File.fromUri(uri).writeAsBytes(pngBytes);
-          await MediaStore.updateMediaStoreUri(
-            uri: uri,
-            contentValues: {'is_pending': 0}, // Mark as complete
-          );
-          filePath = 'Downloads/$fileName';
-        } else {
-          // Fallback to app-specific storage if MediaStore fails
-          filePath = '${directory!.path}/$fileName';
-          await File(filePath).writeAsBytes(pngBytes);
-        }
-      } else {
-        // For non-Android (e.g., iOS), use app-specific directory
-        filePath = '${directory!.path}/$fileName';
-        await File(filePath).writeAsBytes(pngBytes);
-      }
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Image saved to $filePath')),
+      // Save to Gallery in aiTacticals folder
+      final bool? success = await GallerySaver.saveImage(
+        tempPath,
+        albumName: 'aiTacticals', // Creates the aiTacticals folder if it doesn't exist
       );
+
+      // Clean up temporary file
+      await tempFile.delete();
+
+      if (success == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image saved to Gallery in aiTacticals folder')),
+        );
+      } else {
+        throw Exception('Failed to save image to Gallery');
+      }
 
       // Return updated player positions
       Navigator.pop(context, {
