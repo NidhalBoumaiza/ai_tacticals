@@ -70,7 +70,7 @@ class _PlayerStatsModalState extends State<PlayerStatsModal> {
                 child: Padding(
                   padding: EdgeInsets.all(30.w),
                   child: ReusableText(
-                    text: state.message.tr,
+                    text: "No Stats Available for now.",
                     textSize: 100.sp,
                     textColor: Theme.of(context).colorScheme.onSurface,
                     textFontWeight: FontWeight.w600,

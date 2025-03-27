@@ -49,16 +49,18 @@ class _MatchDetailsSqueletteScreenState
     extends State<MatchDetailsSqueletteScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
+  late ScrollController _scrollController; // Add ScrollController
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
+    _scrollController = ScrollController(); // Initialize ScrollController
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose(); // Dispose ScrollController
     super.dispose();
   }
 
@@ -72,6 +74,7 @@ class _MatchDetailsSqueletteScreenState
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
+          controller: _scrollController, // Assign ScrollController
           headerSliverBuilder: (context, value) {
             return [
               SliverAppBar(
@@ -278,7 +281,7 @@ class _MatchDetailsSqueletteScreenState
                   homeShortName: widget.homeShortName,
                   awayShortName: widget.awayShortName,
                 ),
-                MatchLineupsScreen(matchId: widget.matchId),
+                MatchLineupsScreen(matchId: widget.matchId  )// Pass ScrollController),
               ],
             ),
           ),
