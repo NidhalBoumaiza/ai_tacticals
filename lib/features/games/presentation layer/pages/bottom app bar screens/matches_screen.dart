@@ -10,12 +10,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../../core/cubit/theme cubit/theme_cubit.dart';
 import '../../../domain%20layer/entities/matches_entities.dart';
 import '../../bloc/home%20match%20bloc/home_matches_bloc.dart';
 import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/country_flag_widget.dart';
+import '../match details screen/match_details_squelette_screen.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -348,7 +350,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 ),
                 SizedBox(width: 20.w),
                 SizedBox(
-                  width: 260.w,
+                  width: 200.w,
                   child: ReusableText(
                     text: match.awayTeam?.shortName ?? "Unknown",
                     textSize: 100.sp,
@@ -445,7 +447,62 @@ class _MatchesScreenState extends State<MatchesScreen> {
               ],
             ),
           ),
-          ...leagueMatches.map((match) => _buildMatchItem(match)).toList(),
+          ...leagueMatches
+              .map(
+                (match) => GestureDetector(
+                  onTap: () {
+                    // Navigate to match details screen
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      PersistentNavBarNavigator.pushNewScreen(
+                        context,
+                        screen: MatchDetailsSqueletteScreen(
+                          matchId: match.id!,
+                          homeTeamId: match.homeTeam!.id.toString(),
+                          awayTeamId: match.awayTeam!.id.toString(),
+                          homeShortName: match.homeTeam!.shortName!,
+                          awayShortName: match.awayTeam!.shortName!,
+                          leagueName: leagueName,
+                          matchDate:
+                              DateTime.fromMillisecondsSinceEpoch(
+                                match.startTimestamp! * 1000,
+                              )!,
+                          matchStatus: _getMatchStatus(match),
+                          homeScore: match.homeScore!.current ?? 0,
+                          awayScore: match.awayScore!.current ?? 0,
+                          seasonId: match.seasonId!,
+                          uniqueTournamentId:
+                              leagueMatches.first.tournament!.id!,
+                        ),
+                        withNavBar: false,
+                        pageTransitionAnimation:
+                            PageTransitionAnimation.slideRight,
+                      );
+                    });
+                    // navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
+                    //   context,
+                    //   MatchDetailsSqueletteScreen(
+                    //     matchId: match.id!,
+                    //     homeTeamId: match.homeTeam!.id.toString(),
+                    //     awayTeamId: match.awayTeam!.id.toString(),
+                    //     homeShortName: match.homeTeam!.shortName!,
+                    //     awayShortName: match.awayTeam!.shortName!,
+                    //     leagueName: leagueName,
+                    //     matchDate:
+                    //         DateTime.fromMillisecondsSinceEpoch(
+                    //           match.startTimestamp! * 1000,
+                    //         )!,
+                    //     matchStatus: _getMatchStatus(match),
+                    //     homeScore: match.homeScore!.current ?? 0,
+                    //     awayScore: match.awayScore!.current ?? 0,
+                    //     seasonId: match.seasonId!,
+                    //     uniqueTournamentId: leagueMatches.first.tournament!.id!,
+                    //   ),
+                    // );
+                  },
+                  child: _buildMatchItem(match),
+                ),
+              )
+              .toList(),
         ],
       );
     }).toList();

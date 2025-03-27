@@ -29,7 +29,12 @@ class MatchEventEntity {
   final bool? finalResultOnly;
   final bool? isLive;
   final TimeEntity? time; // Added TimeEntity field
-
+  final int? seasonId; // Added seasonId
+  final int? round; // Added round
+  final String? homePrimaryColor; // Added home team primary color
+  final String? homeSecondaryColor; // Added home team secondary color
+  final String? awayPrimaryColor; // Added away team primary color
+  final String? awaySecondaryColor; // Added away team secondary color
   // Computed property to get the current live minutes played
   int? get currentLiveMinutes {
     if (startTimestamp == null || status?.type != "inprogress")
@@ -86,6 +91,12 @@ class MatchEventEntity {
     this.finalResultOnly,
     this.isLive,
     this.time,
+    this.seasonId,
+    this.round,
+    this.homePrimaryColor,
+    this.homeSecondaryColor,
+    this.awayPrimaryColor,
+    this.awaySecondaryColor,
   });
 }
 

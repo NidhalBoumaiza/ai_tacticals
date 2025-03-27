@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:analysis_ai/features/games/presentation%20layer/pages/match%20details%20screen/player_stats_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -24,25 +25,42 @@ class FieldDrawingPainter extends CustomPainter {
   final Color drawingColor;
 
   FieldDrawingPainter(
-      this.drawings,
-      this.currentPoints,
-      this.drawingMode,
-      this.drawingColor,
-      );
+    this.drawings,
+    this.currentPoints,
+    this.drawingMode,
+    this.drawingColor,
+  );
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = drawingColor
-      ..strokeWidth = 4.0
-      ..strokeCap = StrokeCap.round;
+    final paint =
+        Paint()
+          ..color = drawingColor
+          ..strokeWidth =
+              8.0 // Increased for visibility
+          ..strokeCap = StrokeCap.round;
+
+    print(
+      'Painting with size: $size, drawings: ${drawings.length}, currentPoints: ${currentPoints.length}',
+    );
+    print('Current points: $currentPoints');
+    print('Drawings: $drawings');
+
+    // Draw a debug outline to confirm canvas bounds
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()
+        ..color = Colors.yellow.withOpacity(0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0,
+    );
 
     for (var drawing in drawings) {
       paint.color = drawing['color'] ?? drawingColor;
+      final points = drawing['points'] as List<Offset>;
 
       switch (drawing['type']) {
         case 'free':
-          final points = drawing['points'] as List<Offset>;
           for (int i = 0; i < points.length - 1; i++) {
             if (points[i] != null && points[i + 1] != null) {
               canvas.drawLine(points[i], points[i + 1], paint);
@@ -50,21 +68,25 @@ class FieldDrawingPainter extends CustomPainter {
           }
           break;
         case 'circle':
-          if (drawing['points'].length == 2) {
-            final start = drawing['points'][0];
-            final end = drawing['points'][1];
+          if (points.length == 2) {
+            final start = points[0];
+            final end = points[1];
             final radius = (start - end).distance;
-            canvas.drawCircle(start, radius, paint..style = PaintingStyle.stroke);
+            canvas.drawCircle(
+              start,
+              radius,
+              paint..style = PaintingStyle.stroke,
+            );
           }
           break;
         case 'arrow':
-          if (drawing['points'].length == 2) {
-            _drawArrow(canvas, drawing['points'][0], drawing['points'][1], paint);
+          if (points.length == 2) {
+            _drawArrow(canvas, points[0], points[1], paint);
           }
           break;
         case 'player':
-          if (drawing['points'].isNotEmpty) {
-            _drawPlayerIcon(canvas, drawing['points'][0], paint);
+          if (points.isNotEmpty) {
+            _drawPlayerIcon(canvas, points[0], paint);
           }
           break;
       }
@@ -82,7 +104,11 @@ class FieldDrawingPainter extends CustomPainter {
         case DrawingMode.circle:
           if (currentPoints.length == 2) {
             final radius = (currentPoints[0] - currentPoints[1]).distance;
-            canvas.drawCircle(currentPoints[0], radius, paint..style = PaintingStyle.stroke);
+            canvas.drawCircle(
+              currentPoints[0],
+              radius,
+              paint..style = PaintingStyle.stroke,
+            );
           }
           break;
         case DrawingMode.arrow:
@@ -105,11 +131,18 @@ class FieldDrawingPainter extends CustomPainter {
     canvas.drawLine(start, end, paint);
     final angle = atan2(end.dy - start.dy, end.dx - start.dx);
     const arrowSize = 20.0;
-    final path = Path()
-      ..moveTo(end.dx, end.dy)
-      ..lineTo(end.dx - arrowSize * cos(angle - pi / 6), end.dy - arrowSize * sin(angle - pi / 6))
-      ..lineTo(end.dx - arrowSize * cos(angle + pi / 6), end.dy - arrowSize * sin(angle + pi / 6))
-      ..close();
+    final path =
+        Path()
+          ..moveTo(end.dx, end.dy)
+          ..lineTo(
+            end.dx - arrowSize * cos(angle - pi / 6),
+            end.dy - arrowSize * sin(angle - pi / 6),
+          )
+          ..lineTo(
+            end.dx - arrowSize * cos(angle + pi / 6),
+            end.dy - arrowSize * sin(angle + pi / 6),
+          )
+          ..close();
     canvas.drawPath(path, paint..style = PaintingStyle.fill);
   }
 
@@ -119,23 +152,36 @@ class FieldDrawingPainter extends CustomPainter {
     final bodyStart = Offset(position.dx, position.dy + size * 0.2);
     final bodyEnd = Offset(position.dx, position.dy + size * 0.8);
     canvas.drawLine(bodyStart, bodyEnd, paint);
-    final leftArmStart = Offset(position.dx - size * 0.3, position.dy + size * 0.4);
-    final leftArmEnd = Offset(position.dx + size * 0.3, position.dy + size * 0.4);
+    final leftArmStart = Offset(
+      position.dx - size * 0.3,
+      position.dy + size * 0.4,
+    );
+    final leftArmEnd = Offset(
+      position.dx + size * 0.3,
+      position.dy + size * 0.4,
+    );
     canvas.drawLine(leftArmStart, leftArmEnd, paint);
-    final leftLegStart = Offset(position.dx - size * 0.2, position.dy + size * 0.8);
+    final leftLegStart = Offset(
+      position.dx - size * 0.2,
+      position.dy + size * 0.8,
+    );
     final leftLegEnd = Offset(position.dx, position.dy + size * 1.2);
     canvas.drawLine(leftLegStart, leftLegEnd, paint);
-    final rightLegStart = Offset(position.dx + size * 0.2, position.dy + size * 0.8);
+    final rightLegStart = Offset(
+      position.dx + size * 0.2,
+      position.dy + size * 0.8,
+    );
     final rightLegEnd = Offset(position.dx, position.dy + size * 1.2);
     canvas.drawLine(rightLegStart, rightLegEnd, paint);
   }
 
   @override
-  bool shouldRepaint(FieldDrawingPainter oldDelegate) =>
-      drawings != oldDelegate.drawings ||
-          currentPoints != oldDelegate.currentPoints ||
-          drawingMode != oldDelegate.drawingMode ||
-          drawingColor != oldDelegate.drawingColor;
+  bool shouldRepaint(FieldDrawingPainter oldDelegate) {
+    return drawings != oldDelegate.drawings ||
+        currentPoints != oldDelegate.currentPoints ||
+        drawingMode != oldDelegate.drawingMode ||
+        drawingColor != oldDelegate.drawingColor;
+  }
 }
 
 class PlayerPosition {
@@ -156,96 +202,6 @@ class PlayerPosition {
   });
 }
 
-class DrawingOverlay extends StatefulWidget {
-  final bool isDrawing;
-  final DrawingMode drawingMode;
-  final Color drawingColor;
-  final List<Map<String, dynamic>> drawings;
-  final Function(Offset) onStartDrawing;
-  final Function(Offset) onUpdateDrawing;
-  final Function() onEndDrawing;
-  final Size fieldSize;
-  final Offset fieldOffset;
-
-  const DrawingOverlay({
-    super.key,
-    required this.isDrawing,
-    required this.drawingMode,
-    required this.drawingColor,
-    required this.drawings,
-    required this.onStartDrawing,
-    required this.onUpdateDrawing,
-    required this.onEndDrawing,
-    required this.fieldSize,
-    required this.fieldOffset,
-  });
-
-  @override
-  _DrawingOverlayState createState() => _DrawingOverlayState();
-}
-
-class _DrawingOverlayState extends State<DrawingOverlay> {
-  List<Offset> currentPoints = [];
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.fieldSize.width,
-      height: widget.fieldSize.height,
-      child: Stack(
-        children: [
-          CustomPaint(
-            size: widget.fieldSize,
-            painter: FieldDrawingPainter(
-              widget.drawings,
-              currentPoints,
-              widget.drawingMode,
-              widget.drawingColor,
-            ),
-          ),
-          if (widget.isDrawing)
-            GestureDetector(
-              onPanStart: (details) {
-                final localPosition = details.localPosition;
-                print('Overlay: Drawing started at $localPosition');
-                setState(() {
-                  currentPoints = [localPosition];
-                  widget.onStartDrawing(localPosition);
-                });
-              },
-              onPanUpdate: (details) {
-                final localPosition = details.localPosition;
-                print('Overlay: Drawing updated to $localPosition');
-                setState(() {
-                  if (widget.drawingMode == DrawingMode.free) {
-                    currentPoints.add(localPosition);
-                  } else if (currentPoints.length < 2) {
-                    currentPoints.add(localPosition);
-                  } else {
-                    currentPoints[1] = localPosition;
-                  }
-                  widget.onUpdateDrawing(localPosition);
-                });
-              },
-              onPanEnd: (_) {
-                print('Overlay: Drawing ended');
-                setState(() {
-                  widget.onEndDrawing();
-                  currentPoints.clear();
-                });
-              },
-              child: Container(
-                width: widget.fieldSize.width,
-                height: widget.fieldSize.height,
-                color: Colors.transparent,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class MatchLineupsScreen extends StatefulWidget {
   final int matchId;
 
@@ -264,20 +220,30 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
 
   // Drawing variables
   bool isDrawing = false;
-  List<Offset> freeDrawPoints = [];
-  Color drawingColor = Colors.black;
+  List<Offset> currentPoints = [];
+  Color drawingColor = Colors.red; // Ensure it stays red
   DrawingMode drawingMode = DrawingMode.none;
   List<Map<String, dynamic>> drawings = [];
   List<Map<String, dynamic>> redoDrawings = [];
-  OverlayEntry? drawingOverlay;
   final GlobalKey _fieldKey = GlobalKey();
-
+  final ValueNotifier<bool> isDialOpen = ValueNotifier(
+    false,
+  ); // For SpeedDial control
+  late ScrollController _scrollController; // Add ScrollController
+  ValueKey<int> _scrollKey = const ValueKey(0); // Add key to force rebuild
   @override
   void initState() {
     super.initState();
     _playerBloc = context.read<PlayerPerMatchBloc>();
     _managerBloc = context.read<ManagerBloc>();
+    _scrollController = ScrollController(); // Initialize ScrollController
     _initializeData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose(); // Dispose ScrollController
+    super.dispose();
   }
 
   void _initializeData() {
@@ -290,58 +256,85 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   }
 
   void _startDrawing(Offset position) {
-    freeDrawPoints = [position];
-    setState(() {});
+    setState(() {
+      currentPoints = [position];
+      _scrollKey = ValueKey(
+        _scrollKey.value + 1,
+      ); // Update key to force rebuild
+      print('Start drawing at: $position, mode: $drawingMode');
+    });
   }
 
   void _updateDrawing(Offset position) {
-    if (drawingMode == DrawingMode.free) {
-      freeDrawPoints.add(position);
-    } else if (freeDrawPoints.length < 2) {
-      freeDrawPoints.add(position);
-    } else {
-      freeDrawPoints[1] = position;
-    }
-    setState(() {});
+    setState(() {
+      final fieldWidth = MediaQuery.of(context).size.width;
+      final fieldHeight = 1900.h;
+      final clampedPosition = Offset(
+        position.dx.clamp(0.0, fieldWidth),
+        position.dy.clamp(0.0, fieldHeight),
+      );
+      if (drawingMode == DrawingMode.free) {
+        currentPoints.add(clampedPosition);
+      } else if (currentPoints.length < 2) {
+        currentPoints.add(clampedPosition);
+      } else {
+        currentPoints[1] = clampedPosition;
+      }
+      print(
+        'Update drawing to: $clampedPosition, points: ${currentPoints.length}',
+      );
+    });
   }
 
   void _endDrawing() {
-    if (freeDrawPoints.isNotEmpty) {
-      final newDrawing = {
-        'type': drawingMode.toString().split('.').last,
-        'points': List<Offset>.from(freeDrawPoints),
-        'color': drawingColor,
-      };
-      drawings.add(newDrawing);
-      redoDrawings.clear();
-    }
-    freeDrawPoints.clear();
-    setState(() {});
+    setState(() {
+      if (currentPoints.isNotEmpty) {
+        final newDrawing = {
+          'type': drawingMode.toString().split('.').last,
+          'points': List<Offset>.from(currentPoints),
+          'color': drawingColor,
+        };
+        drawings.add(newDrawing);
+        redoDrawings.clear();
+        print(
+          'Drawing ended, added: $newDrawing, total drawings: ${drawings.length}',
+        );
+      }
+      currentPoints.clear();
+    });
   }
 
   void _clearDrawings() {
-    drawings.clear();
-    redoDrawings.clear();
-    setState(() {});
+    setState(() {
+      drawings.clear();
+      redoDrawings.clear();
+      print('Cleared all drawings');
+    });
   }
 
   void _undoDrawing() {
     if (drawings.isNotEmpty) {
-      redoDrawings.add(drawings.removeLast());
-      setState(() {});
+      setState(() {
+        redoDrawings.add(drawings.removeLast());
+        print('Undo: Moved last drawing to redo');
+      });
     }
   }
 
   void _redoDrawing() {
     if (redoDrawings.isNotEmpty) {
-      drawings.add(redoDrawings.removeLast());
-      setState(() {});
+      setState(() {
+        drawings.add(redoDrawings.removeLast());
+        print('Redo: Restored last undone drawing');
+      });
     }
   }
 
   void _changeDrawingColor(Color color) {
-    drawingColor = color;
-    setState(() {});
+    setState(() {
+      drawingColor = color;
+      print('Changed drawing color to: $color');
+    });
   }
 
   void _showColorPicker(BuildContext context) {
@@ -369,187 +362,183 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     );
   }
 
-  void _toggleDrawingOverlay() {
-    if (isDrawing && drawingOverlay == null) {
-      final RenderBox? renderBox = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-      if (renderBox == null) {
-        print('Error: Field RenderBox not found');
-        return;
-      }
-      final fieldSize = renderBox.size;
-      final fieldOffset = renderBox.localToGlobal(Offset.zero);
-
-      drawingOverlay = OverlayEntry(
-        builder: (context) => Positioned(
-          left: fieldOffset.dx,
-          top: fieldOffset.dy,
-          child: DrawingOverlay(
-            isDrawing: isDrawing,
-            drawingMode: drawingMode,
-            drawingColor: drawingColor,
-            drawings: drawings,
-            onStartDrawing: _startDrawing,
-            onUpdateDrawing: _updateDrawing,
-            onEndDrawing: _endDrawing,
-            fieldSize: fieldSize,
-            fieldOffset: fieldOffset,
-          ),
-        ),
-      );
-      Overlay.of(context).insert(drawingOverlay!);
-      print('Overlay inserted at $fieldOffset with size $fieldSize');
-    } else if (!isDrawing && drawingOverlay != null) {
-      drawingOverlay!.remove();
-      drawingOverlay = null;
-      print('Overlay removed');
-    }
-    setState(() {}); // Ensure the UI updates after toggling
-  }
-
   void _initializePlayerPositions(
-      List<PlayerPerMatchEntity> homePlayers,
-      List<PlayerPerMatchEntity> awayPlayers) {
+    List<PlayerPerMatchEntity> homePlayers,
+    List<PlayerPerMatchEntity> awayPlayers,
+  ) {
     homePlayerPositions = [];
     awayPlayerPositions = [];
 
-    final homeGoalkeepers = homePlayers.where((p) => p.position == 'G').toList();
+    final homeGoalkeepers =
+        homePlayers.where((p) => p.position == 'G').toList();
     final homeDefenders = homePlayers.where((p) => p.position == 'D').toList();
-    final homeMidfielders = homePlayers.where((p) => p.position == 'M').toList();
+    final homeMidfielders =
+        homePlayers.where((p) => p.position == 'M').toList();
     final homeForwards = homePlayers.where((p) => p.position == 'F').toList();
 
-    final awayGoalkeepers = awayPlayers.where((p) => p.position == 'G').toList();
+    final awayGoalkeepers =
+        awayPlayers.where((p) => p.position == 'G').toList();
     final awayDefenders = awayPlayers.where((p) => p.position == 'D').toList();
-    final awayMidfielders = awayPlayers.where((p) => p.position == 'M').toList();
+    final awayMidfielders =
+        awayPlayers.where((p) => p.position == 'M').toList();
     final awayForwards = awayPlayers.where((p) => p.position == 'F').toList();
 
     homeGoalkeepers.asMap().forEach((index, player) {
-      homePlayerPositions.add(PlayerPosition(
-        playerId: player.id?.toString() ?? 'home-gk-$index',
-        x: MediaQuery.of(context).size.width / 2 - 50.w,
-        y: 20.h,
-        isHomeTeam: true,
-        teamColor: Colors.blue,
-        player: player,
-      ));
+      homePlayerPositions.add(
+        PlayerPosition(
+          playerId: player.id?.toString() ?? 'home-gk-$index',
+          x: MediaQuery.of(context).size.width / 2 - 50.w,
+          y: 20.h,
+          isHomeTeam: true,
+          teamColor: Colors.blue,
+          player: player,
+        ),
+      );
     });
 
     homeDefenders.asMap().forEach((index, player) {
       final screenWidth = MediaQuery.of(context).size.width - 310.w;
       const minPadding = 40.0;
       final availableWidth = screenWidth - 2 * minPadding;
-      final xOffset = minPadding +
+      final xOffset =
+          minPadding +
           (index % homeDefenders.length) *
-              (availableWidth / (homeDefenders.length - 1).clamp(1, double.infinity));
+              (availableWidth /
+                  (homeDefenders.length - 1).clamp(1, double.infinity));
 
-      homePlayerPositions.add(PlayerPosition(
-        playerId: player.id?.toString() ?? 'home-def-$index',
-        x: xOffset,
-        y: 250.h,
-        isHomeTeam: true,
-        teamColor: Colors.blue,
-        player: player,
-      ));
+      homePlayerPositions.add(
+        PlayerPosition(
+          playerId: player.id?.toString() ?? 'home-def-$index',
+          x: xOffset,
+          y: 250.h,
+          isHomeTeam: true,
+          teamColor: Colors.blue,
+          player: player,
+        ),
+      );
     });
 
     homeMidfielders.asMap().forEach((index, player) {
       final screenWidth = MediaQuery.of(context).size.width - 310.w;
       const minPadding = 40.0;
       final availableWidth = screenWidth - 2 * minPadding;
-      final xOffset = minPadding +
+      final xOffset =
+          minPadding +
           (index % homeMidfielders.length) *
-              (availableWidth / (homeMidfielders.length - 1).clamp(1, double.infinity));
+              (availableWidth /
+                  (homeMidfielders.length - 1).clamp(1, double.infinity));
 
-      homePlayerPositions.add(PlayerPosition(
-        playerId: player.id?.toString() ?? 'home-mid-$index',
-        x: xOffset,
-        y: 550.h,
-        isHomeTeam: true,
-        teamColor: Colors.blue,
-        player: player,
-      ));
+      homePlayerPositions.add(
+        PlayerPosition(
+          playerId: player.id?.toString() ?? 'home-mid-$index',
+          x: xOffset,
+          y: 550.h,
+          isHomeTeam: true,
+          teamColor: Colors.blue,
+          player: player,
+        ),
+      );
     });
 
     homeForwards.asMap().forEach((index, player) {
       final screenWidth = MediaQuery.of(context).size.width - 310.w;
       const minPadding = 40.0;
       final availableWidth = screenWidth - 2 * minPadding;
-      final xOffset = minPadding +
+      final xOffset =
+          minPadding +
           (index % homeForwards.length) *
-              (availableWidth / (homeForwards.length - 1).clamp(1, double.infinity));
+              (availableWidth /
+                  (homeForwards.length - 1).clamp(1, double.infinity));
 
-      homePlayerPositions.add(PlayerPosition(
-        playerId: player.id?.toString() ?? 'home-fwd-$index',
-        x: xOffset,
-        y: 751.h,
-        isHomeTeam: true,
-        teamColor: Colors.blue,
-        player: player,
-      ));
+      homePlayerPositions.add(
+        PlayerPosition(
+          playerId: player.id?.toString() ?? 'home-fwd-$index',
+          x: xOffset,
+          y: 751.h,
+          isHomeTeam: true,
+          teamColor: Colors.blue,
+          player: player,
+        ),
+      );
     });
 
     awayGoalkeepers.asMap().forEach((index, player) {
-      awayPlayerPositions.add(PlayerPosition(
-        playerId: player.id?.toString() ?? 'away-gk-$index',
-        x: MediaQuery.of(context).size.width / 2 - 50.w,
-        y: 1675.h,
-        isHomeTeam: false,
-        teamColor: Colors.red,
-        player: player,
-      ));
+      awayPlayerPositions.add(
+        PlayerPosition(
+          playerId: player.id?.toString() ?? 'away-gk-$index',
+          x: MediaQuery.of(context).size.width / 2 - 50.w,
+          y: 1675.h,
+          isHomeTeam: false,
+          teamColor: Colors.red,
+          player: player,
+        ),
+      );
     });
 
     awayDefenders.asMap().forEach((index, player) {
       final screenWidth = MediaQuery.of(context).size.width - 310.w;
       const minPadding = 40.0;
       final availableWidth = screenWidth - 2 * minPadding;
-      final xOffset = minPadding +
+      final xOffset =
+          minPadding +
           (index % awayDefenders.length) *
-              (availableWidth / (awayDefenders.length - 1).clamp(1, double.infinity));
+              (availableWidth /
+                  (awayDefenders.length - 1).clamp(1, double.infinity));
 
-      awayPlayerPositions.add(PlayerPosition(
-        playerId: player.id?.toString() ?? 'away-def-$index',
-        x: xOffset,
-        y: 1470.h,
-        isHomeTeam: false,
-        teamColor: Colors.red,
-        player: player,
-      ));
+      awayPlayerPositions.add(
+        PlayerPosition(
+          playerId: player.id?.toString() ?? 'away-def-$index',
+          x: xOffset,
+          y: 1470.h,
+          isHomeTeam: false,
+          teamColor: Colors.red,
+          player: player,
+        ),
+      );
     });
 
     awayMidfielders.asMap().forEach((index, player) {
       final screenWidth = MediaQuery.of(context).size.width - 310.w;
       const minPadding = 40.0;
       final availableWidth = screenWidth - 2 * minPadding;
-      final xOffset = minPadding +
+      final xOffset =
+          minPadding +
           (index % awayMidfielders.length) *
-              (availableWidth / (awayMidfielders.length - 1).clamp(1, double.infinity));
+              (availableWidth /
+                  (awayMidfielders.length - 1).clamp(1, double.infinity));
 
-      awayPlayerPositions.add(PlayerPosition(
-        playerId: player.id?.toString() ?? 'away-mid-$index',
-        x: xOffset,
-        y: 1230.h,
-        isHomeTeam: false,
-        teamColor: Colors.red,
-        player: player,
-      ));
+      awayPlayerPositions.add(
+        PlayerPosition(
+          playerId: player.id?.toString() ?? 'away-mid-$index',
+          x: xOffset,
+          y: 1230.h,
+          isHomeTeam: false,
+          teamColor: Colors.red,
+          player: player,
+        ),
+      );
     });
 
     awayForwards.asMap().forEach((index, player) {
       final screenWidth = MediaQuery.of(context).size.width - 310.w;
       const minPadding = 40.0;
       final availableWidth = screenWidth - 2 * minPadding;
-      final xOffset = minPadding +
+      final xOffset =
+          minPadding +
           (index % awayForwards.length) *
-              (availableWidth / (awayForwards.length - 1).clamp(1, double.infinity));
+              (availableWidth /
+                  (awayForwards.length - 1).clamp(1, double.infinity));
 
-      awayPlayerPositions.add(PlayerPosition(
-        playerId: player.id?.toString() ?? 'away-fwd-$index',
-        x: xOffset,
-        y: 1000.h,
-        isHomeTeam: false,
-        teamColor: Colors.red,
-        player: player,
-      ));
+      awayPlayerPositions.add(
+        PlayerPosition(
+          playerId: player.id?.toString() ?? 'away-fwd-$index',
+          x: xOffset,
+          y: 1000.h,
+          isHomeTeam: false,
+          teamColor: Colors.red,
+          player: player,
+        ),
+      );
     });
   }
 
@@ -573,19 +562,20 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => PlayerStatsModal(
-                  matchId: widget.matchId,
-                  playerId: position.player.id!,
-                  playerName: position.player.name ?? 'Unknown Player',
-                ),
+                builder:
+                    (context) => PlayerStatsModal(
+                      matchId: widget.matchId,
+                      playerId: position.player.id!,
+                      playerName: position.player.name ?? 'Unknown Player',
+                    ),
               );
             }
           },
           child: _buildPlayerWidget(position, isDragging),
         ),
         onDragStarted: () {
-          print('Drag attempt started for ${position.playerId}, isDrawing: $isDrawing');
           if (!isDrawing) {
+            print('Drag started for ${position.playerId}');
             setState(() {
               currentlyDraggingPlayerId = position.playerId;
             });
@@ -593,7 +583,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
         },
         onDragUpdate: (details) {
           if (!isDrawing) {
-            print('Dragging ${position.playerId} by dx: ${details.delta.dx}, dy: ${details.delta.dy}');
+            print(
+              'Dragging ${position.playerId} by dx: ${details.delta.dx}, dy: ${details.delta.dy}',
+            );
             setState(() {
               final fieldWidth = MediaQuery.of(context).size.width;
               final fieldHeight = 1900.h;
@@ -602,9 +594,10 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               double newY = position.y + details.delta.dy;
 
               newX = newX.clamp(0.0, fieldWidth - 110.w);
-              newY = position.isHomeTeam
-                  ? newY.clamp(0.0, fieldHeight / 2 - 110.h)
-                  : newY.clamp(fieldHeight / 2, fieldHeight - 110.h);
+              newY =
+                  position.isHomeTeam
+                      ? newY.clamp(0.0, fieldHeight / 2 - 110.h)
+                      : newY.clamp(fieldHeight / 2, fieldHeight - 110.h);
 
               position.x = newX;
               position.y = newY;
@@ -641,21 +634,25 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             ),
             child: ClipOval(
               child: CachedNetworkImage(
-                imageUrl: 'https://img.sofascore.com/api/v1/player/${position.player.id}/image',
-                placeholder: (context, url) => Shimmer.fromColors(
-                  baseColor: Theme.of(context).colorScheme.surface,
-                  highlightColor: Theme.of(context).colorScheme.surfaceVariant,
-                  child: Container(
-                    width: 110.w,
-                    height: 110.w,
-                    color: Theme.of(context).colorScheme.surface,
-                  ),
-                ),
-                errorWidget: (context, url, error) => Icon(
-                  Icons.person,
-                  size: 60.w,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                imageUrl:
+                    'https://img.sofascore.com/api/v1/player/${position.player.id}/image',
+                placeholder:
+                    (context, url) => Shimmer.fromColors(
+                      baseColor: Theme.of(context).colorScheme.surface,
+                      highlightColor:
+                          Theme.of(context).colorScheme.surfaceVariant,
+                      child: Container(
+                        width: 110.w,
+                        height: 110.w,
+                        color: Theme.of(context).colorScheme.surface,
+                      ),
+                    ),
+                errorWidget:
+                    (context, url, error) => Icon(
+                      Icons.person,
+                      size: 60.w,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                 fit: BoxFit.cover,
                 width: 110.w,
                 height: 110.w,
@@ -723,7 +720,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.5),
                   width: 2,
                 ),
               ),
@@ -751,20 +750,70 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   }
 
   Widget _buildFootballField(
-      List<PlayerPerMatchEntity> homePlayers,
-      List<PlayerPerMatchEntity> awayPlayers) {
+    List<PlayerPerMatchEntity> homePlayers,
+    List<PlayerPerMatchEntity> awayPlayers,
+  ) {
     if (homePlayerPositions.isEmpty && awayPlayerPositions.isEmpty) {
       _initializePlayerPositions(homePlayers, awayPlayers);
     }
 
-    return Stack(
-      key: _fieldKey,
-      clipBehavior: Clip.none,
-      children: [
-        _buildFieldBackground(),
-        ...homePlayerPositions.map((position) => _buildDraggablePlayer(position)),
-        ...awayPlayerPositions.map((position) => _buildDraggablePlayer(position)),
-      ],
+    final fieldWidth = MediaQuery.of(context).size.width;
+    final fieldHeight = 1900.h;
+
+    return SizedBox(
+      width: fieldWidth,
+      height: fieldHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          _buildFieldBackground(),
+          CustomPaint(
+            size: Size(fieldWidth, fieldHeight),
+            painter: FieldDrawingPainter(
+              drawings,
+              currentPoints,
+              drawingMode,
+              drawingColor,
+            ),
+            willChange: isDrawing,
+            child: Container(key: _fieldKey),
+          ),
+          ...homePlayerPositions.map(
+            (position) => _buildDraggablePlayer(position),
+          ),
+          ...awayPlayerPositions.map(
+            (position) => _buildDraggablePlayer(position),
+          ),
+          if (isDrawing)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanStart: (details) {
+                final RenderBox? box =
+                    _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+                if (box != null) {
+                  final localPosition = box.globalToLocal(
+                    details.globalPosition,
+                  );
+                  _startDrawing(localPosition);
+                } else {
+                  print('Error: RenderBox not found for _fieldKey');
+                }
+              },
+              onPanUpdate: (details) {
+                final RenderBox? box =
+                    _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+                if (box != null) {
+                  final localPosition = box.globalToLocal(
+                    details.globalPosition,
+                  );
+                  _updateDrawing(localPosition);
+                }
+              },
+              onPanEnd: (_) => _endDrawing(),
+              child: SizedBox(width: fieldWidth, height: fieldHeight),
+            ),
+        ],
+      ),
     );
   }
 
@@ -803,8 +852,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   }
 
   Widget _buildContent(
-      Map<String, List<PlayerPerMatchEntity>> players,
-      Map<String, ManagerEntity?> managers) {
+    Map<String, List<PlayerPerMatchEntity>> players,
+    Map<String, ManagerEntity?> managers,
+  ) {
     final homePlayers = players['home'] ?? [];
     final awayPlayers = players['away'] ?? [];
     final homeManager = managers['homeManager'];
@@ -816,12 +866,21 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     final awaySubs = awayPlayers.where((p) => p.substitute).toList();
 
     return SingleChildScrollView(
+      key: _scrollKey, // Add key to force rebuild
+      controller: _scrollController,
+      physics:
+          isDrawing
+              ? const NeverScrollableScrollPhysics()
+              : const AlwaysScrollableScrollPhysics(),
       child: Padding(
         padding: EdgeInsets.all(30.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildFootballField(homeStarting, awayStarting),
+            SizedBox(
+              height: 1900.h,
+              child: _buildFootballField(homeStarting, awayStarting),
+            ),
             SizedBox(height: 60.h),
             _buildSubstitutesSection(
               homeManager,
@@ -836,10 +895,11 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   }
 
   Widget _buildSubstitutesSection(
-      ManagerEntity? homeManager,
-      List<PlayerPerMatchEntity> homeSubs,
-      ManagerEntity? awayManager,
-      List<PlayerPerMatchEntity> awaySubs) {
+    ManagerEntity? homeManager,
+    List<PlayerPerMatchEntity> homeSubs,
+    ManagerEntity? awayManager,
+    List<PlayerPerMatchEntity> awaySubs,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -861,7 +921,11 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     );
   }
 
-  Widget _buildManagerHeader(String title, ManagerEntity? manager, Color color) {
+  Widget _buildManagerHeader(
+    String title,
+    ManagerEntity? manager,
+    Color color,
+  ) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
@@ -882,7 +946,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               ReusableText(
                 text: 'no_manager_data_available'.tr,
                 textSize: 100.sp,
-                textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                textColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.7),
               )
             else
               Row(
@@ -900,21 +966,28 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                     ),
                     child: ClipOval(
                       child: CachedNetworkImage(
-                        imageUrl: "https://img.sofascore.com/api/v1/manager/${manager.id}/image",
-                        placeholder: (context, url) => Shimmer.fromColors(
-                          baseColor: Theme.of(context).colorScheme.surface,
-                          highlightColor: Theme.of(context).colorScheme.surfaceVariant,
-                          child: Container(
-                            width: 110.w,
-                            height: 110.w,
-                            color: Theme.of(context).colorScheme.surface,
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Icon(
-                          Icons.person,
-                          size: 60.w,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                        imageUrl:
+                            "https://img.sofascore.com/api/v1/manager/${manager.id}/image",
+                        placeholder:
+                            (context, url) => Shimmer.fromColors(
+                              baseColor: Theme.of(context).colorScheme.surface,
+                              highlightColor:
+                                  Theme.of(context).colorScheme.surfaceVariant,
+                              child: Container(
+                                width: 110.w,
+                                height: 110.w,
+                                color: Theme.of(context).colorScheme.surface,
+                              ),
+                            ),
+                        errorWidget:
+                            (context, url, error) => Icon(
+                              Icons.person,
+                              size: 60.w,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            ),
                         fit: BoxFit.cover,
                         width: 110.w,
                         height: 110.w,
@@ -939,7 +1012,11 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     );
   }
 
-  Widget _buildSubsList(String title, List<PlayerPerMatchEntity> subs, Color color) {
+  Widget _buildSubsList(
+    String title,
+    List<PlayerPerMatchEntity> subs,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -961,7 +1038,8 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: subs.length,
-            itemBuilder: (context, index) => _buildPlayerRow(subs[index], color),
+            itemBuilder:
+                (context, index) => _buildPlayerRow(subs[index], color),
           ),
       ],
     );
@@ -975,11 +1053,12 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
-            builder: (context) => PlayerStatsModal(
-              matchId: widget.matchId,
-              playerId: player.id!,
-              playerName: player.name ?? 'Unknown Player',
-            ),
+            builder:
+                (context) => PlayerStatsModal(
+                  matchId: widget.matchId,
+                  playerId: player.id!,
+                  playerName: player.name ?? 'Unknown Player',
+                ),
           );
         }
       },
@@ -997,21 +1076,25 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               ),
               child: ClipOval(
                 child: CachedNetworkImage(
-                  imageUrl: 'https://img.sofascore.com/api/v1/player/${player.id}/image',
-                  placeholder: (context, url) => Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surface,
-                    highlightColor: Theme.of(context).colorScheme.surfaceVariant,
-                    child: Container(
-                      width: 110.w,
-                      height: 110.w,
-                      color: Theme.of(context).colorScheme.surface,
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => Icon(
-                    Icons.person,
-                    size: 60.w,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                  imageUrl:
+                      'https://img.sofascore.com/api/v1/player/${player.id}/image',
+                  placeholder:
+                      (context, url) => Shimmer.fromColors(
+                        baseColor: Theme.of(context).colorScheme.surface,
+                        highlightColor:
+                            Theme.of(context).colorScheme.surfaceVariant,
+                        child: Container(
+                          width: 110.w,
+                          height: 110.w,
+                          color: Theme.of(context).colorScheme.surface,
+                        ),
+                      ),
+                  errorWidget:
+                      (context, url, error) => Icon(
+                        Icons.person,
+                        size: 60.w,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                   fit: BoxFit.cover,
                   width: 110.w,
                   height: 110.w,
@@ -1038,7 +1121,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
                         ReusableText(
                           text: player.jerseyNumber?.toString() ?? 'N/A',
                           textSize: 90.sp,
-                          textColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          textColor: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ],
                     ),
@@ -1062,6 +1147,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
         spacing: 10,
         childPadding: const EdgeInsets.all(5),
         spaceBetweenChildren: 4,
+        openCloseDial: isDialOpen,
         children: [
           SpeedDialChild(
             child: const Icon(Icons.brush),
@@ -1070,7 +1156,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               setState(() {
                 drawingMode = DrawingMode.free;
                 isDrawing = true;
-                _toggleDrawingOverlay();
+                isDialOpen.value = false;
+                _scrollKey = ValueKey(_scrollKey.value + 1); // Force rebuild
+                print('Selected Draw mode, isDrawing: $isDrawing');
               });
             },
           ),
@@ -1081,7 +1169,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               setState(() {
                 drawingMode = DrawingMode.circle;
                 isDrawing = true;
-                _toggleDrawingOverlay();
+                isDialOpen.value = false;
+                _scrollKey = ValueKey(_scrollKey.value + 1);
+                print('Selected Circle mode');
               });
             },
           ),
@@ -1092,7 +1182,9 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               setState(() {
                 drawingMode = DrawingMode.player;
                 isDrawing = true;
-                _toggleDrawingOverlay();
+                isDialOpen.value = false;
+                _scrollKey = ValueKey(_scrollKey.value + 1);
+                print('Selected Player Icon mode');
               });
             },
           ),
@@ -1103,40 +1195,67 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
               setState(() {
                 drawingMode = DrawingMode.arrow;
                 isDrawing = true;
-                _toggleDrawingOverlay();
+                isDialOpen.value = false;
+                _scrollKey = ValueKey(_scrollKey.value + 1);
+                print('Selected Arrow mode');
               });
             },
           ),
           SpeedDialChild(
             child: const Icon(Icons.color_lens),
             label: 'Change Color',
-            onTap: () => _showColorPicker(context),
+            onTap: () {
+              _showColorPicker(context);
+              isDialOpen.value = false;
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.undo),
             label: 'Undo',
-            onTap: _undoDrawing,
+            onTap: () {
+              _undoDrawing();
+              isDialOpen.value = false;
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.redo),
             label: 'Redo',
-            onTap: _redoDrawing,
+            onTap: () {
+              _redoDrawing();
+              isDialOpen.value = false;
+            },
           ),
           SpeedDialChild(
             child: const Icon(Icons.clear),
             label: 'Clear All',
-            onTap: _clearDrawings,
+            onTap: () {
+              _clearDrawings();
+              isDialOpen.value = false;
+            },
           ),
         ],
+        onOpen: () {
+          print('SpeedDial opened');
+        },
+        onClose: () {
+          print('SpeedDial closed');
+        },
         onPress: () {
           setState(() {
-            isDrawing = !isDrawing;
-            print('SpeedDial pressed, isDrawing: $isDrawing');
-            _toggleDrawingOverlay();
-            if (!isDrawing) {
+            if (isDialOpen.value) {
+              isDialOpen.value = false;
+            } else if (!isDrawing) {
+              isDialOpen.value = true;
+            } else {
+              isDrawing = false;
               drawingMode = DrawingMode.none;
-              freeDrawPoints.clear();
+              currentPoints.clear();
+              _scrollKey = ValueKey(_scrollKey.value + 1); // Force rebuild
+              print('Drawing stopped');
             }
+            print(
+              'SpeedDial pressed, isDrawing: $isDrawing, isDialOpen: ${isDialOpen.value}',
+            );
           });
         },
       ),
@@ -1146,8 +1265,10 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
             builder: (context, managerState) {
               if (_playerBloc.isMatchCached(widget.matchId) &&
                   _managerBloc.isMatchCached(widget.matchId)) {
-                final cachedPlayers = _playerBloc.getCachedPlayers(widget.matchId)!;
-                final cachedManagers = _managerBloc.getCachedManagers(widget.matchId)!;
+                final cachedPlayers =
+                    _playerBloc.getCachedPlayers(widget.matchId)!;
+                final cachedManagers =
+                    _managerBloc.getCachedManagers(widget.matchId)!;
                 return _buildContent(cachedPlayers, cachedManagers);
               }
 
@@ -1162,9 +1283,10 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
 
               if (playerState is PlayerPerMatchError ||
                   managerState is ManagerError) {
-                final errorMessage = playerState is PlayerPerMatchError
-                    ? playerState.message
-                    : (managerState as ManagerError).message;
+                final errorMessage =
+                    playerState is PlayerPerMatchError
+                        ? playerState.message
+                        : (managerState as ManagerError).message;
                 return Center(
                   child: Padding(
                     padding: EdgeInsets.all(30.w),
@@ -1199,11 +1321,5 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
         },
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    drawingOverlay?.remove();
-    super.dispose();
   }
 }

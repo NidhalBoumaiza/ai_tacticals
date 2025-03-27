@@ -2,7 +2,6 @@ import '../../domain layer/entities/league_entity.dart';
 import '../../domain layer/entities/matches_entities.dart';
 import '../../domain layer/entities/team_standing _entity.dart';
 
-// matches_models.dart (partial update)
 class MatchEventsPerTeamModel {
   final Map<String, List<MatchEventModel>>? tournamentTeamEvents;
   final List<MatchEventModel>? events;
@@ -13,6 +12,7 @@ class MatchEventsPerTeamModel {
     final tournamentTeamEventsData =
         json['tournamentTeamEvents'] as Map<String, dynamic>?;
     Map<String, List<MatchEventModel>>? parsedTournamentTeamEvents;
+
     if (tournamentTeamEventsData != null) {
       parsedTournamentTeamEvents = {};
       tournamentTeamEventsData.forEach((outerKey, innerMap) {
@@ -30,6 +30,7 @@ class MatchEventsPerTeamModel {
 
     final eventsData = json['events'] as List<dynamic>?;
     List<MatchEventModel>? parsedEvents;
+
     if (eventsData != null) {
       parsedEvents =
           eventsData
@@ -45,11 +46,9 @@ class MatchEventsPerTeamModel {
 
   MatchEventsPerTeamEntity toEntity() {
     if (events != null && events!.isNotEmpty) {
-      // Handle events from getHomeMatches
       final Map<String, List<MatchEventEntity>> groupedByTeam = {};
       for (var match in events!) {
         final matchEntity = match.toEntity();
-        // Add the match to both teams, but we'll deduplicate in the UI
         final homeTeamId = match.homeTeam?.id.toString() ?? 'unknown';
         final awayTeamId = match.awayTeam?.id.toString() ?? 'unknown';
 
@@ -59,7 +58,6 @@ class MatchEventsPerTeamModel {
       return MatchEventsPerTeamEntity(tournamentTeamEvents: groupedByTeam);
     }
 
-    // Process tournamentTeamEvents
     final Map<String, List<MatchEventEntity>> deduplicatedTeamEvents = {};
     tournamentTeamEvents?.forEach((teamId, matchList) {
       if (!deduplicatedTeamEvents.containsKey(teamId)) {
@@ -75,7 +73,6 @@ class MatchEventsPerTeamModel {
         }
       }
       deduplicatedTeamEvents[teamId]!.addAll(uniqueMatches.values);
-      // Sort by startTimestamp and limit to 5 matches
       deduplicatedTeamEvents[teamId]!.sort(
         (a, b) => (a.startTimestamp ?? 0).compareTo(b.startTimestamp ?? 0),
       );
@@ -114,10 +111,15 @@ class MatchEventModel {
   final bool? finalResultOnly;
   final bool? isLive;
   final TimeModel? time;
+  final int? seasonId;
+  final int? round;
+  final String? homePrimaryColor;
+  final String? homeSecondaryColor;
+  final String? awayPrimaryColor;
+  final String? awaySecondaryColor;
 
   int? get currentLiveMinutes {
-    if (startTimestamp == null || !isLive!)
-      return null; // Only for live matches
+    if (startTimestamp == null || !isLive!) return null;
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final elapsedSeconds = now - startTimestamp!;
     final totalMinutes = (elapsedSeconds / 60).floor();
@@ -129,26 +131,22 @@ class MatchEventModel {
           (time!.currentPeriodStartTimestamp! - startTimestamp!) ~/ 60;
 
       if (timeSinceStart >= 45) {
-        // Second half
-        final baseMinutes =
-            45 + (time?.injuryTime1 ?? 0); // First half duration
+        final baseMinutes = 45 + (time?.injuryTime1 ?? 0);
         return baseMinutes + periodMinutes;
       } else {
-        // First half
         return totalMinutes;
       }
     }
 
-    // Fallback: Use total time if period info is missing
     final firstHalfMax = 45 + (time?.injuryTime1 ?? 0);
     final fullTimeMax =
         90 + (time?.injuryTime1 ?? 0) + (time?.injuryTime2 ?? 0);
     if (totalMinutes <= firstHalfMax) {
-      return totalMinutes; // First half
+      return totalMinutes;
     } else if (totalMinutes <= fullTimeMax) {
-      return totalMinutes; // Second half
+      return totalMinutes;
     } else {
-      return fullTimeMax; // Cap at full time
+      return fullTimeMax;
     }
   }
 
@@ -168,10 +166,17 @@ class MatchEventModel {
     this.finalResultOnly,
     this.isLive,
     this.time,
+    this.seasonId,
+    this.round,
+    this.homePrimaryColor,
+    this.homeSecondaryColor,
+    this.awayPrimaryColor,
+    this.awaySecondaryColor,
   });
 
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
     try {
+      // Tournament parsing
       final tournamentData = json['tournament'] as Map<String, dynamic>?;
       LeagueEntity? tournamentEntity;
       if (tournamentData != null) {
@@ -186,9 +191,26 @@ class MatchEventModel {
         );
       }
 
+      // Status parsing
       final statusData = json['status'] as Map<String, dynamic>?;
       final statusType = statusData?['type'] as String?;
       final isLive = statusType == 'inprogress';
+
+      // New fields parsing
+      final seasonId = json['season']?['id'] as int?;
+      final round = json['roundInfo']?['round'] as int?;
+
+      final homeTeamData = json['homeTeam'] as Map<String, dynamic>?;
+      final awayTeamData = json['awayTeam'] as Map<String, dynamic>?;
+
+      final homePrimaryColor =
+          homeTeamData?['teamColors']?['primary'] as String?;
+      final homeSecondaryColor =
+          homeTeamData?['teamColors']?['secondary'] as String?;
+      final awayPrimaryColor =
+          awayTeamData?['teamColors']?['primary'] as String?;
+      final awaySecondaryColor =
+          awayTeamData?['teamColors']?['secondary'] as String?;
 
       return MatchEventModel(
         tournament: tournamentEntity,
@@ -196,130 +218,84 @@ class MatchEventModel {
         status: statusData != null ? StatusModel.fromJson(statusData) : null,
         winnerCode: json['winnerCode'] as int?,
         homeTeam:
-            json['homeTeam'] != null
+            homeTeamData != null
                 ? TeamStandingEntity(
-                  shortName:
-                      (json['homeTeam'] as Map<String, dynamic>?)?['shortName']
-                          as String?,
-                  id:
-                      (json['homeTeam'] as Map<String, dynamic>?)?['id']
-                          as int?,
+                  shortName: homeTeamData['shortName'] as String?,
+                  id: homeTeamData['id'] as int?,
                   teamColors:
-                      json['homeTeam']?['teamColors'] != null
+                      homeTeamData['teamColors'] != null
                           ? TeamColorsEntity(
-                            primary:
-                                (json['homeTeam']['teamColors']
-                                        as Map<String, dynamic>?)?['primary']
-                                    as String?,
-                            secondary:
-                                (json['homeTeam']['teamColors']
-                                        as Map<String, dynamic>?)?['secondary']
-                                    as String?,
+                            primary: homePrimaryColor,
+                            secondary: homeSecondaryColor,
                             text:
-                                (json['homeTeam']['teamColors']
-                                        as Map<String, dynamic>?)?['text']
-                                    as String?,
+                                homeTeamData['teamColors']?['text'] as String?,
                           )
                           : null,
                   fieldTranslations:
-                      json['homeTeam']?['fieldTranslations'] != null
+                      homeTeamData['fieldTranslations'] != null
                           ? FieldTranslationsEntity(
                             nameTranslationAr:
-                                ((json['homeTeam']['fieldTranslations']
-                                            as Map<
-                                              String,
-                                              dynamic
-                                            >?)?['nameTranslation']
-                                        as Map<String, dynamic>?)?['ar']
+                                homeTeamData['fieldTranslations']?['nameTranslation']?['ar']
                                     as String?,
                             shortNameTranslationAr:
-                                ((json['homeTeam']['fieldTranslations']
-                                            as Map<
-                                              String,
-                                              dynamic
-                                            >?)?['shortNameTranslation']
-                                        as Map<String, dynamic>?)?['ar']
+                                homeTeamData['fieldTranslations']?['shortNameTranslation']?['ar']
                                     as String?,
                           )
                           : null,
                   countryAlpha2:
-                      (json['tournament']?['category']
-                              as Map<String, dynamic>?)?['alpha2']
-                          as String?,
+                      json['tournament']?['category']?['alpha2'] as String?,
                 )
                 : null,
         awayTeam:
-            json['awayTeam'] != null
+            awayTeamData != null
                 ? TeamStandingEntity(
-                  shortName:
-                      (json['awayTeam'] as Map<String, dynamic>?)?['shortName']
-                          as String?,
-                  id:
-                      (json['awayTeam'] as Map<String, dynamic>?)?['id']
-                          as int?,
+                  shortName: awayTeamData['shortName'] as String?,
+                  id: awayTeamData['id'] as int?,
                   teamColors:
-                      json['awayTeam']?['teamColors'] != null
+                      awayTeamData['teamColors'] != null
                           ? TeamColorsEntity(
-                            primary:
-                                (json['awayTeam']['teamColors']
-                                        as Map<String, dynamic>?)?['primary']
-                                    as String?,
-                            secondary:
-                                (json['awayTeam']['teamColors']
-                                        as Map<String, dynamic>?)?['secondary']
-                                    as String?,
+                            primary: awayPrimaryColor,
+                            secondary: awaySecondaryColor,
                             text:
-                                (json['awayTeam']['teamColors']
-                                        as Map<String, dynamic>?)?['text']
-                                    as String?,
+                                awayTeamData['teamColors']?['text'] as String?,
                           )
                           : null,
                   fieldTranslations:
-                      json['awayTeam']?['fieldTranslations'] != null
+                      awayTeamData['fieldTranslations'] != null
                           ? FieldTranslationsEntity(
                             nameTranslationAr:
-                                ((json['awayTeam']['fieldTranslations']
-                                            as Map<
-                                              String,
-                                              dynamic
-                                            >?)?['nameTranslation']
-                                        as Map<String, dynamic>?)?['ar']
+                                awayTeamData['fieldTranslations']?['nameTranslation']?['ar']
                                     as String?,
                             shortNameTranslationAr:
-                                ((json['awayTeam']['fieldTranslations']
-                                            as Map<
-                                              String,
-                                              dynamic
-                                            >?)?['shortNameTranslation']
-                                        as Map<String, dynamic>?)?['ar']
+                                awayTeamData['fieldTranslations']?['shortNameTranslation']?['ar']
                                     as String?,
                           )
                           : null,
                   countryAlpha2:
-                      (json['tournament']?['category']
-                              as Map<String, dynamic>?)?['alpha2']
-                          as String?,
+                      json['tournament']?['category']?['alpha2'] as String?,
                 )
                 : null,
         homeScore:
             json['homeScore'] != null
-                ? ScoreModel.fromJson(json['homeScore'] as Map<String, dynamic>)
+                ? ScoreModel.fromJson(json['homeScore'])
                 : null,
         awayScore:
             json['awayScore'] != null
-                ? ScoreModel.fromJson(json['awayScore'] as Map<String, dynamic>)
+                ? ScoreModel.fromJson(json['awayScore'])
                 : null,
         hasXg: json['hasXg'] as bool?,
-        // Note: Not in JSON, might be unused
         id: json['id'] as int?,
         startTimestamp: json['startTimestamp'] as int?,
         slug: json['slug'] as String?,
         finalResultOnly: json['finalResultOnly'] as bool?,
         isLive: isLive,
-        time:
-            json['time'] != null
-                ? TimeModel.fromJson(json['time'] as Map<String, dynamic>)
-                : null,
+        time: json['time'] != null ? TimeModel.fromJson(json['time']) : null,
+        seasonId: seasonId,
+        round: round,
+        homePrimaryColor: homePrimaryColor,
+        homeSecondaryColor: homeSecondaryColor,
+        awayPrimaryColor: awayPrimaryColor,
+        awaySecondaryColor: awaySecondaryColor,
       );
     } catch (e) {
       rethrow;
@@ -343,6 +319,12 @@ class MatchEventModel {
       finalResultOnly: finalResultOnly,
       isLive: isLive,
       time: time?.toEntity(),
+      seasonId: seasonId,
+      round: round,
+      homePrimaryColor: homePrimaryColor,
+      homeSecondaryColor: homeSecondaryColor,
+      awayPrimaryColor: awayPrimaryColor,
+      awaySecondaryColor: awaySecondaryColor,
     );
   }
 
@@ -384,6 +366,8 @@ class MatchEventModel {
       'finalResultOnly': finalResultOnly,
       'isLive': isLive,
       'time': time?.toJson(),
+      'season': seasonId != null ? {'id': seasonId} : null,
+      'roundInfo': round != null ? {'round': round} : null,
     };
   }
 }

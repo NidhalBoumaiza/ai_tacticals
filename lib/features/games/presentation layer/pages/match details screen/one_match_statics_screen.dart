@@ -73,17 +73,17 @@ class _OneMatchStaticsScreenState extends State<OneMatchStaticsScreen> {
         body: BlocConsumer<MatchDetailsBloc, MatchDetailsState>(
           listener: (context, state) {
             if (state is MatchDetailsError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    state.message,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                ),
-              );
+              // ScaffoldMessenger.of(context).showSnackBar(
+              //   SnackBar(
+              //     content: Text(
+              //       state.message,
+              //       style: TextStyle(
+              //         color: Theme.of(context).colorScheme.onSurface,
+              //       ),
+              //     ),
+              //     backgroundColor: Theme.of(context).colorScheme.surface,
+              //   ),
+              // );
             }
           },
           builder: (context, state) {
