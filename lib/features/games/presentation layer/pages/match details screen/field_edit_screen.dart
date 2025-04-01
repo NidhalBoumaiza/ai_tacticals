@@ -9,57 +9,63 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shimmer/shimmer.dart';
-import 'dart:io';
-import 'dart:ui' as ui;
-import 'package:flutter/rendering.dart';
-import 'package:gallery_saver_plus/gallery_saver.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../../../../core/widgets/reusable_text.dart';
 import '../../../domain layer/entities/player_per_match_entity.dart';
-
-enum DrawingMode { free, circle, arrow, player, none }
+import '../../cubit/lineup drawing cubut/drawing__cubit.dart';
+import '../../cubit/lineup drawing cubut/drawing__state.dart';
 
 class FieldDrawingPainter extends CustomPainter {
-  final List<Map<String, dynamic>> drawings;
+  final List<DrawingItem> drawings;
   final List<Offset> currentPoints;
   final DrawingMode drawingMode;
   final Color drawingColor;
+  final int? selectedDrawingIndex;
 
   FieldDrawingPainter(
       this.drawings,
       this.currentPoints,
       this.drawingMode,
       this.drawingColor,
+      this.selectedDrawingIndex,
       );
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = drawingColor
       ..strokeWidth = 8.0
       ..strokeCap = StrokeCap.round;
 
-    for (var drawing in drawings) {
-      paint.color = drawing['color'] ?? drawingColor;
-      final points = drawing['points'] as List<Offset>;
+    for (int i = 0; i < drawings.length; i++) {
+      final drawing = drawings[i];
+      paint.color = drawing.color;
+      print('Drawing $i color: ${drawing.color}'); // Debug
+      final points = drawing.points;
 
-      switch (drawing['type']) {
-        case 'free':
-          for (int i = 0; i < points.length - 1; i++) {
-            if (points[i] != null && points[i + 1] != null) {
-              canvas.drawLine(points[i], points[i + 1], paint);
+      if (i == selectedDrawingIndex) {
+        paint.strokeWidth = 10.0;
+        paint.color = drawing.color.withOpacity(0.8);
+      } else {
+        paint.strokeWidth = 8.0;
+        paint.color = drawing.color;
+      }
+
+      switch (drawing.type) {
+        case DrawingMode.free:
+          for (int j = 0; j < points.length - 1; j++) {
+            if (points[j] != null && points[j + 1] != null) {
+              canvas.drawLine(points[j], points[j + 1], paint);
             }
           }
           break;
-        case 'circle':
+        case DrawingMode.circle:
           if (points.length == 2) {
             final start = points[0];
             final end = points[1];
@@ -67,21 +73,25 @@ class FieldDrawingPainter extends CustomPainter {
             canvas.drawCircle(start, radius, paint..style = PaintingStyle.stroke);
           }
           break;
-        case 'arrow':
+        case DrawingMode.arrow:
           if (points.length == 2) {
             _drawArrow(canvas, points[0], points[1], paint);
           }
           break;
-        case 'player':
+        case DrawingMode.player:
           if (points.isNotEmpty) {
             _drawPlayerIcon(canvas, points[0], paint);
           }
+          break;
+        case DrawingMode.none:
           break;
       }
     }
 
     if (currentPoints.isNotEmpty && drawingMode != DrawingMode.none) {
       paint.color = drawingColor;
+      print('Current drawing color: $drawingColor'); // Debug
+      paint.strokeWidth = 8.0;
       switch (drawingMode) {
         case DrawingMode.free:
           for (int i = 0; i < currentPoints.length - 1; i++) {
@@ -104,7 +114,7 @@ class FieldDrawingPainter extends CustomPainter {
             _drawPlayerIcon(canvas, currentPoints[0], paint);
           }
           break;
-        default:
+        case DrawingMode.none:
           break;
       }
     }
@@ -144,7 +154,8 @@ class FieldDrawingPainter extends CustomPainter {
     return drawings != oldDelegate.drawings ||
         currentPoints != oldDelegate.currentPoints ||
         drawingMode != oldDelegate.drawingMode ||
-        drawingColor != oldDelegate.drawingColor;
+        drawingColor != oldDelegate.drawingColor ||
+        selectedDrawingIndex != oldDelegate.selectedDrawingIndex;
   }
 }
 
@@ -187,20 +198,12 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
   late List<PlayerPosition> awayPlayerPositions;
   String? currentlyDraggingPlayerId;
   final GlobalKey _repaintBoundaryKey = GlobalKey();
-  // Drawing variables
-  bool isDrawing = false;
-  final ValueNotifier<List<Offset>> currentPoints = ValueNotifier([]);
-  Color drawingColor = Colors.red;
-  DrawingMode drawingMode = DrawingMode.none;
-  List<Map<String, dynamic>> drawings = [];
-  List<Map<String, dynamic>> redoDrawings = [];
   final GlobalKey _fieldKey = GlobalKey();
-  final ValueNotifier<bool> isDialOpen = ValueNotifier(false);
+  final ValueNotifier<bool> _isDialOpen = ValueNotifier(false);
 
   @override
   void initState() {
     super.initState();
-    // Deep copy to avoid modifying the original list directly
     homePlayerPositions = widget.homePlayers.map((p) => PlayerPosition(
       playerId: p.playerId,
       x: p.x,
@@ -221,79 +224,11 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
 
   @override
   void dispose() {
-    currentPoints.dispose();
+    _isDialOpen.dispose();
     super.dispose();
   }
 
-  void _startDrawing(Offset position) {
-    currentPoints.value = [position];
-    print('Start drawing at: $position, mode: $drawingMode');
-  }
-
-  void _updateDrawing(Offset position) {
-    final fieldWidth = MediaQuery.of(context).size.width;
-    final fieldHeight = 1900.h;
-    final clampedPosition = Offset(
-      position.dx.clamp(0.0, fieldWidth),
-      position.dy.clamp(0.0, fieldHeight),
-    );
-    final newPoints = List<Offset>.from(currentPoints.value);
-    if (drawingMode == DrawingMode.free) {
-      newPoints.add(clampedPosition);
-    } else if (newPoints.length < 2) {
-      newPoints.add(clampedPosition);
-    } else {
-      newPoints[1] = clampedPosition;
-    }
-    currentPoints.value = newPoints;
-    print('Update drawing to: $clampedPosition, points: ${currentPoints.value.length}');
-  }
-
-  void _endDrawing() {
-    if (currentPoints.value.isNotEmpty) {
-      final newDrawing = {
-        'type': drawingMode.toString().split('.').last,
-        'points': List<Offset>.from(currentPoints.value),
-        'color': drawingColor,
-      };
-      drawings.add(newDrawing);
-      redoDrawings.clear();
-      print('Drawing ended, added: $newDrawing, total drawings: ${drawings.length}');
-    }
-    currentPoints.value = [];
-  }
-
-  void _clearDrawings() {
-    drawings.clear();
-    redoDrawings.clear();
-    currentPoints.value = [];
-    setState(() {});
-    print('Cleared all drawings');
-  }
-
-  void _undoDrawing() {
-    if (drawings.isNotEmpty) {
-      redoDrawings.add(drawings.removeLast());
-      setState(() {});
-      print('Undo: Moved last drawing to redo');
-    }
-  }
-
-  void _redoDrawing() {
-    if (redoDrawings.isNotEmpty) {
-      drawings.add(redoDrawings.removeLast());
-      setState(() {});
-      print('Redo: Restored last undone drawing');
-    }
-  }
-
-  void _changeDrawingColor(Color color) {
-    drawingColor = color;
-    setState(() {});
-    print('Changed drawing color to: $color');
-  }
-
-  void _showColorPicker(BuildContext context) {
+  void _showColorPicker(BuildContext context, DrawingCubit cubit) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -301,8 +236,8 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
           title: const Text('Pick a color'),
           content: SingleChildScrollView(
             child: ColorPicker(
-              pickerColor: drawingColor,
-              onColorChanged: _changeDrawingColor,
+              pickerColor: cubit.state.currentColor,
+              onColorChanged: (color) => cubit.changeColor(color),
               showLabel: true,
               pickerAreaHeightPercent: 0.8,
             ),
@@ -315,10 +250,10 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
           ],
         );
       },
-    );
+    ).then((_) => _isDialOpen.value = false);
   }
 
-  Widget _buildDraggablePlayer(PlayerPosition position) {
+  Widget _buildDraggablePlayer(PlayerPosition position, bool isDrawing) {
     final isDragging = currentlyDraggingPlayerId == position.playerId;
 
     return Positioned(
@@ -364,7 +299,7 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
               double newY = position.y + details.delta.dy;
 
               newX = newX.clamp(0.0, fieldWidth - 110.w);
-              newY = newY.clamp(0.0, fieldHeight - 110.h); // Allow full field movement
+              newY = newY.clamp(0.0, fieldHeight - 110.h);
 
               position.x = newX;
               position.y = newY;
@@ -561,7 +496,6 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
     );
   }
 
-
   Future<void> _saveFieldAsImage() async {
     try {
       // Check and request storage permissions based on Android version
@@ -660,6 +594,7 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
       );
     }
   }
+
   Widget _buildFootballField() {
     final fieldWidth = MediaQuery.of(context).size.width;
     final fieldHeight = 1900.h;
@@ -667,189 +602,220 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
     return SizedBox(
       width: fieldWidth,
       height: fieldHeight,
-      child: RepaintBoundary(
-        key: _repaintBoundaryKey, // Assign the key here
-        child: RawGestureDetector(
-          gestures: {
-            PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
-                  () => PanGestureRecognizer(),
-                  (PanGestureRecognizer instance) {
-                instance
-                  ..onStart = isDrawing
-                      ? (details) {
-                    final RenderBox? box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-                    if (box != null) {
-                      final localPosition = box.globalToLocal(details.globalPosition);
-                      _startDrawing(localPosition);
+      child: BlocBuilder<DrawingCubit, DrawingState>(
+        builder: (context, state) {
+          final cubit = context.read<DrawingCubit>();
+          return RepaintBoundary(
+            key: _repaintBoundaryKey,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _buildFieldBackground(),
+                GestureDetector(
+                  onTapUp: (details) {
+                    if (!state.isDrawing && state.currentMode == DrawingMode.none) {
+                      final RenderBox? box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+                      if (box != null) {
+                        final localPosition = box.globalToLocal(details.globalPosition);
+                        final previousIndex = state.selectedDrawingIndex;
+                        cubit.selectDrawing(localPosition);
+                        if (previousIndex != null && cubit.state.selectedDrawingIndex == null) {
+                          print('Deselected drawing by tapping elsewhere');
+                        } else if (cubit.state.selectedDrawingIndex == previousIndex) {
+                          cubit.deselectDrawing();
+                          print('Deselected drawing $previousIndex by tapping it again');
+                        } else if (cubit.state.selectedDrawingIndex != null) {
+                          print('Selected drawing ${cubit.state.selectedDrawingIndex}');
+                        }
+                      }
                     }
-                  }
-                      : null
-                  ..onUpdate = isDrawing
-                      ? (details) {
-                    final RenderBox? box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-                    if (box != null) {
-                      final localPosition = box.globalToLocal(details.globalPosition);
-                      _updateDrawing(localPosition);
-                    }
-                  }
-                      : null
-                  ..onEnd = isDrawing ? (_) => _endDrawing() : null;
-              },
-            ),
-          },
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _buildFieldBackground(),
-              ValueListenableBuilder<List<Offset>>(
-                valueListenable: currentPoints,
-                builder: (context, points, child) {
-                  return CustomPaint(
-                    size: Size(fieldWidth, fieldHeight),
-                    painter: FieldDrawingPainter(
-                      drawings,
-                      points,
-                      drawingMode,
-                      drawingColor,
+                  },
+                  child: RawGestureDetector(
+                    gestures: {
+                      PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+                            () => PanGestureRecognizer(),
+                            (PanGestureRecognizer instance) {
+                          instance
+                            ..onStart = (details) {
+                              final RenderBox? box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+                              if (box != null) {
+                                final localPosition = box.globalToLocal(details.globalPosition);
+                                if (state.isDrawing && state.currentMode != DrawingMode.none) {
+                                  cubit.startDrawing(localPosition);
+                                  print('Drawing started at: $localPosition');
+                                }
+                              }
+                            }
+                            ..onUpdate = (details) {
+                              final RenderBox? box = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+                              if (box != null) {
+                                final localPosition = box.globalToLocal(details.globalPosition);
+                                if (state.isDrawing && state.currentMode != DrawingMode.none) {
+                                  cubit.updateDrawing(localPosition, maxWidth: fieldWidth, maxHeight: fieldHeight);
+                                } else if (state.selectedDrawingIndex != null) {
+                                  cubit.moveDrawing(details.delta, maxWidth: fieldWidth, maxHeight: fieldHeight);
+                                  print('Dragging drawing: ${state.selectedDrawingIndex}, delta: ${details.delta}');
+                                }
+                              }
+                            }
+                            ..onEnd = (_) {
+                              if (state.isDrawing && state.currentMode != DrawingMode.none) {
+                                cubit.endDrawing();
+                                print('Drawing ended');
+                              }
+                            };
+                        },
+                      ),
+                    },
+                    child: CustomPaint(
+                      size: Size(fieldWidth, fieldHeight),
+                      painter: FieldDrawingPainter(
+                        state.drawings,
+                        state.currentPoints,
+                        state.currentMode,
+                        state.currentColor,
+                        state.selectedDrawingIndex,
+                      ),
+                      child: Container(key: _fieldKey),
                     ),
-                    child: Container(key: _fieldKey),
-                  );
-                },
-              ),
-              ...homePlayerPositions.map((position) => _buildDraggablePlayer(position)),
-              ...awayPlayerPositions.map((position) => _buildDraggablePlayer(position)),
-            ],
-          ),
-        ),
+                  ),
+                ),
+                ...homePlayerPositions.map((position) => _buildDraggablePlayer(position, state.isDrawing)),
+                ...awayPlayerPositions.map((position) => _buildDraggablePlayer(position, state.isDrawing)),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('Edit Field'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveFieldAsImage, // Call the save method here
-          ),
-        ],
-      ),
-      floatingActionButton: SpeedDial(
-        icon: isDrawing ? Icons.stop : Icons.edit,
-        activeIcon: Icons.close,
-        spacing: 10,
-        childPadding: const EdgeInsets.all(5),
-        spaceBetweenChildren: 4,
-        openCloseDial: isDialOpen,
-        children: [
-          SpeedDialChild(
-            child: const Icon(Icons.brush),
-            label: 'Draw',
-            onTap: () {
-              setState(() {
-                drawingMode = DrawingMode.free;
-                isDrawing = true;
-                isDialOpen.value = false;
-                print('Selected Draw mode');
-              });
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.circle_outlined),
-            label: 'Circle',
-            onTap: () {
-              setState(() {
-                drawingMode = DrawingMode.circle;
-                isDrawing = true;
-                isDialOpen.value = false;
-                print('Selected Circle mode');
-              });
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.person),
-            label: 'Player Icon',
-            onTap: () {
-              setState(() {
-                drawingMode = DrawingMode.player;
-                isDrawing = true;
-                isDialOpen.value = false;
-                print('Selected Player Icon mode');
-              });
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.arrow_forward),
-            label: 'Arrow',
-            onTap: () {
-              setState(() {
-                drawingMode = DrawingMode.arrow;
-                isDrawing = true;
-                isDialOpen.value = false;
-                print('Selected Arrow mode');
-              });
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.color_lens),
-            label: 'Change Color',
-            onTap: () {
-              _showColorPicker(context);
-              isDialOpen.value = false;
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.undo),
-            label: 'Undo',
-            onTap: () {
-              _undoDrawing();
-              isDialOpen.value = false;
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.redo),
-            label: 'Redo',
-            onTap: () {
-              _redoDrawing();
-              isDialOpen.value = false;
-            },
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.clear),
-            label: 'Clear All',
-            onTap: () {
-              _clearDrawings();
-              isDialOpen.value = false;
-            },
-          ),
-        ],
-        onPress: () {
-          setState(() {
-            if (isDialOpen.value) {
-              isDialOpen.value = false;
-            } else if (!isDrawing) {
-              isDialOpen.value = true;
-            } else {
-              isDrawing = false;
-              drawingMode = DrawingMode.none;
-              currentPoints.value = [];
-              print('Drawing stopped');
+    return BlocProvider(
+      create: (_) => DrawingCubit(),
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: const Text('Edit Field'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _saveFieldAsImage,
+            ),
+          ],
+        ),
+        floatingActionButton: TapRegion(
+          onTapOutside: (_) {
+            if (_isDialOpen.value) {
+              _isDialOpen.value = false;
             }
-          });
-        },
-      ),
-      body: Padding(
-        padding:  EdgeInsets.symmetric(horizontal: 20.w , vertical: 20.h),
-        child: _buildFootballField(),
+          },
+          child: BlocBuilder<DrawingCubit, DrawingState>(
+            builder: (context, state) {
+              final cubit = context.read<DrawingCubit>();
+              return SpeedDial(
+                openCloseDial: _isDialOpen,
+                icon: state.isDrawing ? Icons.stop : Icons.edit,
+                activeIcon: Icons.close,
+                spacing: 10,
+                childPadding: const EdgeInsets.all(5),
+                spaceBetweenChildren: 4,
+                children: [
+                  SpeedDialChild(
+                    child: const Icon(Icons.brush),
+                    label: 'Draw',
+                    onTap: () {
+                      cubit.setDrawingMode(DrawingMode.free);
+                      _isDialOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: const Icon(Icons.circle_outlined),
+                    label: 'Circle',
+                    onTap: () {
+                      cubit.setDrawingMode(DrawingMode.circle);
+                      _isDialOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: const Icon(Icons.person),
+                    label: 'Player Icon',
+                    onTap: () {
+                      cubit.setDrawingMode(DrawingMode.player);
+                      _isDialOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: const Icon(Icons.arrow_forward),
+                    label: 'Arrow',
+                    onTap: () {
+                      cubit.setDrawingMode(DrawingMode.arrow);
+                      _isDialOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: const Icon(Icons.color_lens),
+                    label: 'Change Color',
+                    onTap: () {
+                      _showColorPicker(context, cubit);
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: const Icon(Icons.undo),
+                    label: 'Undo',
+                    onTap: () {
+                      cubit.undoDrawing();
+                      _isDialOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: const Icon(Icons.redo),
+                    label: 'Redo',
+                    onTap: () {
+                      cubit.redoDrawing();
+                      _isDialOpen.value = false;
+                    },
+                  ),
+                  SpeedDialChild(
+                    child: const Icon(Icons.clear),
+                    label: 'Clear All',
+                    onTap: () {
+                      cubit.clearDrawings();
+                      _isDialOpen.value = false;
+                    },
+                  ),
+                ],
+                onPress: () {
+                  if (state.isDrawing) {
+                    cubit.endDrawing();
+                    _isDialOpen.value = false;
+                  } else {
+                    _isDialOpen.value = !_isDialOpen.value;
+                  }
+                },
+                onClose: () {
+                  _isDialOpen.value = false;
+                },
+              );
+            },
+          ),
+        ),
+        body: TapRegion(
+          onTapOutside: (_) {
+            if (_isDialOpen.value) {
+              _isDialOpen.value = false;
+            }
+          },
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            child: _buildFootballField(),
+          ),
+        ),
       ),
     );
   }
 }
-
 
 class MediaStore {
   static const _platform = MethodChannel('flutter.io/media_store');
