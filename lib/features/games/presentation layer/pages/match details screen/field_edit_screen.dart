@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:analysis_ai/core/utils/custom_snack_bar.dart';
 import 'package:analysis_ai/features/games/presentation%20layer/pages/match%20details%20screen/player_stats_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -17,147 +18,11 @@ import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../../../../core/widgets/field_drawing_painter.dart';
 import '../../../../../core/widgets/reusable_text.dart';
 import '../../../domain layer/entities/player_per_match_entity.dart';
 import '../../cubit/lineup drawing cubut/drawing__cubit.dart';
 import '../../cubit/lineup drawing cubut/drawing__state.dart';
-
-class FieldDrawingPainter extends CustomPainter {
-  final List<DrawingItem> drawings;
-  final List<Offset> currentPoints;
-  final DrawingMode drawingMode;
-  final Color drawingColor;
-  final int? selectedDrawingIndex;
-
-  FieldDrawingPainter(
-      this.drawings,
-      this.currentPoints,
-      this.drawingMode,
-      this.drawingColor,
-      this.selectedDrawingIndex,
-      );
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..strokeWidth = 8.0
-      ..strokeCap = StrokeCap.round;
-
-    for (int i = 0; i < drawings.length; i++) {
-      final drawing = drawings[i];
-      paint.color = drawing.color;
-      print('Drawing $i color: ${drawing.color}'); // Debug
-      final points = drawing.points;
-
-      if (i == selectedDrawingIndex) {
-        paint.strokeWidth = 10.0;
-        paint.color = drawing.color.withOpacity(0.8);
-      } else {
-        paint.strokeWidth = 8.0;
-        paint.color = drawing.color;
-      }
-
-      switch (drawing.type) {
-        case DrawingMode.free:
-          for (int j = 0; j < points.length - 1; j++) {
-            if (points[j] != null && points[j + 1] != null) {
-              canvas.drawLine(points[j], points[j + 1], paint);
-            }
-          }
-          break;
-        case DrawingMode.circle:
-          if (points.length == 2) {
-            final start = points[0];
-            final end = points[1];
-            final radius = (start - end).distance;
-            canvas.drawCircle(start, radius, paint..style = PaintingStyle.stroke);
-          }
-          break;
-        case DrawingMode.arrow:
-          if (points.length == 2) {
-            _drawArrow(canvas, points[0], points[1], paint);
-          }
-          break;
-        case DrawingMode.player:
-          if (points.isNotEmpty) {
-            _drawPlayerIcon(canvas, points[0], paint);
-          }
-          break;
-        case DrawingMode.none:
-          break;
-      }
-    }
-
-    if (currentPoints.isNotEmpty && drawingMode != DrawingMode.none) {
-      paint.color = drawingColor;
-      print('Current drawing color: $drawingColor'); // Debug
-      paint.strokeWidth = 8.0;
-      switch (drawingMode) {
-        case DrawingMode.free:
-          for (int i = 0; i < currentPoints.length - 1; i++) {
-            canvas.drawLine(currentPoints[i], currentPoints[i + 1], paint);
-          }
-          break;
-        case DrawingMode.circle:
-          if (currentPoints.length == 2) {
-            final radius = (currentPoints[0] - currentPoints[1]).distance;
-            canvas.drawCircle(currentPoints[0], radius, paint..style = PaintingStyle.stroke);
-          }
-          break;
-        case DrawingMode.arrow:
-          if (currentPoints.length == 2) {
-            _drawArrow(canvas, currentPoints[0], currentPoints[1], paint);
-          }
-          break;
-        case DrawingMode.player:
-          if (currentPoints.isNotEmpty) {
-            _drawPlayerIcon(canvas, currentPoints[0], paint);
-          }
-          break;
-        case DrawingMode.none:
-          break;
-      }
-    }
-  }
-
-  void _drawArrow(Canvas canvas, Offset start, Offset end, Paint paint) {
-    canvas.drawLine(start, end, paint);
-    final angle = atan2(end.dy - start.dy, end.dx - start.dx);
-    const arrowSize = 20.0;
-    final path = Path()
-      ..moveTo(end.dx, end.dy)
-      ..lineTo(end.dx - arrowSize * cos(angle - pi / 6), end.dy - arrowSize * sin(angle - pi / 6))
-      ..lineTo(end.dx - arrowSize * cos(angle + pi / 6), end.dy - arrowSize * sin(angle + pi / 6))
-      ..close();
-    canvas.drawPath(path, paint..style = PaintingStyle.fill);
-  }
-
-  void _drawPlayerIcon(Canvas canvas, Offset position, Paint paint) {
-    const size = 30.0;
-    canvas.drawCircle(position, size * 0.2, paint..style = PaintingStyle.fill);
-    final bodyStart = Offset(position.dx, position.dy + size * 0.2);
-    final bodyEnd = Offset(position.dx, position.dy + size * 0.8);
-    canvas.drawLine(bodyStart, bodyEnd, paint);
-    final leftArmStart = Offset(position.dx - size * 0.3, position.dy + size * 0.4);
-    final leftArmEnd = Offset(position.dx + size * 0.3, position.dy + size * 0.4);
-    canvas.drawLine(leftArmStart, leftArmEnd, paint);
-    final leftLegStart = Offset(position.dx - size * 0.2, position.dy + size * 0.8);
-    final leftLegEnd = Offset(position.dx, position.dy + size * 1.2);
-    canvas.drawLine(leftLegStart, leftLegEnd, paint);
-    final rightLegStart = Offset(position.dx + size * 0.2, position.dy + size * 0.8);
-    final rightLegEnd = Offset(position.dx, position.dy + size * 1.2);
-    canvas.drawLine(rightLegStart, rightLegEnd, paint);
-  }
-
-  @override
-  bool shouldRepaint(FieldDrawingPainter oldDelegate) {
-    return drawings != oldDelegate.drawings ||
-        currentPoints != oldDelegate.currentPoints ||
-        drawingMode != oldDelegate.drawingMode ||
-        drawingColor != oldDelegate.drawingColor ||
-        selectedDrawingIndex != oldDelegate.selectedDrawingIndex;
-  }
-}
 
 class PlayerPosition {
   final String playerId;
@@ -496,9 +361,8 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
     );
   }
 
-  Future<void> _saveFieldAsImage() async {
+  Future<void> _saveFieldAsImage(BuildContext context) async {
     try {
-      // Check and request storage permissions based on Android version
       bool hasPermission = false;
 
       if (Platform.isAndroid) {
@@ -506,34 +370,22 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
         final sdkInt = androidInfo.version.sdkInt;
 
         if (sdkInt < 33) {
-          // Android 12 and below: Request storage permission
           if (await Permission.storage.isDenied || await Permission.storage.isPermanentlyDenied) {
             final status = await Permission.storage.request();
             hasPermission = status.isGranted;
             if (!hasPermission && status.isPermanentlyDenied) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Storage permission permanently denied. Please enable it in Settings.'),
-                  action: SnackBarAction(label: 'Settings', onPressed: openAppSettings),
-                ),
-              );
+              showErrorSnackBar(context, 'Storage permission permanently denied. Please enable it in Settings.');
               return;
             }
           } else {
             hasPermission = true;
           }
         } else {
-          // Android 13 and above: Request media permissions (photos)
           if (await Permission.photos.isDenied || await Permission.photos.isPermanentlyDenied) {
             final status = await Permission.photos.request();
             hasPermission = status.isGranted;
             if (!hasPermission && status.isPermanentlyDenied) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Media permission permanently denied. Please enable it in Settings.'),
-                  action: SnackBarAction(label: 'Settings', onPressed: openAppSettings),
-                ),
-              );
+              showErrorSnackBar(context, 'Media permission permanently denied. Please enable it in Settings.');
               return;
             }
           } else {
@@ -541,57 +393,49 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
           }
         }
       } else {
-        // For iOS, assume permission is granted or handled by gallery_saver_plus
         hasPermission = true;
       }
 
       if (!hasPermission) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permission denied. Cannot save image.')),
-        );
+        showWarningSnackBar(context, 'Permission denied. Cannot save image.');
         return;
       }
 
-      // Capture the field as an image
-      RenderRepaintBoundary boundary = _repaintBoundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      ui.Image image = await boundary.toImage(pixelRatio: 3.0); // Higher quality
+      RenderRepaintBoundary boundary =
+      _repaintBoundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      // Save the image temporarily
       final tempDir = await getTemporaryDirectory();
       final String fileName = 'field_${widget.matchId}_${DateTime.now().millisecondsSinceEpoch}.png';
       final String tempPath = '${tempDir.path}/$fileName';
       final File tempFile = File(tempPath);
       await tempFile.writeAsBytes(pngBytes);
 
-      // Save to Gallery in aiTacticals folder
       final bool? success = await GallerySaver.saveImage(
         tempPath,
-        albumName: 'aiTacticals', // Creates the aiTacticals folder if it doesn't exist
+        albumName: 'aiTacticals',
       );
 
-      // Clean up temporary file
       await tempFile.delete();
 
       if (success == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image saved to Gallery in aiTacticals folder')),
-        );
+        showSuccessSnackBar(context, 'Image saved to Gallery in aiTacticals folder');
       } else {
-        throw Exception('Failed to save image to Gallery');
+        showErrorSnackBar(context, 'Failed to save image to Gallery');
       }
 
-      // Return updated player positions
+      final drawings = context.read<DrawingCubit>().state.drawings;
+
       Navigator.pop(context, {
         'home': homePlayerPositions,
         'away': awayPlayerPositions,
+        'drawings': drawings,
       });
     } catch (e) {
       print('Error saving image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save image: $e')),
-      );
+      showErrorSnackBar(context, 'Failed to save image: $e');
     }
   }
 
@@ -699,9 +543,11 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
         appBar: AppBar(
           title: const Text('Edit Field'),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveFieldAsImage,
+            Builder(
+              builder: (innerContext) => IconButton(
+                icon: const Icon(Icons.save),
+                onPressed: () => _saveFieldAsImage(innerContext),
+              ),
             ),
           ],
         ),
@@ -721,6 +567,9 @@ class _FieldEditScreenState extends State<FieldEditScreen> {
                 spacing: 10,
                 childPadding: const EdgeInsets.all(5),
                 spaceBetweenChildren: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(40.r), // Rounded corners
+                ), // Non-circular shape
                 children: [
                   SpeedDialChild(
                     child: const Icon(Icons.brush),

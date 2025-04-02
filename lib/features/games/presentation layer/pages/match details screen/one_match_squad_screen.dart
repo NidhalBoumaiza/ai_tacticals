@@ -7,14 +7,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
-
+import '../../../../../core/widgets/field_drawing_painter.dart';
 import '../../../../../core/widgets/reusable_text.dart';
 import '../../../domain%20layer/entities/manager_entity.dart';
 import '../../../domain%20layer/entities/player_per_match_entity.dart';
 import '../../bloc/manager%20bloc/manager_bloc.dart';
 import '../../bloc/player%20per%20match%20bloc/player_per_match_bloc.dart';
-
-
+import '../../cubit/lineup drawing cubut/drawing__state.dart'; // Import DrawingState for DrawingItem
 
 class MatchLineupsScreen extends StatefulWidget {
   final int matchId;
@@ -33,6 +32,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   late final ManagerBloc _managerBloc;
   List<PlayerPosition> homePlayerPositions = [];
   List<PlayerPosition> awayPlayerPositions = [];
+  List<DrawingItem> drawings = []; // New field to store drawings
   final ValueNotifier<bool> isDialOpen = ValueNotifier(false);
   late final ScrollController _scrollController;
 
@@ -48,6 +48,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    isDialOpen.dispose();
     super.dispose();
   }
 
@@ -344,6 +345,16 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
         clipBehavior: Clip.none,
         children: [
           _buildFieldBackground(),
+          CustomPaint(
+            size: Size(fieldWidth, fieldHeight),
+            painter: FieldDrawingPainter(
+              drawings, // Pass stored drawings
+              [], // No current points (static display)
+              DrawingMode.none, // No active drawing mode
+              Colors.red, // Default color (not used for completed drawings)
+              null, // No selected drawing
+            ),
+          ),
           ...homePlayerPositions.map(
                 (position) => Positioned(
               left: position.x,
@@ -439,8 +450,8 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     final awayManager = managers['awayManager'];
 
     final homeStarting = homePlayers.where((p) => !p.substitute).toList();
-    final homeSubs = homePlayers.where((p) => p.substitute).toList();
     final awayStarting = awayPlayers.where((p) => !p.substitute).toList();
+    final homeSubs = homePlayers.where((p) => p.substitute).toList();
     final awaySubs = awayPlayers.where((p) => p.substitute).toList();
 
     return SingleChildScrollView(
@@ -467,6 +478,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     );
   }
 
+  // ... (_buildSubstitutesSection, _buildManagerHeader, _buildSubsList, _buildPlayerRow unchanged) ...
   Widget _buildSubstitutesSection(
       ManagerEntity? homeManager,
       List<PlayerPerMatchEntity> homeSubs,
@@ -681,45 +693,32 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      floatingActionButton: SpeedDial(
-        icon: Icons.edit,
-        activeIcon: Icons.close,
-        spacing: 10,
-        childPadding: const EdgeInsets.all(5),
-        spaceBetweenChildren: 4,
-        openCloseDial: isDialOpen,
-        children: [],
-        onPress: () {
-          setState(() {
-            if (isDialOpen.value) {
-              isDialOpen.value = false;
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FieldEditScreen(
-                    matchId: widget.matchId,
-                    homePlayers: homePlayerPositions,
-                    awayPlayers: awayPlayerPositions,
-                  ),
-                ),
-              ).then((updatedPlayers) {
-                if (updatedPlayers != null) {
-                  setState(() {
-                    homePlayerPositions = updatedPlayers['home'];
-                    awayPlayerPositions = updatedPlayers['away'];
-                  });
-                }
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FieldEditScreen(
+                matchId: widget.matchId,
+                homePlayers: homePlayerPositions,
+                awayPlayers: awayPlayerPositions,
+              ),
+            ),
+          ).then((updatedData) {
+            if (updatedData != null) {
+              setState(() {
+                homePlayerPositions = updatedData['home'];
+                awayPlayerPositions = updatedData['away'];
+                drawings = updatedData['drawings'] ?? [];
               });
-              isDialOpen.value = false;
             }
           });
         },
+        child: const Icon(Icons.edit),
       ),
       body: BlocBuilder<PlayerPerMatchBloc, PlayerPerMatchState>(
         builder: (context, playerState) {
