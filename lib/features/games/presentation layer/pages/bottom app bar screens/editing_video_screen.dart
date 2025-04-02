@@ -1,10 +1,7 @@
 import 'dart:io';
-import 'dart:ui' as ui;
-import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:video_player/video_player.dart';
@@ -12,7 +9,7 @@ import '../../cubit/lineup drawing cubut/drawing__cubit.dart';
 import '../../cubit/lineup drawing cubut/drawing__state.dart';
 import '../../cubit/video editing cubit/video_editing_cubit.dart';
 import '../../cubit/video editing cubit/video_editing_state.dart';
-import '../../../../../core/widgets/field_drawing_painter.dart'; // Assuming this exists
+import '../../../../../core/widgets/field_drawing_painter.dart';
 
 class EditingVideoScreen extends StatefulWidget {
   const EditingVideoScreen({super.key});
@@ -35,7 +32,7 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => VideoEditingCubit()..pickVideo()),
+        BlocProvider(create: (_) => VideoEditingCubit()),
         BlocProvider(create: (_) => DrawingCubit()),
       ],
       child: Scaffold(
@@ -69,16 +66,23 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
           ],
         ),
         body: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 50.w),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Column(
             children: [
-              SizedBox(height: 50.h),
+              const SizedBox(height: 20),
               BlocBuilder<VideoEditingCubit, VideoEditingState>(
                 builder: (context, videoState) {
                   return BlocBuilder<DrawingCubit, DrawingState>(
                     builder: (context, drawingState) {
                       final videoWidth = videoState.controller?.value.size.width ?? double.infinity;
-                      final videoHeight = 600.h;
+                      final videoHeight = 400;
+                      final currentTimestamp = videoState.controller?.value.position.inMilliseconds ?? 0;
+
+                      final visibleDrawings = videoState.lines
+                          .where((line) => (line['timestamp'] as int) == currentTimestamp)
+                          .map((line) => line['drawing'] as DrawingItem)
+                          .toList();
+
                       return GestureDetector(
                         onTapUp: (details) {
                           if (!drawingState.isDrawing && drawingState.currentMode == DrawingMode.none) {
@@ -105,9 +109,9 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
                           if (box != null) {
                             final localPosition = box.globalToLocal(details.globalPosition);
                             if (drawingState.isDrawing && drawingState.currentMode != DrawingMode.none) {
-                              context.read<DrawingCubit>().updateDrawing(localPosition, maxWidth: videoWidth, maxHeight: videoHeight);
+                              context.read<DrawingCubit>().updateDrawing(localPosition, maxWidth: videoWidth, maxHeight: videoHeight.toDouble());
                             } else if (drawingState.selectedDrawingIndex != null) {
-                              context.read<DrawingCubit>().moveDrawing(details.delta, maxWidth: videoWidth, maxHeight: videoHeight);
+                              context.read<DrawingCubit>().moveDrawing(details.delta, maxWidth: videoWidth, maxHeight: videoHeight.toDouble());
                             }
                           }
                         },
@@ -119,31 +123,33 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
                           }
                         },
                         child: Container(
-                          height: videoHeight,
+                          height: videoHeight.toDouble(),
                           width: double.infinity,
                           decoration: BoxDecoration(border: Border.all(color: Colors.black)),
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              if (videoState.controller != null && videoState.controller!.value.isInitialized)
-                                AspectRatio(
-                                  aspectRatio: videoState.controller!.value.aspectRatio,
-                                  child: VideoPlayer(videoState.controller!),
-                                )
-                              else
-                                const Center(child: Text("Aucune vidéo sélectionnée")),
-                              CustomPaint(
-                                size: Size(videoWidth, videoHeight),
-                                painter: FieldDrawingPainter(
-                                  drawingState.drawings,
-                                  drawingState.currentPoints,
-                                  drawingState.currentMode,
-                                  drawingState.currentColor,
-                                  drawingState.selectedDrawingIndex,
+                          child: RepaintBoundary(
+                            key: _videoKey,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                if (videoState.controller != null && videoState.controller!.value.isInitialized)
+                                  AspectRatio(
+                                    aspectRatio: videoState.controller!.value.aspectRatio,
+                                    child: VideoPlayer(videoState.controller!),
+                                  )
+                                else
+                                  const Center(child: Text("Aucune vidéo sélectionnée")),
+                                CustomPaint(
+                                  size: Size(videoWidth, videoHeight.toDouble()),
+                                  painter: FieldDrawingPainter(
+                                    drawingState.isDrawing ? drawingState.drawings : visibleDrawings,
+                                    drawingState.currentPoints,
+                                    drawingState.currentMode,
+                                    drawingState.currentColor,
+                                    drawingState.selectedDrawingIndex,
+                                  ),
                                 ),
-                                child: Container(key: _videoKey),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -156,11 +162,11 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
                     ? _buildTimeline(state)
                     : const SizedBox.shrink(),
               ),
-              SizedBox(height: 50.h),
+              const SizedBox(height: 20),
               _buildVideoControls(),
-              SizedBox(height: 20.h),
+              const SizedBox(height: 20),
               _buildRecordingControls(),
-              SizedBox(height: 50.h),
+              const SizedBox(height: 20),
               _buildPickVideoButton(),
             ],
           ),
@@ -173,7 +179,7 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
   Widget _buildTimeline(VideoEditingState state) {
     return Container(
       color: Colors.black54,
-      padding: EdgeInsets.symmetric(vertical: 10.h),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -184,7 +190,7 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
             onChanged: (value) => state.controller!.seekTo(Duration(seconds: value.toInt())),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -209,7 +215,9 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
           ),
           IconButton(
             icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
-            onPressed: state.controller != null ? () => context.read<VideoEditingCubit>().togglePlayPause(context) : null,
+            onPressed: state.controller != null
+                ? () => context.read<VideoEditingCubit>().togglePlayPause(context, videoKey: _videoKey)
+                : null,
           ),
           IconButton(
             icon: const Icon(Icons.forward_10),
@@ -227,11 +235,27 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
         children: [
           ElevatedButton(
             onPressed: state.controller != null && !state.isRecording
-                ? () => context.read<VideoEditingCubit>().startRecording()
+                ? () async {
+              final renderBox = _videoKey.currentContext?.findRenderObject() as RenderBox?;
+              if (renderBox != null) {
+                final videoPosition = renderBox.localToGlobal(Offset.zero);
+                final videoSize = renderBox.size;
+
+                await context.read<VideoEditingCubit>().startRecording(
+                  context,
+                  Rect.fromLTWH(
+                    videoPosition.dx,
+                    videoPosition.dy,
+                    videoSize.width,
+                    videoSize.height,
+                  ),
+                );
+              }
+            }
                 : null,
             child: const Text("Start Record"),
           ),
-          SizedBox(width: 20.w),
+          const SizedBox(width: 20),
           ElevatedButton(
             onPressed: state.controller != null && state.isRecording
                 ? () => context.read<VideoEditingCubit>().stopRecording(context)
@@ -272,7 +296,6 @@ class _EditingVideoScreenState extends State<EditingVideoScreen> {
           spacing: 10,
           childPadding: const EdgeInsets.all(5),
           spaceBetweenChildren: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
           children: [
             SpeedDialChild(
               child: const Icon(Icons.brush),
