@@ -17,6 +17,7 @@ import 'video_editing_state.dart';
 class VideoEditingCubit extends Cubit<VideoEditingState> {
   final ImagePicker _picker = ImagePicker();
   static const MethodChannel _channel = MethodChannel('com.example.analysis_ai/recording');
+  int? _lastTimestamp;
 
   VideoEditingCubit() : super(VideoEditingState());
 
@@ -27,6 +28,10 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     } else {
       emit(state.copyWith(isPlaying: false));
     }
+
+    // Track timestamp changes for potential drawing clearing (handled elsewhere)
+    final currentTimestamp = controller?.value.position.inMilliseconds ?? 0;
+    _lastTimestamp = currentTimestamp;
   }
 
   Future<void> pickVideo() async {
@@ -46,7 +51,7 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
 
       final controller = VideoPlayerController.file(File(persistentPath));
       await controller.initialize();
-      controller.addListener(updateControllerState);
+      controller.addListener(updateControllerState); // No context needed here
       controller.play();
 
       emit(state.copyWith(
@@ -207,22 +212,18 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
   Future<void> _saveToGallery(String filePath, BuildContext context) async {
     try {
       debugPrint('Saving video from: $filePath');
-      // Define the gallery directory with aiTactical folder
       final Directory galleryDir = Directory('/storage/emulated/0/aiTactical');
       if (!await galleryDir.exists()) {
         debugPrint('Creating aiTactical folder in gallery');
         await galleryDir.create(recursive: true);
       }
 
-      // Generate a unique file name
       final fileName = 'ai_tactical_${DateTime.now().millisecondsSinceEpoch}.mp4';
       final destPath = '${galleryDir.path}/$fileName';
 
-      // Copy the file to the gallery folder
       await File(filePath).copy(destPath);
       debugPrint('Video saved to: $destPath');
 
-      // Delete the original temporary file
       await File(filePath).delete();
       debugPrint('Temporary file deleted: $filePath');
     } catch (e) {
@@ -266,13 +267,15 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
 
   void seekBackward() {
     if (state.controller == null) return;
-    final newPosition = (state.controller!.value.position.inMilliseconds - 10000).clamp(0, state.controller!.value.duration.inMilliseconds);
+    final newPosition = (state.controller!.value.position.inMilliseconds - 10000)
+        .clamp(0, state.controller!.value.duration.inMilliseconds);
     state.controller!.seekTo(Duration(milliseconds: newPosition));
   }
 
   void seekForward() {
     if (state.controller == null) return;
-    final newPosition = (state.controller!.value.position.inMilliseconds + 10000).clamp(0, state.controller!.value.duration.inMilliseconds);
+    final newPosition = (state.controller!.value.position.inMilliseconds + 10000)
+        .clamp(0, state.controller!.value.duration.inMilliseconds);
     state.controller!.seekTo(Duration(milliseconds: newPosition));
   }
 }

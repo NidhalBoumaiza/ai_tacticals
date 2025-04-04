@@ -33,10 +33,13 @@ public class MainActivity extends FlutterActivity {
             @Override
             public void onReceive(Context context, Intent intent) {
                 lastOutputPath = intent.getStringExtra("outputPath");
-                Log.d(TAG, "Received output path: " + lastOutputPath);
+                Log.d(TAG, "Broadcast received, outputPath: " + lastOutputPath);
                 if (pendingResult != null) {
                     pendingResult.success(lastOutputPath);
+                    Log.d(TAG, "Sent outputPath to Flutter: " + lastOutputPath);
                     pendingResult = null;
+                } else {
+                    Log.w(TAG, "No pending result to send outputPath");
                 }
             }
         };
@@ -52,7 +55,6 @@ public class MainActivity extends FlutterActivity {
     public void configureFlutterEngine(FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
 
-        // Recording channel
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), RECORDING_CHANNEL)
                 .setMethodCallHandler((call, result) -> {
                     if (call.method.equals("startScreenRecording")) {
@@ -63,6 +65,7 @@ public class MainActivity extends FlutterActivity {
                         startScreenRecording();
                         result.success(true);
                     } else if (call.method.equals("stopScreenRecording")) {
+                        Log.d(TAG, "Stopping screen recording service");
                         Intent stopIntent = new Intent(this, ScreenRecordService.class);
                         stopService(stopIntent);
                         pendingResult = result;
@@ -71,7 +74,6 @@ public class MainActivity extends FlutterActivity {
                     }
                 });
 
-        // Platform channel for SDK version
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), PLATFORM_CHANNEL)
                 .setMethodCallHandler((call, result) -> {
                     if (call.method.equals("getSdkVersion")) {
