@@ -34,6 +34,7 @@ public class ScreenRecordService extends Service {
     private String outputPath;
     private HandlerThread handlerThread;
     private Handler handler;
+    private boolean isRecording = false;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -68,19 +69,29 @@ public class ScreenRecordService extends Service {
 
     private void startRecording(int resultCode, Intent data) {
         try {
-            // Initialize MediaRecorder
             mediaRecorder = new MediaRecorder();
+            mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
             mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+
+            width = width % 2 == 0 ? width : width + 1;
+            height = height % 2 == 0 ? height : height + 1;
             mediaRecorder.setVideoSize(width, height);
             mediaRecorder.setVideoFrameRate(30);
             mediaRecorder.setVideoEncodingBitRate(5 * 1000 * 1000);
+
             outputPath = getOutputFile().getAbsolutePath();
+            File outputFile = new File(outputPath);
+            if (!outputFile.getParentFile().exists()) {
+                outputFile.getParentFile().mkdirs();
+            }
             mediaRecorder.setOutputFile(outputPath);
+
+            Log.d(TAG, "Preparing MediaRecorder with size: " + width + "x" + height + ", output: " + outputPath);
             mediaRecorder.prepare();
 
-            // Initialize MediaProjection
             MediaProjectionManager projectionManager =
                     (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
             mediaProjection = projectionManager.getMediaProjection(resultCode, data);
@@ -91,13 +102,14 @@ public class ScreenRecordService extends Service {
                 return;
             }
 
-            // Register callback for MediaProjection
             MediaProjection.Callback callback = new MediaProjection.Callback() {
                 @Override
                 public void onStop() {
                     Log.d(TAG, "MediaProjection stopped");
-                    stopRecording();
-                    stopSelf();
+                    if (isRecording) {
+                        stopRecording();
+                        stopSelf(); // Ensure service stops after recording ends
+                    }
                 }
             };
             mediaProjection.registerCallback(callback, handler);
@@ -111,9 +123,14 @@ public class ScreenRecordService extends Service {
             );
 
             mediaRecorder.start();
+            isRecording = true;
             Log.d(TAG, "Recording started, output: " + outputPath);
         } catch (IOException e) {
             Log.e(TAG, "Error starting recording: " + e.getMessage());
+            e.printStackTrace();
+            stopSelf();
+        } catch (IllegalStateException e) {
+            Log.e(TAG, "IllegalStateException in MediaRecorder setup: " + e.getMessage());
             e.printStackTrace();
             stopSelf();
         }
@@ -150,7 +167,9 @@ public class ScreenRecordService extends Service {
 
     @Override
     public void onDestroy() {
-        stopRecording();
+        if (isRecording) {
+            stopRecording();
+        }
         if (handlerThread != null) {
             handlerThread.quitSafely();
         }
@@ -158,17 +177,34 @@ public class ScreenRecordService extends Service {
     }
 
     private void stopRecording() {
+        if (!isRecording) {
+            Log.d(TAG, "Recording already stopped");
+            return;
+        }
+
+        isRecording = false; // Mark as stopped immediately to prevent re-entry
+
         if (mediaRecorder != null) {
             try {
+                Log.d(TAG, "Stopping MediaRecorder");
                 mediaRecorder.stop();
                 Log.d(TAG, "MediaRecorder stopped, output: " + outputPath);
             } catch (IllegalStateException e) {
                 Log.e(TAG, "Error stopping MediaRecorder: " + e.getMessage());
                 e.printStackTrace();
             }
-            mediaRecorder.reset();
-            mediaRecorder.release();
-            mediaRecorder = null;
+        }
+
+        if (mediaRecorder != null) {
+            try {
+                mediaRecorder.reset();
+                mediaRecorder.release();
+            } catch (IllegalStateException e) {
+                Log.e(TAG, "Error resetting/releasing MediaRecorder: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                mediaRecorder = null;
+            }
         }
 
         if (virtualDisplay != null) {
@@ -177,14 +213,12 @@ public class ScreenRecordService extends Service {
         }
 
         if (mediaProjection != null) {
-            // Note: unregisterCallback requires API 31+; we'll stop directly
             mediaProjection.stop();
             mediaProjection = null;
         }
 
         stopForeground(true);
 
-        // Broadcast the output path
         Intent intent = new Intent("com.example.analysis_ai.RECORDING_FINISHED");
         intent.putExtra("outputPath", outputPath);
         sendBroadcast(intent);

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import '../../../../../core/utils/custom_snack_bar.dart';
@@ -145,7 +146,15 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     final controller = state.controller;
     if (controller == null || !controller.value.isInitialized) return;
 
+    bool hasPermission = await _requestStoragePermission();
+    if (!hasPermission) {
+      showErrorSnackBar(context, "Storage permission denied. Please grant permission in settings.");
+      openAppSettings();
+      return;
+    }
+
     try {
+      debugPrint('Starting recording with rect: $videoRect');
       await _channel.invokeMethod('startScreenRecording', {
         'left': videoRect.left.toInt(),
         'top': videoRect.top.toInt(),
@@ -162,6 +171,7 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     } catch (e) {
       debugPrint('Error starting recording: $e');
       showErrorSnackBar(context, "Failed to start recording: $e");
+      emit(state.copyWith(isRecording: false));
     }
   }
 
@@ -170,18 +180,21 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     if (controller == null || !state.isRecording) return;
 
     try {
+      debugPrint('Stopping recording...');
       final String? outputPath = await _channel.invokeMethod('stopScreenRecording');
+      debugPrint('Received outputPath: $outputPath');
       controller.pause();
       emit(state.copyWith(
         isRecording: false,
         recordingEndTime: controller.value.position,
       ));
       if (outputPath != null) {
-        await _saveToAiTacticals(outputPath, context);
-        showSuccessSnackBar(context, "Video saved successfully!");
+        await _saveToGallery(outputPath, context);
+        showSuccessSnackBar(context, "Video saved to aiTactical folder in gallery!");
         debugPrint('Recording saved to: $outputPath');
       } else {
         showErrorSnackBar(context, "No output path returned from recording");
+        debugPrint('Error: outputPath is null');
       }
     } catch (e) {
       debugPrint('Error stopping recording: $e');
@@ -190,16 +203,59 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
       resetState();
     }
   }
-  Future<void> _saveToAiTacticals(String filePath, BuildContext context) async {
+
+  Future<void> _saveToGallery(String filePath, BuildContext context) async {
     try {
-      final dir = Directory('/storage/emulated/0/aiTacticals');
-      if (!await dir.exists()) await dir.create(recursive: true);
-      final destPath = '${dir.path}/edited_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      debugPrint('Saving video from: $filePath');
+      // Define the gallery directory with aiTactical folder
+      final Directory galleryDir = Directory('/storage/emulated/0/aiTactical');
+      if (!await galleryDir.exists()) {
+        debugPrint('Creating aiTactical folder in gallery');
+        await galleryDir.create(recursive: true);
+      }
+
+      // Generate a unique file name
+      final fileName = 'ai_tactical_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final destPath = '${galleryDir.path}/$fileName';
+
+      // Copy the file to the gallery folder
       await File(filePath).copy(destPath);
       debugPrint('Video saved to: $destPath');
+
+      // Delete the original temporary file
+      await File(filePath).delete();
+      debugPrint('Temporary file deleted: $filePath');
     } catch (e) {
-      debugPrint('Error saving to aiTacticals: $e');
-      showErrorSnackBar(context, 'Failed to save video: $e');
+      debugPrint('Error saving to gallery: $e');
+      showErrorSnackBar(context, 'Failed to save video to aiTactical folder: $e');
+    }
+  }
+
+  Future<bool> _requestStoragePermission() async {
+    if (Platform.isAndroid) {
+      if (await _isAndroid13OrHigher()) {
+        var videoStatus = await Permission.videos.request();
+        var micStatus = await Permission.microphone.request();
+        debugPrint('Videos: $videoStatus, Microphone: $micStatus');
+        return videoStatus.isGranted && micStatus.isGranted;
+      } else {
+        var storageStatus = await Permission.storage.request();
+        var micStatus = await Permission.microphone.request();
+        debugPrint('Storage: $storageStatus, Microphone: $micStatus');
+        return storageStatus.isGranted && micStatus.isGranted;
+      }
+    }
+    return true;
+  }
+
+  Future<bool> _isAndroid13OrHigher() async {
+    const platform = MethodChannel('com.example.analysis_ai/platform');
+    try {
+      final int sdkVersion = await platform.invokeMethod('getSdkVersion');
+      return sdkVersion >= 33;
+    } catch (e) {
+      debugPrint('Error checking Android version: $e');
+      return false;
     }
   }
 

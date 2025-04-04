@@ -9,13 +9,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.projection.MediaProjectionManager;
-import android.os.Build; // Add this import
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
 public class MainActivity extends FlutterActivity {
     private static final String TAG = "MainActivity";
-    private static final String CHANNEL = "com.example.analysis_ai/recording";
+    private static final String RECORDING_CHANNEL = "com.example.analysis_ai/recording";
+    private static final String PLATFORM_CHANNEL = "com.example.analysis_ai/platform";
     private static final int SCREEN_RECORD_REQUEST_CODE = 123;
     private MediaProjectionManager projectionManager;
     private int left, top, width, height;
@@ -40,7 +41,6 @@ public class MainActivity extends FlutterActivity {
             }
         };
         IntentFilter filter = new IntentFilter("com.example.analysis_ai.RECORDING_FINISHED");
-        // Use RECEIVER_NOT_EXPORTED for internal app broadcasts
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(recordingReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         } else {
@@ -52,7 +52,8 @@ public class MainActivity extends FlutterActivity {
     public void configureFlutterEngine(FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
 
-        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
+        // Recording channel
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), RECORDING_CHANNEL)
                 .setMethodCallHandler((call, result) -> {
                     if (call.method.equals("startScreenRecording")) {
                         left = call.argument("left");
@@ -65,6 +66,16 @@ public class MainActivity extends FlutterActivity {
                         Intent stopIntent = new Intent(this, ScreenRecordService.class);
                         stopService(stopIntent);
                         pendingResult = result;
+                    } else {
+                        result.notImplemented();
+                    }
+                });
+
+        // Platform channel for SDK version
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), PLATFORM_CHANNEL)
+                .setMethodCallHandler((call, result) -> {
+                    if (call.method.equals("getSdkVersion")) {
+                        result.success(Build.VERSION.SDK_INT);
                     } else {
                         result.notImplemented();
                     }

@@ -29,6 +29,7 @@ import 'features/games/presentation layer/bloc/stats bloc/stats_bloc.dart';
 import 'features/games/presentation layer/bloc/transfert history bloc/transfer_history_bloc.dart';
 import 'features/games/presentation layer/cubit/bnv cubit/bnv_cubit.dart';
 import 'features/games/presentation layer/cubit/seasons cubit/seasons_cubit.dart';
+import 'features/games/presentation layer/cubit/video editing cubit/video_editing_cubit.dart';
 import 'features/games/presentation layer/pages/bottom app bar screens/home_screen_squelette.dart';
 import 'i18n/app_translations.dart';
 import 'injection_container.dart' as di;
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+
         BlocProvider(create: (context) => ThemeCubit()),
         BlocProvider(create: (context) => di.sl<BnvCubit>()..changeIndex(0)),
         BlocProvider(create: (context) => di.sl<LoginBloc>()),
@@ -81,6 +83,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<PlayerMatchStatsBloc>()),
         BlocProvider(create: (context) => di.sl<HomeMatchesBloc>()),
         BlocProvider(create: (context) => di.sl<MatchesPerRoundBloc>()),
+        BlocProvider(create: (_) => VideoEditingCubit()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(1080, 2400),
