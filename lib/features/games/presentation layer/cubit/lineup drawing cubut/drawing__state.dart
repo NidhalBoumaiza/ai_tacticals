@@ -81,7 +81,7 @@ class DrawingState {
     List<DrawingItem>? redoStack,
     int? selectedDrawingIndex,
   }) {
-    final newState = DrawingState(
+    return DrawingState(
       isDrawing: isDrawing ?? this.isDrawing,
       currentMode: currentMode ?? this.currentMode,
       currentColor: currentColor ?? this.currentColor,
@@ -90,8 +90,6 @@ class DrawingState {
       redoStack: redoStack ?? this.redoStack,
       selectedDrawingIndex: selectedDrawingIndex ?? this.selectedDrawingIndex,
     );
-    print('New state drawings: ${newState.drawings.map((d) => d.color).toList()}'); // Debug
-    return newState;
   }
 
   @override

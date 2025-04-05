@@ -11,18 +11,8 @@ import '../../cubit/lineup drawing cubut/drawing__cubit.dart';
 import '../../cubit/lineup drawing cubut/drawing__state.dart';
 import '../../cubit/video editing cubit/video_editing_cubit.dart';
 import '../../cubit/video editing cubit/video_editing_state.dart';
+import '../../../../../core/utils/custom_snack_bar.dart';
 import '../../../../../core/widgets/field_drawing_painter.dart';
-
-// Class to hold drawing position data during dragging
-class DrawingPosition {
-  final DrawingItem drawing;
-  Offset position; // Center position of the drawing for dragging
-
-  DrawingPosition({
-    required this.drawing,
-    required this.position,
-  });
-}
 
 class FullScreenVideoPage extends StatefulWidget {
   const FullScreenVideoPage({super.key});
@@ -34,8 +24,6 @@ class FullScreenVideoPage extends StatefulWidget {
 class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
   final GlobalKey _videoKey = GlobalKey();
   final ValueNotifier<bool> _isDialOpen = ValueNotifier(false);
-  late List<DrawingPosition> currentDrawings; // Local buffer for dragging
-  String? currentlyDraggingDrawingId; // Track which drawing is being dragged
 
   @override
   void initState() {
@@ -44,7 +32,6 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    currentDrawings = [];
   }
 
   @override
@@ -55,95 +42,6 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
     ]);
     _isDialOpen.dispose();
     super.dispose();
-  }
-
-  // Helper to calculate the center position of a drawing
-  Offset _calculateCenter(List<Offset> points) {
-    if (points.isEmpty) return Offset.zero;
-    double sumX = 0, sumY = 0;
-    for (var point in points) {
-      sumX += point.dx;
-      sumY += point.dy;
-    }
-    return Offset(sumX / points.length, sumY / points.length);
-  }
-
-  // Build a draggable drawing widget
-  Widget _buildDraggableDrawing(DrawingPosition drawingPosition, bool isDrawing, double videoWidth, double videoHeight) {
-    final isDragging = currentlyDraggingDrawingId == drawingPosition.drawing.hashCode.toString();
-    final center = drawingPosition.position;
-
-    return Positioned(
-      left: center.dx - 20.w, // Adjust for size of feedback widget
-      top: center.dy - 20.h,
-      child: Draggable(
-        feedback: Transform.scale(
-          scale: 1.1,
-          child: _buildDrawingWidget(drawingPosition.drawing, true),
-        ),
-        childWhenDragging: Container(),
-        child: GestureDetector(
-          onTap: () {
-            if (!isDrawing) {
-              final cubit = context.read<DrawingCubit>();
-              cubit.selectDrawing(center);
-              print('Tapped drawing: ${drawingPosition.drawing.hashCode}, selected: ${cubit.state.selectedDrawingIndex}');
-            }
-          },
-          child: _buildDrawingWidget(drawingPosition.drawing, isDragging),
-        ),
-        onDragStarted: () {
-          if (!isDrawing) {
-            setState(() {
-              currentlyDraggingDrawingId = drawingPosition.drawing.hashCode.toString();
-            });
-          }
-        },
-        onDragUpdate: (details) {
-          if (!isDrawing) {
-            setState(() {
-              double newX = drawingPosition.position.dx + details.delta.dx;
-              double newY = drawingPosition.position.dy + details.delta.dy;
-
-              newX = newX.clamp(0.0, videoWidth - 40.w); // Adjust for widget size
-              newY = newY.clamp(0.0, videoHeight - 40.h);
-
-              drawingPosition.position = Offset(newX, newY);
-
-              // Update drawing points relative to new center
-              final delta = drawingPosition.position - _calculateCenter(drawingPosition.drawing.points);
-              drawingPosition.drawing.points = drawingPosition.drawing.points.map((p) => p + delta).toList();
-            });
-          }
-        },
-        onDragEnd: (_) {
-          if (!isDrawing) {
-            setState(() {
-              currentlyDraggingDrawingId = null;
-              final timestamp = context.read<VideoEditingCubit>().state.controller?.value.position.inMilliseconds ?? 0;
-              context.read<VideoEditingCubit>().addDrawing(drawingPosition.drawing, timestamp);
-              print('Drag ended for drawing: ${drawingPosition.drawing.hashCode}');
-            });
-          }
-        },
-      ),
-    );
-  }
-
-  // Simple widget to represent a drawing (customize as needed)
-  Widget _buildDrawingWidget(DrawingItem drawing, bool isDragging) {
-    return Container(
-      width: 40.w,
-      height: 40.h,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: drawing.color.withOpacity(isDragging ? 0.8 : 0.5),
-        border: Border.all(
-          color: drawing.color,
-          width: isDragging ? 3 : 2,
-        ),
-      ),
-    );
   }
 
   @override
@@ -162,20 +60,45 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 final videoHeight = MediaQuery.of(context).size.height;
                 final currentTimestamp = videoState.controller?.value.position.inMilliseconds ?? 0;
 
-                // Update local drawings from VideoEditingCubit when not dragging
-                if (currentlyDraggingDrawingId == null) {
-                  currentDrawings = videoState.lines
-                      .where((line) => (line['timestamp'] as int) == currentTimestamp)
-                      .map((line) => DrawingPosition(
-                    drawing: line['drawing'] as DrawingItem,
-                    position: _calculateCenter((line['drawing'] as DrawingItem).points),
-                  ))
-                      .toList();
+                // Filter drawings to show only those matching the current timestamp
+                final currentDrawings = videoState.lines
+                    .where((line) => (line['timestamp'] as int) == currentTimestamp)
+                    .map((line) => line['drawing'] as DrawingItem)
+                    .toList();
+
+                // Sync DrawingCubit with current timestamped drawings only when paused and not drawing
+                if (!videoState.isPlaying && !drawingState.isDrawing && drawingState.drawings != currentDrawings) {
+                  context.read<DrawingCubit>().emit(drawingState.copyWith(
+                    drawings: currentDrawings,
+                    selectedDrawingIndex: null,
+                  ));
                 }
+
+                // Show current drawing in progress if drawing, otherwise only timestamped drawings
+                final allDrawings = drawingState.isDrawing && drawingState.currentPoints.isNotEmpty
+                    ? [
+                  ...currentDrawings,
+                  DrawingItem(
+                    type: drawingState.currentMode,
+                    points: drawingState.currentPoints,
+                    color: drawingState.currentColor,
+                  ),
+                ]
+                    : currentDrawings;
 
                 return Stack(
                   children: [
                     GestureDetector(
+                      onTapUp: (details) {
+                        if (!drawingState.isDrawing && drawingState.currentMode == DrawingMode.none && !videoState.isPlaying) {
+                          final RenderBox? box = _videoKey.currentContext?.findRenderObject() as RenderBox?;
+                          if (box != null) {
+                            final localPosition = box.globalToLocal(details.globalPosition);
+                            final cubit = context.read<DrawingCubit>();
+                            cubit.selectDrawing(localPosition);
+                          }
+                        }
+                      },
                       child: RawGestureDetector(
                         gestures: {
                           PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
@@ -184,27 +107,52 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                               instance
                                 ..onStart = (details) {
                                   final RenderBox? box = _videoKey.currentContext?.findRenderObject() as RenderBox?;
-                                  if (box != null && drawingState.currentMode != DrawingMode.none) {
+                                  if (box != null && drawingState.currentMode != DrawingMode.none && !videoState.isPlaying) {
                                     final localPosition = box.globalToLocal(details.globalPosition);
                                     context.read<DrawingCubit>().startDrawing(localPosition);
-                                    print('Drawing started at: $localPosition');
                                   }
                                 }
                                 ..onUpdate = (details) {
                                   final RenderBox? box = _videoKey.currentContext?.findRenderObject() as RenderBox?;
-                                  if (box != null && drawingState.currentMode != DrawingMode.none) {
+                                  if (box != null && !videoState.isPlaying) {
                                     final localPosition = box.globalToLocal(details.globalPosition);
-                                    context.read<DrawingCubit>().updateDrawing(localPosition,
-                                        maxWidth: videoWidth, maxHeight: videoHeight);
+                                    final drawingCubit = context.read<DrawingCubit>();
+                                    if (drawingState.isDrawing && drawingState.currentMode != DrawingMode.none) {
+                                      drawingCubit.updateDrawing(
+                                        localPosition,
+                                        maxWidth: videoWidth,
+                                        maxHeight: videoHeight,
+                                      );
+                                    } else if (drawingState.selectedDrawingIndex != null && drawingState.selectedDrawingIndex! < drawingState.drawings.length) {
+                                      drawingCubit.moveDrawing(
+                                        details.delta,
+                                        maxWidth: videoWidth,
+                                        maxHeight: videoHeight,
+                                      );
+                                      final updatedLines = List<Map<String, dynamic>>.from(videoState.lines)
+                                        ..removeWhere((line) => (line['timestamp'] as int) == currentTimestamp);
+                                      updatedLines.addAll(drawingCubit.state.drawings.map((drawing) => {
+                                        'drawing': drawing,
+                                        'timestamp': currentTimestamp,
+                                      }));
+                                      context.read<VideoEditingCubit>().emit(videoState.copyWith(lines: updatedLines));
+                                    }
                                   }
                                 }
                                 ..onEnd = (_) {
-                                  if (drawingState.currentMode != DrawingMode.none) {
-                                    context.read<DrawingCubit>().endDrawing();
+                                  if (drawingState.isDrawing && drawingState.currentMode != DrawingMode.none && !videoState.isPlaying) {
+                                    final drawingCubit = context.read<DrawingCubit>();
+                                    drawingCubit.endDrawing();
                                     final timestamp = videoState.controller?.value.position.inMilliseconds ?? 0;
-                                    if (drawingState.drawings.isNotEmpty) {
-                                      context.read<VideoEditingCubit>().addDrawing(drawingState.drawings.last, timestamp);
-                                      print('Drawing ended and added at timestamp: $timestamp');
+                                    if (drawingCubit.state.drawings.isNotEmpty) {
+                                      final newDrawing = drawingCubit.state.drawings.last;
+                                      context.read<VideoEditingCubit>().addDrawing(newDrawing, timestamp);
+                                      // Reset drawing state but keep existing drawings for dragging
+                                      drawingCubit.emit(drawingCubit.state.copyWith(
+                                        currentPoints: [],
+                                        isDrawing: false,
+                                        currentMode: DrawingMode.none,
+                                      ));
                                     }
                                   }
                                 };
@@ -231,15 +179,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                                 CustomPaint(
                                   size: Size(videoWidth, videoHeight),
                                   painter: FieldDrawingPainter(
-                                    drawingState.isDrawing && drawingState.currentPoints.isNotEmpty
-                                        ? [
-                                      DrawingItem(
-                                        type: drawingState.currentMode,
-                                        points: drawingState.currentPoints,
-                                        color: drawingState.currentColor,
-                                      )
-                                    ]
-                                        : currentDrawings.map((dp) => dp.drawing).toList(),
+                                    allDrawings,
                                     drawingState.currentPoints,
                                     drawingState.currentMode,
                                     drawingState.currentColor,
@@ -252,8 +192,6 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                         ),
                       ),
                     ),
-                    // Overlay draggable drawings
-                    ...currentDrawings.map((dp) => _buildDraggableDrawing(dp, drawingState.isDrawing, videoWidth, videoHeight)),
                     Positioned(
                       bottom: 30.h,
                       left: 30.w,
@@ -306,6 +244,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
       height: 60.w,
       width: 60.w,
       child: FloatingActionButton(
+        heroTag: 'record_button',
         onPressed: videoState.controller != null && !videoState.isRecording
             ? () async {
           final renderBox = _videoKey.currentContext?.findRenderObject() as RenderBox?;
@@ -335,6 +274,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
       height: 60.w,
       width: 60.w,
       child: FloatingActionButton(
+        heroTag: 'stop_button',
         onPressed: videoState.controller != null && videoState.isRecording
             ? () => context.read<VideoEditingCubit>().stopRecording(context)
             : null,
@@ -357,7 +297,11 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
             max: state.controller!.value.duration.inSeconds.toDouble(),
             onChanged: (value) {
               state.controller!.seekTo(Duration(seconds: value.toInt()));
-              context.read<DrawingCubit>().clearDrawings();
+              context.read<DrawingCubit>().emit(context.read<DrawingCubit>().state.copyWith(
+                currentPoints: [],
+                isDrawing: false,
+                currentMode: DrawingMode.none,
+              ));
             },
           ),
           Padding(
@@ -377,6 +321,43 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
     );
   }
 
+  Widget _buildDrawingOptionsButton(BuildContext context) {
+    return BlocBuilder<DrawingCubit, DrawingState>(
+      builder: (context, drawingState) {
+        final cubit = context.read<DrawingCubit>();
+        final videoCubit = context.read<VideoEditingCubit>();
+        return SizedBox(
+          height: 60.w,
+          width: 60.w,
+          child: FloatingActionButton(
+            heroTag: 'drawing_options_button',
+            onPressed: () {
+              if (drawingState.isDrawing) {
+                cubit.endDrawing();
+                final timestamp = videoCubit.state.controller?.value.position.inMilliseconds ?? 0;
+                if (drawingState.drawings.isNotEmpty) {
+                  videoCubit.addDrawing(drawingState.drawings.last, timestamp);
+                  cubit.emit(cubit.state.copyWith(
+                    currentPoints: [],
+                    isDrawing: false,
+                    currentMode: DrawingMode.none,
+                  ));
+                }
+              } else if (videoCubit.state.isPlaying) {
+                showErrorSnackBar(context, "Cannot draw while the video is playing. Please pause the video first.");
+              } else {
+                _showDrawingOptions(context, cubit, drawingState);
+              }
+            },
+            child: Icon(drawingState.isDrawing ? Icons.stop : Icons.edit),
+            backgroundColor: Colors.lightBlue,
+            foregroundColor: Colors.white,
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildVideoControls() {
     return BlocBuilder<VideoEditingCubit, VideoEditingState>(
       builder: (context, state) => Row(
@@ -387,19 +368,26 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
             onPressed: state.controller != null
                 ? () {
               context.read<VideoEditingCubit>().seekBackward();
-              context.read<DrawingCubit>().clearDrawings();
+              context.read<DrawingCubit>().emit(context.read<DrawingCubit>().state.copyWith(
+                currentPoints: [],
+                isDrawing: false,
+                currentMode: DrawingMode.none,
+              ));
             }
                 : null,
           ),
           SizedBox(width: 10.w),
           IconButton(
-            icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white, size: 30.sp),
+            icon: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 30.sp),
             onPressed: state.controller != null
                 ? () {
               context.read<VideoEditingCubit>().togglePlayPause(context, videoKey: _videoKey);
               if (state.isPlaying) {
-                context.read<DrawingCubit>().clearDrawings();
+                context.read<DrawingCubit>().emit(context.read<DrawingCubit>().state.copyWith(
+                  currentPoints: [],
+                  isDrawing: false,
+                  currentMode: DrawingMode.none,
+                ));
               }
             }
                 : null,
@@ -410,7 +398,11 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
             onPressed: state.controller != null
                 ? () {
               context.read<VideoEditingCubit>().seekForward();
-              context.read<DrawingCubit>().clearDrawings();
+              context.read<DrawingCubit>().emit(context.read<DrawingCubit>().state.copyWith(
+                currentPoints: [],
+                isDrawing: false,
+                currentMode: DrawingMode.none,
+              ));
             }
                 : null,
           ),
@@ -526,34 +518,6 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 },
               ),
             ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDrawingOptionsButton(BuildContext context) {
-    return BlocBuilder<DrawingCubit, DrawingState>(
-      builder: (context, state) {
-        final cubit = context.read<DrawingCubit>();
-        return SizedBox(
-          height: 60.w,
-          width: 60.w,
-          child: FloatingActionButton(
-            onPressed: () {
-              if (state.isDrawing) {
-                cubit.endDrawing();
-                final timestamp = context.read<VideoEditingCubit>().state.controller?.value.position.inMilliseconds ?? 0;
-                if (state.drawings.isNotEmpty) {
-                  context.read<VideoEditingCubit>().addDrawing(state.drawings.last, timestamp);
-                }
-              } else {
-                _showDrawingOptions(context, cubit, state);
-              }
-            },
-            child: Icon(state.isDrawing ? Icons.stop : Icons.edit),
-            backgroundColor: Colors.lightBlue,
-            foregroundColor: Colors.white,
           ),
         );
       },
