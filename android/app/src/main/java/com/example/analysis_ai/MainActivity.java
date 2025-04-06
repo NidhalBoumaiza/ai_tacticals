@@ -4,20 +4,19 @@ import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
 
-import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.net.Uri;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.OutputStream;
-import java.io.File;              // Added import
+
 public class MainActivity extends FlutterActivity {
     private static final String TAG = "MainActivity";
     private static final String RECORDING_CHANNEL = "com.example.analysis_ai/recording";
@@ -28,33 +27,13 @@ public class MainActivity extends FlutterActivity {
     private int left, top, width, height;
     private String lastOutputPath;
     private MethodChannel.Result pendingResult;
-    private BroadcastReceiver recordingReceiver;
+    private static MainActivity instance; // Static reference to current instance
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         projectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-
-        recordingReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                lastOutputPath = intent.getStringExtra("outputPath");
-                Log.d(TAG, "Broadcast received, outputPath: " + lastOutputPath);
-                if (pendingResult != null) {
-                    pendingResult.success(lastOutputPath);
-                    Log.d(TAG, "Sent outputPath to Flutter: " + lastOutputPath);
-                    pendingResult = null;
-                } else {
-                    Log.w(TAG, "No pending result to send outputPath");
-                }
-            }
-        };
-        IntentFilter filter = new IntentFilter("com.example.analysis_ai.RECORDING_FINISHED");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(recordingReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(recordingReceiver, filter);
-        }
+        instance = this; // Set static instance
     }
 
     @Override
@@ -73,8 +52,9 @@ public class MainActivity extends FlutterActivity {
                     } else if (call.method.equals("stopScreenRecording")) {
                         Log.d(TAG, "Stopping screen recording service");
                         Intent stopIntent = new Intent(this, ScreenRecordService.class);
+                        stopIntent.putExtra("returnPath", true);
                         stopService(stopIntent);
-                        pendingResult = result;
+                        pendingResult = result; // Store result for path return
                     } else {
                         result.notImplemented();
                     }
@@ -106,6 +86,8 @@ public class MainActivity extends FlutterActivity {
                         result.notImplemented();
                     }
                 });
+
+        flutterEngine.getPlugins().add(new GallerySaverPlugin());
     }
 
     private String saveVideoToMediaStore(String sourcePath, String fileName, String relativePath) throws Exception {
@@ -139,7 +121,7 @@ public class MainActivity extends FlutterActivity {
 
         String finalPath = "Movies/" + relativePath + "/" + fileName;
         Log.d(TAG, "Video saved to Media Store: " + finalPath);
-        return finalPath; // Return relative path for Flutter to display
+        return finalPath;
     }
 
     private void startScreenRecording() {
@@ -166,9 +148,29 @@ public class MainActivity extends FlutterActivity {
 
     @Override
     protected void onDestroy() {
-        if (recordingReceiver != null) {
-            unregisterReceiver(recordingReceiver);
-        }
         super.onDestroy();
+        instance = null; // Clear static reference to avoid memory leaks
+    }
+
+    // Static method for ScreenRecordService to call
+    public static void onRecordingStopped(String outputPath) {
+        if (instance != null) {
+            instance.handleRecordingStopped(outputPath);
+        } else {
+            Log.e(TAG, "MainActivity instance is null");
+        }
+    }
+
+    // Instance method to handle the callback
+    private void handleRecordingStopped(String outputPath) {
+        Log.d(TAG, "Received output path from service: " + outputPath);
+        lastOutputPath = outputPath;
+        if (pendingResult != null) {
+            pendingResult.success(lastOutputPath);
+            Log.d(TAG, "Sent outputPath to Flutter: " + lastOutputPath);
+            pendingResult = null;
+        } else {
+            Log.w(TAG, "No pending result to send outputPath");
+        }
     }
 }

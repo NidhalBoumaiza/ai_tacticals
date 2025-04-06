@@ -17,7 +17,7 @@ import 'video_editing_state.dart';
 class VideoEditingCubit extends Cubit<VideoEditingState> {
   final ImagePicker _picker = ImagePicker();
   static const MethodChannel _channel = MethodChannel('com.example.analysis_ai/recording');
-  static const MethodChannel _gallerySaverChannel = MethodChannel('com.example.analysis_ai/gallery_saver'); // New channel for gallery saving
+  static const MethodChannel _gallerySaverChannel = MethodChannel('com.example.analysis_ai/gallery_saver');
   int? _lastTimestamp;
   bool _isStopping = false;
 
@@ -63,7 +63,7 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
       ));
     } catch (e) {
       emit(state.copyWith(isPickerActive: false));
-      debugPrint('Error picking video: $e');
+      print('Error picking video: $e');
     }
   }
 
@@ -118,7 +118,7 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
       await file.writeAsBytes(image);
       return file.path;
     } catch (e) {
-      debugPrint('Error saving frame: $e');
+      print('Error saving frame: $e');
       return null;
     }
   }
@@ -136,7 +136,7 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
       await file.writeAsBytes(pngBytes);
       return file.path;
     } catch (e) {
-      debugPrint('Error capturing annotated frame: $e');
+      print('Error capturing annotated frame: $e');
       return null;
     }
   }
@@ -159,7 +159,7 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     }
 
     try {
-      debugPrint('Starting recording with rect: $videoRect');
+      print('Starting recording with rect: $videoRect');
       await _channel.invokeMethod('startScreenRecording', {
         'left': videoRect.left.toInt(),
         'top': videoRect.top.toInt(),
@@ -174,7 +174,7 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
       ));
       controller.play();
     } catch (e) {
-      debugPrint('Error starting recording: $e');
+      print('Error starting recording: $e');
       showErrorSnackBar(context, "Failed to start recording: $e");
       emit(state.copyWith(isRecording: false));
     }
@@ -185,27 +185,29 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     if (controller == null || !state.isRecording || _isStopping) return;
 
     _isStopping = true;
-    debugPrint('Stopping recording...');
+    print('Stopping recording...');
 
     try {
       final String? outputPath = await _channel.invokeMethod('stopScreenRecording');
-      debugPrint('Received outputPath: $outputPath');
+      print('Received outputPath from platform: $outputPath');
       controller.pause();
 
       if (outputPath != null && File(outputPath).existsSync()) {
+        print('Output file exists: $outputPath');
         bool? saved = await _saveVideoToGallery(outputPath, albumName: 'aiTacticals');
+        print('Gallery save result: $saved');
         if (saved == true) {
           showSuccessSnackBar(context, "Video saved to gallery in aiTacticals album");
+          await File(outputPath).delete();
+          print('Temporary file deleted: $outputPath');
         } else {
           throw Exception("Failed to save video to gallery");
         }
-        await File(outputPath).delete();
-        debugPrint('Temporary file deleted: $outputPath');
       } else {
-        throw Exception("Recording output file not found: $outputPath");
+        throw Exception("Recording output file not found or invalid: $outputPath");
       }
     } catch (e) {
-      debugPrint('Error stopping recording: $e');
+      print('Error stopping recording: $e');
       showErrorSnackBar(context, "Failed to save recording: $e");
     } finally {
       _isStopping = false;
@@ -231,10 +233,10 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
           'toDcim': false,
         },
       );
-      debugPrint('Gallery save result: $result');
+      print('Gallery save result: $result');
       return result;
     } catch (e) {
-      debugPrint('Error saving video to gallery: $e');
+      print('Error saving video to gallery: $e');
       rethrow;
     }
   }
@@ -245,12 +247,12 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
       if (isAndroid13OrHigher) {
         var videoStatus = await Permission.videos.request();
         var micStatus = await Permission.microphone.request();
-        debugPrint('Android 13+: Videos: $videoStatus, Microphone: $micStatus');
+        print('Android 13+: Videos: $videoStatus, Microphone: $micStatus');
         return videoStatus.isGranted && micStatus.isGranted;
       } else {
         var storageStatus = await Permission.storage.request();
         var micStatus = await Permission.microphone.request();
-        debugPrint('Android < 13: Storage: $storageStatus, Microphone: $micStatus');
+        print('Android < 13: Storage: $storageStatus, Microphone: $micStatus');
         return storageStatus.isGranted && micStatus.isGranted;
       }
     }
@@ -263,7 +265,7 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
       final int sdkVersion = await platform.invokeMethod('getSdkVersion');
       return sdkVersion >= 33;
     } catch (e) {
-      debugPrint('Error checking Android version: $e');
+      print('Error checking Android version: $e');
       return false;
     }
   }

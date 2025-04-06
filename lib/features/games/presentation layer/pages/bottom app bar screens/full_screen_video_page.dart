@@ -417,12 +417,15 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
   void _showColorPicker(BuildContext context, DrawingCubit cubit) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Pick a color'),
         content: SingleChildScrollView(
           child: ColorPicker(
             pickerColor: cubit.state.currentColor,
-            onColorChanged: (color) => cubit.changeColor(color),
+            onColorChanged: (color) {
+              cubit.changeColor(color);
+              print('Color changed to: $color'); // Debug log
+            },
             showLabel: true,
             pickerAreaHeightPercent: 0.8,
           ),
@@ -430,7 +433,10 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
         actions: [
           TextButton(
             child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(dialogContext).pop(); // Close dialog
+              Navigator.of(context).pop(); // Close bottom sheet
+            },
           ),
         ],
       ),
@@ -445,7 +451,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
       context: context,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      builder: (context) {
+      builder: (bottomSheetContext) {
         return SizedBox(
           height: 400,
           child: ListView(
@@ -456,7 +462,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 title: const Text('Draw', style: TextStyle(color: Colors.black87)),
                 onTap: () {
                   cubit.setDrawingMode(DrawingMode.free);
-                  Navigator.pop(context);
+                  Navigator.pop(bottomSheetContext);
                 },
               ),
               ListTile(
@@ -464,7 +470,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 title: const Text('Circle', style: TextStyle(color: Colors.black87)),
                 onTap: () {
                   cubit.setDrawingMode(DrawingMode.circle);
-                  Navigator.pop(context);
+                  Navigator.pop(bottomSheetContext);
                 },
               ),
               ListTile(
@@ -472,7 +478,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 title: const Text('Player Icon', style: TextStyle(color: Colors.black87)),
                 onTap: () {
                   cubit.setDrawingMode(DrawingMode.player);
-                  Navigator.pop(context);
+                  Navigator.pop(bottomSheetContext);
                 },
               ),
               ListTile(
@@ -480,15 +486,14 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 title: const Text('Arrow', style: TextStyle(color: Colors.black87)),
                 onTap: () {
                   cubit.setDrawingMode(DrawingMode.arrow);
-                  Navigator.pop(context);
+                  Navigator.pop(bottomSheetContext);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.color_lens, color: Colors.black87),
                 title: const Text('Change Color', style: TextStyle(color: Colors.black87)),
                 onTap: () {
-                  _showColorPicker(context, cubit);
-                  Navigator.pop(context);
+                  _showColorPicker(bottomSheetContext, cubit); // Show dialog, don’t pop yet
                 },
               ),
               ListTile(
@@ -497,7 +502,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 onTap: () {
                   if (state.drawings.isNotEmpty) {
                     cubit.undoDrawingForFrame(currentTimestamp, videoCubit.state.lines, videoCubit.removeDrawingForTimestamp);
-                    Navigator.pop(context);
+                    Navigator.pop(bottomSheetContext);
                   }
                 },
               ),
@@ -507,7 +512,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 onTap: () {
                   if (state.redoStack.isNotEmpty) {
                     cubit.redoDrawingForFrame(currentTimestamp, videoCubit.addDrawing);
-                    Navigator.pop(context);
+                    Navigator.pop(bottomSheetContext);
                   }
                 },
               ),
@@ -516,7 +521,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 title: const Text('Clear', style: TextStyle(color: Colors.black87)),
                 onTap: () {
                   if (state.drawings.isNotEmpty) cubit.clearDrawings();
-                  Navigator.pop(context);
+                  Navigator.pop(bottomSheetContext);
                 },
               ),
             ],

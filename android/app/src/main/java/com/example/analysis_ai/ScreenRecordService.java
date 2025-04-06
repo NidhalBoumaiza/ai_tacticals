@@ -108,7 +108,7 @@ public class ScreenRecordService extends Service {
                     Log.d(TAG, "MediaProjection stopped");
                     if (isRecording) {
                         stopRecording();
-                        stopSelf(); // Ensure service stops after recording ends
+                        stopSelf();
                     }
                 }
             };
@@ -137,7 +137,7 @@ public class ScreenRecordService extends Service {
     }
 
     private File getOutputFile() {
-        File dir = new File(getExternalFilesDir(null), "aiTacticals"); // Use app-specific directory
+        File dir = new File(getExternalFilesDir(null), "aiTacticals");
         if (!dir.exists()) {
             dir.mkdirs();
             Log.d(TAG, "Created aiTacticals directory: " + dir.getAbsolutePath());
@@ -220,14 +220,11 @@ public class ScreenRecordService extends Service {
             mediaProjection.stop();
             mediaProjection = null;
         }
-gimme 
+
         stopForeground(true);
 
         if (outputPath != null && new File(outputPath).exists()) {
-            Intent intent = new Intent("com.example.analysis_ai.RECORDING_FINISHED");
-            intent.putExtra("outputPath", outputPath);
-            sendBroadcast(intent);
-            Log.d(TAG, "Broadcast sent with outputPath: " + outputPath);
+            MainActivity.onRecordingStopped(outputPath); // Call static method
         } else {
             Log.e(TAG, "Output file not found or invalid: " + outputPath);
         }
