@@ -55,11 +55,11 @@ class AppTranslations extends Translations {
       'categories': "Catégories",
       'no_internet_connection': "Pas de connexion Internet",
       'wait_to_load_countries':
-          "Appuyez sur un bouton ou attendez le chargement des pays",
+      "Appuyez sur un bouton ou attendez le chargement des pays",
       // MatchesScreen strings
       'matches': "Matchs",
       'no_matches_available':
-          "Aucun match disponible pour la date sélectionnée",
+      "Aucun match disponible pour la date sélectionnée",
       'no_live_matches_available': "Aucun match en direct disponible",
       // LeagueInfosSqueletteScreen strings
       'standings': "Classements",
@@ -70,7 +70,7 @@ class AppTranslations extends Translations {
       'round': "Tour {number}",
       // StandingScreen strings
       'no_standings_data_available':
-          "Aucune donnée de classement disponible pour cette saison",
+      "Aucune donnée de classement disponible pour cette saison",
       'no_data_available': "Aucune donnée disponible",
       'total_standings': "Classement total",
       'position_short': "#",
@@ -127,13 +127,13 @@ class AppTranslations extends Translations {
       'goals': "Buts",
       'debut': "Début",
       'no_transfer_history_available':
-          "Aucun historique de transfert disponible",
+      "Aucun historique de transfert disponible",
       'unknown_team': "Équipe inconnue",
       'na': "N/A",
       'no_media_available': "Aucun média disponible",
       'performance_trend_info_title': "Info sur la tendance de performance",
       'performance_trend_info_content':
-          "Ce graphique montre la tendance de la note du joueur sur la dernière année. La ligne orange indique une note de référence de 7.",
+      "Ce graphique montre la tendance de la note du joueur sur la dernière année. La ligne orange indique une note de référence de 7.",
       'close': "Fermer",
       'media_preview': "Aperçu média",
       'cannot_launch_url': "Impossible de lancer l'URL",
@@ -190,6 +190,19 @@ class AppTranslations extends Translations {
       'select_language': "Choisir la langue",
       'current_round': "Tour actuel",
       'next_round': "Prochain tour",
+      // ProfilePage strings
+      'Profile': "Profil",
+      'Settings': "Paramètres",
+      'Customize your experience': "Personnalisez votre expérience",
+      'Theme': "Thème",
+      'Light': "Clair",
+      'Dark': "Sombre",
+      'System': "Système",
+      'Language': "Langue",
+      'French': "Français",
+      'English': "Anglais",
+      'Arabic': "Arabe",
+      'Logout': "Déconnexion",
     },
     'ar_AR': {
       'title': 'عرض Flutter',
@@ -197,12 +210,12 @@ class AppTranslations extends Translations {
       'empty_cache_failure_message': "الذاكرة المؤقتة فارغة",
       'offline_failure_message': "أنت غير متصل بالإنترنت",
       'forget_password_success_message':
-          "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور إليك",
+      "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور إليك",
       'password_reseted_success_message':
-          "تم إعادة تعيين كلمة المرور الخاصة بك بنجاح",
+      "تم إعادة تعيين كلمة المرور الخاصة بك بنجاح",
       'password_change_success_message': "تم تغيير كلمة المرور الخاصة بك بنجاح",
       'sign_up_success_message':
-          "نجحت عملية التسجيل، يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول 😊",
+      "نجحت عملية التسجيل، يرجى تأكيد بريدك الإلكتروني ثم تسجيل الدخول 😊",
       'unauthorized_failure_message': "غير مصرح لك",
       'unexpected_error_message': "حدث خطأ غير متوقع",
       'explore_now': "استكشف الآن",
@@ -303,7 +316,7 @@ class AppTranslations extends Translations {
       'no_media_available': "لا يوجد وسائط متاحة",
       'performance_trend_info_title': "معلومات اتجاه الأداء",
       'performance_trend_info_content':
-          "يُظهر هذا الرسم البياني اتجاه تقييم اللاعب خلال العام الماضي. الخط البرتقالي يشير إلى تقييم مرجعي قدره 7.",
+      "يُظهر هذا الرسم البياني اتجاه تقييم اللاعب خلال العام الماضي. الخط البرتقالي يشير إلى تقييم مرجعي قدره 7.",
       'close': "إغلاق",
       'media_preview': "معاينة الوسائط",
       'cannot_launch_url': "لا يمكن فتح الرابط",
@@ -360,6 +373,19 @@ class AppTranslations extends Translations {
       'select_language': "اختر اللغة",
       'current_round': "الجولة الحالية",
       'next_round': "الجولة القادمة",
+      // ProfilePage strings
+      'Profile': "الملف الشخصي",
+      'Settings': "الإعدادات",
+      'Customize your experience': "تخصيص تجربتك",
+      'Theme': "الثيم",
+      'Light': "فاتح",
+      'Dark': "داكن",
+      'System': "النظام",
+      'Language': "اللغة",
+      'French': "الفرنسية",
+      'English': "الإنجليزية",
+      'Arabic': "العربية",
+      'Logout': "تسجيل الخروج",
     },
     'en_US': {
       'title': 'Flutter Demo',
@@ -367,13 +393,13 @@ class AppTranslations extends Translations {
       'empty_cache_failure_message': "The cache is empty",
       'offline_failure_message': "You are not connected to the internet",
       'forget_password_success_message':
-          "A password reset email has been sent to you",
+      "A password reset email has been sent to you",
       'password_reseted_success_message':
-          "Your password has been successfully reset",
+      "Your password has been successfully reset",
       'password_change_success_message':
-          "Your password has been successfully changed",
+      "Your password has been successfully changed",
       'sign_up_success_message':
-          "Sign-up successful, please confirm your email and log in 😊",
+      "Sign-up successful, please confirm your email and log in 😊",
       'unauthorized_failure_message': "You are not authorized",
       'unexpected_error_message': "An unexpected error occurred",
       'explore_now': "Explore Now",
@@ -413,7 +439,7 @@ class AppTranslations extends Translations {
       'round': "Round {number}",
       // StandingScreen strings
       'no_standings_data_available':
-          "No standings data available for this season",
+      "No standings data available for this season",
       'no_data_available': "No data available",
       'total_standings': "Total Standings",
       'position_short': "#",
@@ -475,7 +501,7 @@ class AppTranslations extends Translations {
       'no_media_available': "No media available",
       'performance_trend_info_title': "Performance Trend Info",
       'performance_trend_info_content':
-          "This chart shows the player's rating trend over the last year. The orange line indicates a benchmark rating of 7.",
+      "This chart shows the player's rating trend over the last year. The orange line indicates a benchmark rating of 7.",
       'close': "Close",
       'media_preview': "Media Preview",
       'cannot_launch_url': "Cannot launch URL",
@@ -523,8 +549,7 @@ class AppTranslations extends Translations {
       'na': "N/A",
       // TeamInfoScreenSquelette strings
       'squad': "Squad",
-      'statics': "Statics",
-      // Note: "Statics" might be a typo in your code; consider "Statistics" if intended
+      'statics': "Statistics", // Fixed typo from "Statics" to "Statistics"
       // Bottom navigation bar items
       'matches': "Matches",
       'leagues': "Leagues",
@@ -533,6 +558,19 @@ class AppTranslations extends Translations {
       'select_language': "Select Language",
       'current_round': "Current Round",
       'next_round': "Next Round",
+      // ProfilePage strings
+      'Profile': "Profile",
+      'Settings': "Settings",
+      'Customize your experience': "Customize your experience",
+      'Theme': "Theme",
+      'Light': "Light",
+      'Dark': "Dark",
+      'System': "System",
+      'Language': "Language",
+      'French': "French",
+      'English': "English",
+      'Arabic': "Arabic",
+      'Logout': "Logout",
     },
   };
 }

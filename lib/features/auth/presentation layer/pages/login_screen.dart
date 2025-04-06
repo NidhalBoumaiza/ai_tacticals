@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/app_colors.dart';
 import '../../../../core/utils/custom_snack_bar.dart';
@@ -34,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return false;
       },
       child: Scaffold(
-        backgroundColor: Color(0xffffffc2),
+        backgroundColor: const Color(0xffffffc2),
         body: GestureDetector(
           onTap: () {
             FocusScope.of(context).unfocus();
@@ -109,11 +110,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(height: 50.h),
                   Center(
                     child: BlocConsumer<LoginBloc, LoginState>(
-                      listener: (context, state) {
+                      listener: (context, state) async {
                         if (state is LoginSuccess) {
+                          // Set FIRST_LOGIN_DONE flag after first successful login
+                          SharedPreferences prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('FIRST_LOGIN_DONE', true);
+
                           navigateToAnotherScreenWithFadeTransition(
                             context,
-                            HomeScreenSquelette(),
+                            const HomeScreenSquelette(),
                           );
                         } else if (state is LoginError) {
                           showErrorSnackBar(context, "invalid_credentials".tr);
@@ -122,37 +127,32 @@ class _LoginScreenState extends State<LoginScreen> {
                       builder: (context, state) {
                         return MyCustomButton(
                           width: 540.w,
-                          // Your original value
                           height: 150.h,
-                          // Your original value
-                          function:
-                              state is LoginLoading
-                                  ? () {}
-                                  : () {
-                                    FocusScope.of(context).unfocus();
-                                    if (_formKey.currentState!.validate()) {
-                                      context.read<LoginBloc>().add(
-                                        LoginWithEmailAndPassword(
-                                          email: _emailController.text,
-                                          password: _passwordController.text,
-                                        ),
-                                      );
-                                    }
-                                  },
+                          function: state is LoginLoading
+                              ? () {}
+                              : () {
+                            FocusScope.of(context).unfocus();
+                            if (_formKey.currentState!.validate()) {
+                              context.read<LoginBloc>().add(
+                                LoginWithEmailAndPassword(
+                                  email: _emailController.text,
+                                  password: _passwordController.text,
+                                ),
+                              );
+                            }
+                          },
                           buttonColor: AppColor.primaryColor,
-                          text:
-                              state is LoginLoading ? ''.tr : 'login_button'.tr,
+                          text: state is LoginLoading ? ''.tr : 'login_button'.tr,
                           circularRadious: 5,
                           textButtonColor: Colors.black,
                           fontSize: 40.sp,
                           fontWeight: FontWeight.w800,
-                          widget:
-                              state is LoginLoading
-                                  ? Lottie.asset(
-                                    'assets/lottie/animationBallLoading.json',
-                                    height: 150.h,
-                                  )
-                                  : null,
+                          widget: state is LoginLoading
+                              ? Lottie.asset(
+                            'assets/lottie/animationBallLoading.json',
+                            height: 150.h,
+                          )
+                              : null,
                         );
                       },
                     ),
@@ -163,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ReusableText(
-                          text: "no_account".tr, // "Don't have an account?"
+                          text: "no_account".tr,
                           textSize: 100.sp,
                           textFontWeight: FontWeight.w600,
                           textColor: Colors.black,
@@ -174,16 +174,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             FocusScope.of(context).unfocus();
                             navigateToAnotherScreenWithSlideTransitionFromRightToLeft(
                               context,
-                              SignUpScreen(),
+                              const SignUpScreen(),
                             );
                           },
                           child: ReusableText(
-                            text: "sign_up_link".tr, // "Sign Up"
+                            text: "sign_up_link".tr,
                             textSize: 100.sp,
                             textFontWeight: FontWeight.w800,
-                            textColor:
-                                AppColor
-                                    .primaryColor, // Highlighted as clickable
+                            textColor: AppColor.primaryColor,
                           ),
                         ),
                       ],

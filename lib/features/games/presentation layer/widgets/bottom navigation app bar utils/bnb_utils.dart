@@ -9,7 +9,7 @@ import '../../pages/bottom app bar screens/matches_screen.dart';
 import '../../pages/bottom app bar screens/test4.dart';
 
 List<Widget> buildScreens() {
-  return [MatchesScreen(), LeagueScreen(), EditingVideoScreen(), Test4()];
+  return [MatchesScreen(), LeagueScreen(), EditingVideoScreen(), ProfilePage()];
 }
 
 List<PersistentBottomNavBarItem> navBarsItems(BuildContext context) {

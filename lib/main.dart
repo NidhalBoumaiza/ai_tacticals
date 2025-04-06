@@ -1,3 +1,4 @@
+import 'package:analysis_ai/features/auth/presentation%20layer/pages/login_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -37,32 +38,56 @@ import 'injection_container.dart' as di;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize date formatting for the specified locale
   await initializeDateFormatting('fr_FR', null);
-
   await di.init();
+
   final AppLifecycleObserver observer = AppLifecycleObserver();
   WidgetsBinding.instance.addObserver(observer);
+
   SharedPreferences prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('TOKEN');
-  Widget screen =
-      token != null && token.isNotEmpty
-          ? HomeScreenSquelette()
-          : StarterScreen();
-  runApp(MyApp(screen: screen));
+  final savedTheme = prefs.getString('THEME_MODE') ?? 'system'; // Default to system
+  final savedLanguage = prefs.getString('LANGUAGE') ?? 'fr_FR'; // Default to French
+  final isFirstLoginDone = prefs.getBool('FIRST_LOGIN_DONE') ?? false; // New flag
+
+  // Map saved theme to ThemeMode
+  ThemeMode initialThemeMode;
+  switch (savedTheme) {
+    case 'light':
+      initialThemeMode = ThemeMode.light;
+      break;
+    case 'dark':
+      initialThemeMode = ThemeMode.dark;
+      break;
+    default:
+      initialThemeMode = ThemeMode.system;
+  }
+
+  // Set initial locale
+  Get.updateLocale(Locale(savedLanguage.split('_')[0], savedLanguage.split('_')[1]));
+
+  // Decide initial screen
+  Widget screen;
+  if (!isFirstLoginDone) {
+    screen = const StarterScreen(); // Show StarterScreen only on first launch
+  } else {
+    screen = token != null && token.isNotEmpty ? const HomeScreenSquelette() : const LoginScreen();
+  }
+
+  runApp(MyApp(screen: screen, initialThemeMode: initialThemeMode));
 }
 
 class MyApp extends StatelessWidget {
   final Widget screen;
+  final ThemeMode initialThemeMode;
 
-  const MyApp({super.key, required this.screen});
+  const MyApp({super.key, required this.screen, required this.initialThemeMode});
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-
-        BlocProvider(create: (context) => ThemeCubit()),
+        BlocProvider(create: (context) => ThemeCubit(initialThemeMode)),
         BlocProvider(create: (context) => di.sl<BnvCubit>()..changeIndex(0)),
         BlocProvider(create: (context) => di.sl<LoginBloc>()),
         BlocProvider(create: (context) => di.sl<SignupBloc>()),
@@ -99,7 +124,7 @@ class MyApp extends StatelessWidget {
                 themeMode: themeMode,
                 home: screen,
                 translations: AppTranslations(),
-                locale: const Locale('fr', 'FR'),
+                locale: Get.locale ?? const Locale('fr', 'FR'),
                 fallbackLocale: const Locale('fr', 'FR'),
               );
             },
@@ -113,8 +138,7 @@ class MyApp extends StatelessWidget {
 class AppLifecycleObserver with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
       CachedNetworkImage.evictFromCache('', cacheKey: "flag");
     }
   }
