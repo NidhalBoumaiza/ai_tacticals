@@ -17,8 +17,9 @@ import 'video_editing_state.dart';
 class VideoEditingCubit extends Cubit<VideoEditingState> {
   final ImagePicker _picker = ImagePicker();
   static const MethodChannel _channel = MethodChannel('com.example.analysis_ai/recording');
+  static const MethodChannel _gallerySaverChannel = MethodChannel('com.example.analysis_ai/gallery_saver'); // New channel for gallery saving
   int? _lastTimestamp;
-  bool _isStopping = false; // Guard against duplicate stops
+  bool _isStopping = false;
 
   VideoEditingCubit() : super(VideoEditingState());
 
@@ -183,80 +184,73 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     final controller = state.controller;
     if (controller == null || !state.isRecording || _isStopping) return;
 
-    _isStopping = true; // Prevent duplicate calls
+    _isStopping = true;
     debugPrint('Stopping recording...');
 
     try {
       final String? outputPath = await _channel.invokeMethod('stopScreenRecording');
       debugPrint('Received outputPath: $outputPath');
       controller.pause();
-      emit(state.copyWith(
-        isRecording: false,
-        recordingEndTime: controller.value.position,
-      ));
-      if (outputPath != null) {
-        final savedPath = await _saveToGallery(outputPath);
-        debugPrint('Save completed, resetting state...');
-        showSuccessSnackBar(context, "Video saved to aiTacticals folder: $savedPath");
-        resetState();
-        debugPrint('Navigating back...');
-        Navigator.of(context).pop();
+
+      if (outputPath != null && File(outputPath).existsSync()) {
+        bool? saved = await _saveVideoToGallery(outputPath, albumName: 'aiTacticals');
+        if (saved == true) {
+          showSuccessSnackBar(context, "Video saved to gallery in aiTacticals album");
+        } else {
+          throw Exception("Failed to save video to gallery");
+        }
+        await File(outputPath).delete();
+        debugPrint('Temporary file deleted: $outputPath');
       } else {
-        showErrorSnackBar(context, "No output path returned from recording");
-        debugPrint('Error: outputPath is null');
-        resetState();
-        Navigator.of(context).pop();
+        throw Exception("Recording output file not found: $outputPath");
       }
     } catch (e) {
       debugPrint('Error stopping recording: $e');
-      showErrorSnackBar(context, "Failed to stop recording: $e");
+      showErrorSnackBar(context, "Failed to save recording: $e");
+    } finally {
+      _isStopping = false;
       resetState();
       Navigator.of(context).pop();
-    } finally {
-      _isStopping = false; // Reset guard
     }
   }
 
-  Future<String> _saveToGallery(String filePath) async {
+  Future<bool?> _saveVideoToGallery(String path, {String? albumName}) async {
+    if (path.isEmpty) {
+      throw ArgumentError('Please provide valid file path.');
+    }
+    if (!await File(path).exists()) {
+      throw ArgumentError('File does not exist at path: $path');
+    }
+
     try {
-      debugPrint('Saving video from: $filePath');
-      final Directory galleryDir = Directory('/storage/emulated/0/aiTacticals');
-      if (!await galleryDir.exists()) {
-        debugPrint('Creating aiTacticals folder in gallery');
-        await galleryDir.create(recursive: true);
-      }
-
-      final fileName = 'ai_tactical_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final destPath = '${galleryDir.path}/$fileName';
-
-      final sourceFile = File(filePath);
-      if (await sourceFile.exists()) {
-        await sourceFile.copy(destPath);
-        debugPrint('Video saved to: $destPath');
-        await sourceFile.delete();
-        debugPrint('Temporary file deleted: $filePath');
-      } else {
-        throw Exception('Source file does not exist: $filePath');
-      }
-
-      return destPath;
+      bool? result = await _gallerySaverChannel.invokeMethod(
+        'saveVideo',
+        <String, dynamic>{
+          'path': path,
+          'albumName': albumName ?? 'aiTacticals',
+          'toDcim': false,
+        },
+      );
+      debugPrint('Gallery save result: $result');
+      return result;
     } catch (e) {
-      debugPrint('Error saving to gallery: $e');
+      debugPrint('Error saving video to gallery: $e');
       rethrow;
     }
   }
 
   Future<bool> _requestStoragePermission() async {
     if (Platform.isAndroid) {
-      if (await _isAndroid13OrHigher()) {
+      final bool isAndroid13OrHigher = await _isAndroid13OrHigher();
+      if (isAndroid13OrHigher) {
         var videoStatus = await Permission.videos.request();
         var micStatus = await Permission.microphone.request();
-        debugPrint('Videos: $videoStatus, Microphone: $micStatus');
+        debugPrint('Android 13+: Videos: $videoStatus, Microphone: $micStatus');
         return videoStatus.isGranted && micStatus.isGranted;
       } else {
         var storageStatus = await Permission.storage.request();
         var micStatus = await Permission.microphone.request();
-        debugPrint('Storage: $storageStatus, Microphone: $micStatus');
+        debugPrint('Android < 13: Storage: $storageStatus, Microphone: $micStatus');
         return storageStatus.isGranted && micStatus.isGranted;
       }
     }
@@ -291,5 +285,11 @@ class VideoEditingCubit extends Cubit<VideoEditingState> {
     final newPosition = (state.controller!.value.position.inMilliseconds + 10000)
         .clamp(0, state.controller!.value.duration.inMilliseconds);
     state.controller!.seekTo(Duration(milliseconds: newPosition));
+  }
+
+  void removeDrawingForTimestamp(DrawingItem drawing, int timestamp) {
+    final updatedLines = List<Map<String, dynamic>>.from(state.lines)
+      ..removeWhere((line) => line['timestamp'] == timestamp && line['drawing'] == drawing);
+    emit(state.copyWith(lines: updatedLines));
   }
 }

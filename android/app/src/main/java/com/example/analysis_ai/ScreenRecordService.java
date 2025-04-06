@@ -137,9 +137,14 @@ public class ScreenRecordService extends Service {
     }
 
     private File getOutputFile() {
-        File dir = new File(getExternalFilesDir(null), "ScreenRecords");
-        if (!dir.exists()) dir.mkdirs();
-        return new File(dir, "recording_" + System.currentTimeMillis() + ".mp4");
+        File dir = new File(getExternalFilesDir(null), "aiTacticals"); // Use app-specific directory
+        if (!dir.exists()) {
+            dir.mkdirs();
+            Log.d(TAG, "Created aiTacticals directory: " + dir.getAbsolutePath());
+        }
+        File outputFile = new File(dir, "ai_tactical_" + System.currentTimeMillis() + ".mp4");
+        Log.d(TAG, "Output file path: " + outputFile.getAbsolutePath());
+        return outputFile;
     }
 
     private Notification createNotification() {
@@ -182,7 +187,7 @@ public class ScreenRecordService extends Service {
             return;
         }
 
-        isRecording = false; // Mark as stopped immediately to prevent re-entry
+        isRecording = false;
 
         if (mediaRecorder != null) {
             try {
@@ -201,7 +206,6 @@ public class ScreenRecordService extends Service {
                 mediaRecorder.release();
             } catch (IllegalStateException e) {
                 Log.e(TAG, "Error resetting/releasing MediaRecorder: " + e.getMessage());
-                e.printStackTrace();
             } finally {
                 mediaRecorder = null;
             }
@@ -216,11 +220,16 @@ public class ScreenRecordService extends Service {
             mediaProjection.stop();
             mediaProjection = null;
         }
-
+gimme 
         stopForeground(true);
 
-        Intent intent = new Intent("com.example.analysis_ai.RECORDING_FINISHED");
-        intent.putExtra("outputPath", outputPath);
-        sendBroadcast(intent);
+        if (outputPath != null && new File(outputPath).exists()) {
+            Intent intent = new Intent("com.example.analysis_ai.RECORDING_FINISHED");
+            intent.putExtra("outputPath", outputPath);
+            sendBroadcast(intent);
+            Log.d(TAG, "Broadcast sent with outputPath: " + outputPath);
+        } else {
+            Log.e(TAG, "Output file not found or invalid: " + outputPath);
+        }
     }
 }

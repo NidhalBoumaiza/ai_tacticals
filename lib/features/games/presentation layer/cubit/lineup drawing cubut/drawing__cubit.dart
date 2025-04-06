@@ -161,4 +161,46 @@ class DrawingCubit extends Cubit<DrawingState> {
     emit(state.copyWith(selectedDrawingIndex: null));
     print('Deselected drawing');
   }
+
+  void undoDrawingForFrame(int timestamp, List<Map<String, dynamic>> videoLines, Function(DrawingItem, int) removeCallback) {
+    if (state.drawings.isNotEmpty) {
+      // Get drawings for the current timestamp from videoLines
+      final currentFrameDrawings = videoLines
+          .where((line) => line['timestamp'] == timestamp)
+          .map((line) => line['drawing'] as DrawingItem)
+          .toList();
+
+      if (currentFrameDrawings.isNotEmpty) {
+        final lastDrawing = currentFrameDrawings.last;
+        final updatedRedoStack = List<DrawingItem>.from(state.redoStack)..add(lastDrawing);
+
+        // Update videoLines by removing the last drawing for this timestamp
+        removeCallback(lastDrawing, timestamp);
+
+        // Update DrawingCubit state with the filtered drawings for this frame
+        final updatedDrawings = currentFrameDrawings..removeLast();
+        emit(state.copyWith(
+          drawings: updatedDrawings,
+          redoStack: updatedRedoStack,
+        ));
+      }
+    }
+  }
+
+  // New method for frame-specific redo
+  void redoDrawingForFrame(int timestamp, Function(DrawingItem, int) addCallback) {
+    if (state.redoStack.isNotEmpty) {
+      final lastRedo = state.redoStack.last;
+      final updatedRedoStack = List<DrawingItem>.from(state.redoStack)..removeLast();
+      final updatedDrawings = List<DrawingItem>.from(state.drawings)..add(lastRedo);
+
+      // Add the drawing back to VideoEditingCubit for this timestamp
+      addCallback(lastRedo, timestamp);
+
+      emit(state.copyWith(
+        drawings: updatedDrawings,
+        redoStack: updatedRedoStack,
+      ));
+    }
+  }
 }

@@ -60,13 +60,11 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 final videoHeight = MediaQuery.of(context).size.height;
                 final currentTimestamp = videoState.controller?.value.position.inMilliseconds ?? 0;
 
-                // Filter drawings to show only those matching the current timestamp
                 final currentDrawings = videoState.lines
                     .where((line) => (line['timestamp'] as int) == currentTimestamp)
                     .map((line) => line['drawing'] as DrawingItem)
                     .toList();
 
-                // Sync DrawingCubit with current timestamped drawings only when paused and not drawing
                 if (!videoState.isPlaying && !drawingState.isDrawing && drawingState.drawings != currentDrawings) {
                   context.read<DrawingCubit>().emit(drawingState.copyWith(
                     drawings: currentDrawings,
@@ -74,7 +72,6 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                   ));
                 }
 
-                // Show current drawing in progress if drawing, otherwise only timestamped drawings
                 final allDrawings = drawingState.isDrawing && drawingState.currentPoints.isNotEmpty
                     ? [
                   ...currentDrawings,
@@ -94,8 +91,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                           final RenderBox? box = _videoKey.currentContext?.findRenderObject() as RenderBox?;
                           if (box != null) {
                             final localPosition = box.globalToLocal(details.globalPosition);
-                            final cubit = context.read<DrawingCubit>();
-                            cubit.selectDrawing(localPosition);
+                            context.read<DrawingCubit>().selectDrawing(localPosition);
                           }
                         }
                       },
@@ -147,7 +143,6 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                                     if (drawingCubit.state.drawings.isNotEmpty) {
                                       final newDrawing = drawingCubit.state.drawings.last;
                                       context.read<VideoEditingCubit>().addDrawing(newDrawing, timestamp);
-                                      // Reset drawing state but keep existing drawings for dragging
                                       drawingCubit.emit(drawingCubit.state.copyWith(
                                         currentPoints: [],
                                         isDrawing: false,
@@ -443,6 +438,9 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
   }
 
   void _showDrawingOptions(BuildContext context, DrawingCubit cubit, DrawingState state) {
+    final videoCubit = context.read<VideoEditingCubit>();
+    final currentTimestamp = videoCubit.state.controller?.value.position.inMilliseconds ?? 0;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -497,16 +495,20 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                 leading: const Icon(Icons.undo, color: Colors.black87),
                 title: const Text('Undo', style: TextStyle(color: Colors.black87)),
                 onTap: () {
-                  if (state.drawings.isNotEmpty) cubit.undoDrawing();
-                  Navigator.pop(context);
+                  if (state.drawings.isNotEmpty) {
+                    cubit.undoDrawingForFrame(currentTimestamp, videoCubit.state.lines, videoCubit.removeDrawingForTimestamp);
+                    Navigator.pop(context);
+                  }
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.redo, color: Colors.black87),
                 title: const Text('Redo', style: TextStyle(color: Colors.black87)),
                 onTap: () {
-                  if (state.redoStack.isNotEmpty) cubit.redoDrawing();
-                  Navigator.pop(context);
+                  if (state.redoStack.isNotEmpty) {
+                    cubit.redoDrawingForFrame(currentTimestamp, videoCubit.addDrawing);
+                    Navigator.pop(context);
+                  }
                 },
               ),
               ListTile(
