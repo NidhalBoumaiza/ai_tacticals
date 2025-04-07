@@ -260,7 +260,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<MatchesRemoteDataSource>(
-    () => MatchesRemoteDataSourceImpl(client: sl()),
+    () => MatchesRemoteDataSourceImpl(),
   );
 
   sl.registerLazySingleton<MatchesLocalDataSource>(
