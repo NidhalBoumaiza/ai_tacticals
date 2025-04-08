@@ -1,60 +1,84 @@
-// lib/features/standings/data_layer/data_sources/standings_remote_data_source.dart
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io';
 
+import 'package:analysis_ai/core/web view/web_view_api_call.dart'; // Adjust path to WebViewApiCall
 import 'package:analysis_ai/core/error/exceptions.dart';
-import 'package:http/http.dart' as http;
 
 import '../../models/season_model.dart';
 import '../../models/standing_model.dart';
 
 abstract class StandingsRemoteDataSource {
   Future<StandingsModel> getStandings(int leagueId, int seasonId);
-
   Future<List<SeasonModel>> getSeasonsByTournamentId(int uniqueTournamentId);
 }
 
 class StandingsRemoteDataSourceImpl implements StandingsRemoteDataSource {
-  final http.Client client;
+  final WebViewApiCall webViewApiCall;
 
-  StandingsRemoteDataSourceImpl({required this.client});
+  StandingsRemoteDataSourceImpl({required this.webViewApiCall});
 
   @override
   Future<StandingsModel> getStandings(int leagueId, int seasonId) async {
-    final url =
-        'https://www.sofascore.com/api/v1/unique-tournament/$leagueId/season/$seasonId/standings/total';
-    final response = await client.get(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-    );
+    final url = 'https://www.sofascore.com/api/v1/unique-tournament/$leagueId/season/$seasonId/standings/total';
 
-    if (response.statusCode == 200) {
-      final jsonData = json.decode(response.body) as Map<String, dynamic>;
-      return StandingsModel.fromJson(jsonData);
-    } else {
-      throw ServerException("Server Exception: ${response.statusCode}");
+    try {
+      final jsonData = await webViewApiCall
+          .fetchJsonFromWebView(url)
+          .timeout(const Duration(seconds: 30));
+
+      if (jsonData == null || jsonData.isEmpty) {
+        throw ServerException('Invalid standings data received');
+      }
+
+      final standings = StandingsModel.fromJson(jsonData);
+
+      // Debug print for a sample team name from standings (assuming standings contains team data)
+     // final sampleTeamName = standings.standings?.first.rows?.first.team?.name ?? 'Unknown';
+     //  print('StandingsRemoteDataSource: Team name raw: $sampleTeamName');
+     //  print('StandingsRemoteDataSource: Team name code units: ${sampleTeamName.codeUnits}');
+
+      return standings;
+    } on TimeoutException {
+      throw ServerException('Request timed out');
+    } on SocketException {
+      throw OfflineException('No Internet connection');
+    } catch (e) {
+      throw ServerException('Failed to load standings: $e');
     }
   }
 
   @override
-  Future<List<SeasonModel>> getSeasonsByTournamentId(
-    int uniqueTournamentId,
-  ) async {
-    final url =
-        'https://www.sofascore.com/api/v1/unique-tournament/$uniqueTournamentId/seasons';
-    final response = await client
-        .get(Uri.parse(url))
-        .timeout(const Duration(seconds: 12));
+  Future<List<SeasonModel>> getSeasonsByTournamentId(int uniqueTournamentId) async {
+    final url = 'https://www.sofascore.com/api/v1/unique-tournament/$uniqueTournamentId/seasons';
 
-    if (response.statusCode == 200) {
-      final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
-      final List<dynamic> seasonsJson =
-          responseBody['seasons'] as List<dynamic>;
-      return seasonsJson
+    try {
+      final jsonData = await webViewApiCall
+          .fetchJsonFromWebView(url)
+          .timeout(const Duration(seconds: 30));
+
+      if (jsonData == null || jsonData.isEmpty) {
+        throw ServerException('Invalid seasons data received');
+      }
+
+      final seasonsJson = jsonData['seasons'] as List<dynamic>? ?? [];
+      final seasons = seasonsJson
           .map((season) => SeasonModel.fromJson(season as Map<String, dynamic>))
           .toList();
-    } else {
-      throw ServerException('Failed to fetch seasons: ${response.statusCode}');
+
+      // Debug print for a sample season name (if applicable)
+      if (seasons.isNotEmpty) {
+        //final sampleSeasonName = seasons.first.name ?? 'Unknown';
+        // print('StandingsRemoteDataSource: Season name raw: $sampleSeasonName');
+        // print('StandingsRemoteDataSource: Season name code units: ${sampleSeasonName.codeUnits}');
+      }
+
+      return seasons;
+    } on TimeoutException {
+      throw ServerException('Request timed out');
+    } on SocketException {
+      throw OfflineException('No Internet connection');
+    } catch (e) {
+      throw ServerException('Failed to load seasons: $e');
     }
   }
 }

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../../core/error/exceptions.dart';
+import '../../../../../core/web view/web_view_api_call.dart';
 import '../../models/matches_models.dart';
 
 abstract class MatchesRemoteDataSource {
@@ -22,62 +23,18 @@ abstract class MatchesRemoteDataSource {
 }
 
 class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
-  late WebViewController _webViewController;
+  final WebViewApiCall webViewApiCall;
 
-  MatchesRemoteDataSourceImpl() {
-    _initializeWebView();
-  }
-
-  void _initializeWebView() {
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onWebResourceError: (error) {
-            throw ServerException('WebView error: ${error.description}');
-          },
-        ),
-      );
-  }
-
-  Future<dynamic> _fetchJsonFromWebView(String url) async {
-    try {
-      // Load the URL in the WebView
-      await _webViewController.loadRequest(Uri.parse(url));
-
-      // Wait for the page to load (adjust delay as needed)
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Extract raw JSON string from the page body
-      String jsonString = await _webViewController.runJavaScriptReturningResult(
-        'document.body.innerText',
-      ) as String;
-
-      // Clean the JSON string
-      jsonString = jsonString.trim();
-      if (jsonString.startsWith('"') && jsonString.endsWith('"')) {
-        jsonString = jsonString.substring(1, jsonString.length - 1);
-      }
-      jsonString = jsonString.replaceAll('\\"', '"');
-
-      // Parse the JSON
-      final jsonData = jsonDecode(jsonString);
-      return jsonData;
-    } catch (e) {
-      throw ServerException('Failed to fetch data from WebView: $e');
-    }
-  }
+  MatchesRemoteDataSourceImpl({required this.webViewApiCall});
 
   @override
   Future<MatchEventsPerTeamModel> getMatchesPerTeam(
-      int uniqueTournamentId,
-      int seasonId,
-      ) async {
+      int uniqueTournamentId, int seasonId) async {
     final url =
         'https://www.sofascore.com/api/v1/unique-tournament/$uniqueTournamentId/season/$seasonId/team-events/total';
 
     try {
-      final json = await _fetchJsonFromWebView(url);
+      final json = await webViewApiCall.fetchJsonFromWebView(url);
       final events = json['tournamentTeamEvents'] as Map<String, dynamic>?;
 
       if (events == null) {
@@ -129,7 +86,7 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
         'https://www.sofascore.com/api/v1/sport/football/scheduled-events/$date';
 
     try {
-      final json = await _fetchJsonFromWebView(url);
+      final json = await webViewApiCall.fetchJsonFromWebView(url);
       final events = json['events'] as List<dynamic>?;
 
       if (events == null || events.isEmpty) {
@@ -165,15 +122,12 @@ class MatchesRemoteDataSourceImpl implements MatchesRemoteDataSource {
 
   @override
   Future<List<MatchEventModel>> getMatchesPerRound(
-      int leagueId,
-      int seasonId,
-      int round,
-      ) async {
+      int leagueId, int seasonId, int round) async {
     final url =
         'https://www.sofascore.com/api/v1/unique-tournament/$leagueId/season/$seasonId/events/round/$round';
 
     try {
-      final json = await _fetchJsonFromWebView(url);
+      final json = await webViewApiCall.fetchJsonFromWebView(url);
       final events = json['events'] as List<dynamic>? ?? [];
 
       return events

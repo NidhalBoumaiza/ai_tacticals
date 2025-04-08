@@ -1,129 +1,99 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'dart:async';
 
 import '../../../../../core/error/exceptions.dart';
+import '../../../../../core/web view/web_view_api_call.dart';
 import '../../../domain layer/entities/player_per_match_entity.dart';
 import '../../models/player_per_match_model.dart';
 
 abstract class OneMatchRemoteDataSource {
   Future<Map<String, dynamic>> getMatchEvent(int matchId);
-
   Future<Map<String, dynamic>> getMatchStatistics(int matchId);
-
-  Future<Map<String, List<PlayerPerMatchEntity>>> getPlayersPerMatch(
-    int matchId,
-  );
-
+  Future<Map<String, List<PlayerPerMatchEntity>>> getPlayersPerMatch(int matchId);
   Future<Map<String, dynamic>> getManagersPerMatch(int matchId);
 }
 
 class OneMatchRemoteDataSourceImpl implements OneMatchRemoteDataSource {
-  final http.Client client;
+  final WebViewApiCall webViewApiCall;
 
-  OneMatchRemoteDataSourceImpl({required this.client});
+  OneMatchRemoteDataSourceImpl({required this.webViewApiCall});
 
   @override
   Future<Map<String, dynamic>> getMatchEvent(int matchId) async {
-    final response = await _fetchData(
-      'https://www.sofascore.com/api/v1/event/$matchId',
-    );
-    if (response == null || response.isEmpty) {
-      throw ServerException('Invalid match event data received');
+    final url = 'https://www.sofascore.com/api/v1/event/$matchId';
+
+    try {
+      final json = await webViewApiCall.fetchJsonFromWebView(url);
+      final eventData = json['event'] as Map<String, dynamic>?;
+
+      if (eventData == null) {
+        throw ServerException('No event data found in response');
+      }
+      return eventData;
+    } catch (e) {
+      throw ServerException('Failed to load match event: $e');
     }
-    // Unwrap the 'event' key from the response
-    final eventData = response['event'] as Map<String, dynamic>?;
-    if (eventData == null) {
-      throw ServerException('No event data found in response');
-    }
-    return eventData; // Return the inner event object
   }
 
   @override
   Future<Map<String, dynamic>> getMatchStatistics(int matchId) async {
-    final response = await _fetchData(
-      'https://www.sofascore.com/api/v1/event/$matchId/statistics',
-    );
-    if (response == null || response.isEmpty) {
-      throw ServerException('Invalid match statistics data received');
+    final url = 'https://www.sofascore.com/api/v1/event/$matchId/statistics';
+
+    try {
+      final json = await webViewApiCall.fetchJsonFromWebView(url);
+
+      if (json.isEmpty) {
+        throw ServerException('Invalid match statistics data received');
+      }
+      return json;
+    } catch (e) {
+      throw ServerException('Failed to load match statistics: $e');
     }
-    return response; // Statistics API response is already in the correct format
   }
 
   @override
-  Future<Map<String, List<PlayerPerMatchEntity>>> getPlayersPerMatch(
-    int matchId,
-  ) async {
-    final response = await _fetchData(
-      'https://api.sofascore.com/api/v1/event/$matchId/lineups',
-    );
-    if (response == null) {
-      throw ServerException('Invalid players data received');
+  Future<Map<String, List<PlayerPerMatchEntity>>> getPlayersPerMatch(int matchId) async {
+    final url = 'https://api.sofascore.com/api/v1/event/$matchId/lineups';
+
+    try {
+      final json = await webViewApiCall.fetchJsonFromWebView(url);
+
+      // Extract home and away players, handling null or invalid data
+      final homePlayersRaw = (json['home']?['players'] as List<dynamic>?) ?? [];
+      final awayPlayersRaw = (json['away']?['players'] as List<dynamic>?) ?? [];
+
+      final homePlayers = homePlayersRaw
+          .where((player) => player != null)
+          .map((player) => PlayerPerMatchModel.fromJson(player as Map<String, dynamic>))
+          .toList();
+
+      final awayPlayers = awayPlayersRaw
+          .where((player) => player != null)
+          .map((player) => PlayerPerMatchModel.fromJson(player as Map<String, dynamic>))
+          .toList();
+
+      return {'home': homePlayers, 'away': awayPlayers};
+    } catch (e) {
+      throw ServerException('Failed to load players per match: $e');
     }
-
-    // Extract home and away players, handling null or invalid data
-    final homePlayersRaw =
-        (response['home']?['players'] as List<dynamic>?) ?? [];
-    final awayPlayersRaw =
-        (response['away']?['players'] as List<dynamic>?) ?? [];
-
-    final homePlayers =
-        homePlayersRaw
-            .where((player) => player != null) // Filter out null entries
-            .map(
-              (player) =>
-                  PlayerPerMatchModel.fromJson(player as Map<String, dynamic>),
-            )
-            .toList();
-
-    final awayPlayers =
-        awayPlayersRaw
-            .where((player) => player != null) // Filter out null entries
-            .map(
-              (player) =>
-                  PlayerPerMatchModel.fromJson(player as Map<String, dynamic>),
-            )
-            .toList();
-
-    return {'home': homePlayers, 'away': awayPlayers};
   }
 
   @override
   Future<Map<String, dynamic>> getManagersPerMatch(int matchId) async {
-    final response = await _fetchData(
-      'https://api.sofascore.com/api/v1/event/$matchId/managers',
-    );
-    if (response == null ||
-        !response.containsKey('homeManager') ||
-        !response.containsKey('awayManager')) {
-      throw ServerException('Invalid managers data received');
-    }
-    return {
-      'homeManager': response['homeManager'],
-      'awayManager': response['awayManager'],
-    };
-  }
+    final url = 'https://api.sofascore.com/api/v1/event/$matchId/managers';
 
-  // Helper method to fetch data from the API
-  Future<Map<String, dynamic>> _fetchData(String url) async {
-    final response = await client
-        .get(Uri.parse(url))
-        .timeout(const Duration(seconds: 10));
+    try {
+      final json = await webViewApiCall.fetchJsonFromWebView(url);
 
-    if (response.statusCode == 200) {
-      final decodedResponse =
-          json.decode(response.body) as Map<String, dynamic>;
-      return decodedResponse;
-    } else if (response.statusCode == 404) {
-      throw ServerMessageException('Match not found');
-    } else if (response.statusCode == 500) {
-      throw ServerException(
-        'Server error: ${response.statusCode} - ${response.reasonPhrase}',
-      );
-    } else {
-      throw ServerException(
-        'Server error: ${response.statusCode} - ${response.reasonPhrase}',
-      );
+      if (!json.containsKey('homeManager') || !json.containsKey('awayManager')) {
+        throw ServerException('Invalid managers data received');
+      }
+
+      return {
+        'homeManager': json['homeManager'],
+        'awayManager': json['awayManager'],
+      };
+    } catch (e) {
+      throw ServerException('Failed to load managers: $e');
     }
   }
 }

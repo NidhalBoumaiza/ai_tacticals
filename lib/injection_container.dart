@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/cubit/theme cubit/theme_cubit.dart';
 import 'core/network/network_info.dart';
+import 'core/web view/web_view_api_call.dart';
 import 'features/auth/data layer/data sources/user_remote_data_source.dart';
 import 'features/auth/data layer/repositories/user_repository_impl.dart';
 import 'features/auth/domain layer/repositories/user_repository.dart';
@@ -226,6 +227,9 @@ Future<void> init() async {
       networkInfo: sl(),
     ),
   );
+  sl.registerLazySingleton<WebViewApiCall>(() => WebViewApiCall());
+
+
 
   // Data Sources
   sl.registerLazySingleton<UserRemoteDataSource>(
@@ -236,7 +240,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<GamesRemoteDataSource>(
-    () => GamesRemoteDataSourceImpl(client: sl()),
+    () => GamesRemoteDataSourceImpl(webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<GamesLocalDataSource>(
@@ -244,7 +248,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<LeaguesRemoteDataSource>(
-    () => LeaguesRemoteDataSourceImpl(client: sl()),
+    () => LeaguesRemoteDataSourceImpl(webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<LeaguesLocalDataSource>(
@@ -252,7 +256,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<StandingsRemoteDataSource>(
-    () => StandingsRemoteDataSourceImpl(client: sl()),
+    () => StandingsRemoteDataSourceImpl(webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<StandingsLocalDataSource>(
@@ -260,7 +264,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<MatchesRemoteDataSource>(
-    () => MatchesRemoteDataSourceImpl(),
+    () => MatchesRemoteDataSourceImpl(webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<MatchesLocalDataSource>(
@@ -268,7 +272,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<PlayersRemoteDataSource>(
-    () => PlayersRemoteDataSourceImpl(client: sl()),
+    () => PlayersRemoteDataSourceImpl(webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<PlayersLocalDataSource>(
@@ -276,7 +280,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<StatsRemoteDataSource>(
-    () => StatsRemoteDataSourceImpl(client: sl()),
+    () => StatsRemoteDataSourceImpl(webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<StatsLocalDataSource>(
@@ -284,7 +288,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<OneMatchRemoteDataSource>(
-    () => OneMatchRemoteDataSourceImpl(client: sl()),
+    () => OneMatchRemoteDataSourceImpl( webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<OneMatchLocalDataSource>(
@@ -292,7 +296,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<PlayerDetailsRemoteDataSource>(
-    () => PlayerDetailsRemoteDataSourceImpl(client: sl()),
+    () => PlayerDetailsRemoteDataSourceImpl(webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<PlayerDetailsLocalDataSource>(
@@ -300,7 +304,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<PlayerMatchStatsRemoteDataSource>(
-    () => PlayerMatchStatsRemoteDataSourceImpl(client: sl()),
+    () => PlayerMatchStatsRemoteDataSourceImpl(webViewApiCall: sl()),
   );
 
   sl.registerLazySingleton<PlayerMatchStatsLocalDataSource>(

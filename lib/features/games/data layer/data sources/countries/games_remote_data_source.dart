@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:http/http.dart' as http;
-
+import '../../../../../core/web view/web_view_api_call.dart'; // Adjust path to WebViewApiCall
 import '../../../../../core/error/exceptions.dart';
 import '../../models/country_model.dart';
 
@@ -13,44 +12,33 @@ abstract class GamesRemoteDataSource {
 }
 
 class GamesRemoteDataSourceImpl implements GamesRemoteDataSource {
-  final http.Client client;
+  final WebViewApiCall webViewApiCall;
   final String baseUrl = 'https://www.sofascore.com/api/v1/sport/football';
 
-  GamesRemoteDataSourceImpl({required this.client});
+  GamesRemoteDataSourceImpl({required this.webViewApiCall});
 
   @override
   Future<List<CountryModel>> getAllCountries() async {
     try {
-      final response = await client
-          .get(Uri.parse('$baseUrl/categories'))
-          .timeout(
-            const Duration(seconds: 12),
-          ); // Timeout after 12 seconds (matches your template)
+      // Ensure we have internet connection before proceeding
+      await InternetAddress.lookup('sofascore.com');
 
-      if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
-        final List<dynamic> categories = responseBody['categories'] as List;
-        final List<CountryModel> countries =
-            categories.map((category) {
-              return CountryModel.fromJson(category as Map<String, dynamic>);
-            }).toList();
-        return countries;
-      } else if (response.statusCode == 400 || response.statusCode == 401) {
-        final responseBody = jsonDecode(response.body) as Map<String, dynamic>;
-        final errorMessage =
-            responseBody['message'] as String? ?? 'Failed to fetch countries';
-        throw UnauthorizedException(errorMessage);
-      } else if (response.statusCode == 404) {
-        throw ServerMessageException('Resource not found');
-      } else {
-        throw ServerException('Server error: ${response.statusCode}');
+      final jsonData = await webViewApiCall.fetchJsonFromWebView('$baseUrl/categories');
+
+      if (jsonData == null || jsonData['categories'] == null) {
+        throw ServerException('Invalid response format');
       }
-    } on TimeoutException {
-      throw ServerMessageException('Something very wrong happened');
+
+      final List<dynamic> categories = jsonData['categories'] as List;
+      return categories
+          .map((category) => CountryModel.fromJson(category as Map<String, dynamic>))
+          .toList();
     } on SocketException {
       throw OfflineException('No Internet connection');
+    } on TimeoutException {
+      throw ServerException('Request timed out');
     } catch (e) {
-      throw ServerException('An unexpected error occurred: $e');
+      throw ServerException('Failed to load countries: ${e.toString()}');
     }
   }
 }
