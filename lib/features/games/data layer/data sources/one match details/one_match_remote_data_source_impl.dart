@@ -40,7 +40,8 @@ class OneMatchRemoteDataSourceImpl implements OneMatchRemoteDataSource {
 
     try {
       final json = await webViewApiCall.fetchJsonFromWebView(url);
-
+      print ("********************************************") ;
+      print ('Match Statistics JSON: $json'); // Debugging line
       if (json.isEmpty) {
         throw ServerException('Invalid match statistics data received');
       }

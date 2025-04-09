@@ -5,8 +5,8 @@ class MatchEventEntity {
   final SeasonEntity season;
   final RoundInfoEntity roundInfo;
   final StatusEntity status;
-  final int winnerCode;
-  final int attendance;
+  final int? winnerCode;         // Changed to nullable
+  final int? attendance;         // Changed to nullable
   final VenueEntity venue;
   final RefereeEntity referee;
   final TeamEntity homeTeam;
@@ -14,8 +14,8 @@ class MatchEventEntity {
   final ScoreEntity homeScore;
   final ScoreEntity awayScore;
   final TimeEntity time;
-  final int id;
-  final int startTimestamp;
+  final int? id;                 // Changed to nullable
+  final int? startTimestamp;     // Changed to nullable
 
   MatchEventEntity({
     required this.tournament,
@@ -56,10 +56,10 @@ class MatchEventEntity {
       awayTeam: TeamEntity.fromJson(json['awayTeam']),
       homeScore: ScoreEntity.fromJson(json['homeScore']),
       awayScore: ScoreEntity.fromJson(json['awayScore']),
-      time: TimeEntity.fromJson(json['time']),
+      time: TimeEntity.fromJson(json['time'] ?? {}),  // Already handles null
       id: json['id'] ?? 0,
       // Provide a default value
-      startTimestamp: json['startTimestamp'] ?? 0, // Provide a default value
+      startTimestamp: json['startTimestamp'] as int?,
     );
   }
 
@@ -260,10 +260,10 @@ class ManagerEntityy {
 }
 
 class ScoreEntity {
-  final int current;
-  final int period1;
-  final int period2;
-  final int normaltime;
+  final int? current;     // Changed to nullable
+  final int? period1;     // Changed to nullable
+  final int? period2;     // Changed to nullable
+  final int? normaltime;  // Changed to nullable
 
   ScoreEntity({
     required this.current,
@@ -274,10 +274,10 @@ class ScoreEntity {
 
   factory ScoreEntity.fromJson(Map<String, dynamic> json) {
     return ScoreEntity(
-      current: json['current'],
-      period1: json['period1'],
-      period2: json['period2'],
-      normaltime: json['normaltime'],
+      current: json['current'] as int?,  // Explicit cast with null handling
+      period1: json['period1'] as int?,
+      period2: json['period2'] as int?,
+      normaltime: json['normaltime'] as int?,
     );
   }
 
@@ -290,15 +290,15 @@ class ScoreEntity {
 }
 
 class TimeEntity {
-  final int injuryTime1;
-  final int injuryTime2;
+  final int? injuryTime1;  // Changed to nullable
+  final int? injuryTime2;  // Changed to nullable
 
   TimeEntity({required this.injuryTime1, required this.injuryTime2});
 
   factory TimeEntity.fromJson(Map<String, dynamic> json) {
     return TimeEntity(
-      injuryTime1: json['injuryTime1'],
-      injuryTime2: json['injuryTime2'],
+      injuryTime1: json['injuryTime1'] as int?,  // Handle null
+      injuryTime2: json['injuryTime2'] as int?,  // Handle null
     );
   }
 
@@ -314,11 +314,13 @@ class MatchStatisticsEntity {
   MatchStatisticsEntity({required this.statistics});
 
   factory MatchStatisticsEntity.fromJson(Map<String, dynamic> json) {
+    if (json == null || json['statistics'] == null) {
+      return MatchStatisticsEntity(statistics: []);
+    }
     return MatchStatisticsEntity(
-      statistics:
-          (json['statistics'] as List)
-              .map((e) => StatisticsPeriodEntity.fromJson(e))
-              .toList(),
+      statistics: (json['statistics'] as List<dynamic>)
+          .map((e) => StatisticsPeriodEntity.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 

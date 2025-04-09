@@ -1,5 +1,3 @@
-// models.dart
-
 import '../../domain layer/entities/one_match_statics_entity.dart';
 
 class MatchDetails {
@@ -8,14 +6,14 @@ class MatchDetails {
   final int round;
   final String status;
   final String winner;
-  final int attendance;
+  final int? attendance;  // Changed to nullable
   final String venueName;
   final String refereeName;
   final Team homeTeam;
   final Team awayTeam;
   final Score homeScore;
   final Score awayScore;
-  final DateTime startTime;
+  final DateTime startTime;  // Remains DateTime, but we'll handle null safely
   final List<MatchStatistics> statistics;
 
   MatchDetails({
@@ -49,14 +47,16 @@ class MatchDetails {
           : event.winnerCode == 2
           ? event.awayTeam.name
           : 'Draw',
-      attendance: event.attendance,
+      attendance: event.attendance,  // Now int? matches
       venueName: event.venue.name,
       refereeName: event.referee.name,
       homeTeam: Team.fromEntity(event.homeTeam),
       awayTeam: Team.fromEntity(event.awayTeam),
       homeScore: Score.fromEntity(event.homeScore),
       awayScore: Score.fromEntity(event.awayScore),
-      startTime: DateTime.fromMillisecondsSinceEpoch(event.startTimestamp * 1000),
+      startTime: DateTime.fromMillisecondsSinceEpoch(
+        (event.startTimestamp ?? 0) * 1000,  // Default to 0 if null
+      ),
       statistics: stats.statistics.map(MatchStatistics.fromEntity).toList(),
     );
   }
@@ -89,9 +89,9 @@ class Team {
 }
 
 class Score {
-  final int current;
-  final int period1;
-  final int period2;
+  final int? current;  // Already nullable
+  final int? period1;
+  final int? period2;
 
   Score({
     required this.current,
@@ -140,7 +140,7 @@ class StatisticsItem {
   final String name;
   final String homeValue;
   final String awayValue;
-  final int compareCode; // 1: home advantage, 2: away advantage, 3: equal
+  final int compareCode;
   final bool isPositive;
   final String valueType;
 

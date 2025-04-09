@@ -137,6 +137,7 @@ class MatchDetailsContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print (matchDetails.statistics) ;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,17 +155,35 @@ class MatchDetailsContent extends StatelessWidget {
                   textColor: Theme.of(context).colorScheme.primary,
                 ),
                 SizedBox(height: 12.h),
-                ...matchDetails.statistics
-                    .where((stat) => stat.period == 'ALL')
-                    .expand((stat) => stat.groups)
-                    .map((group) => _buildStatsGroup(group, context)),
+                matchDetails.statistics == null || matchDetails.statistics.isEmpty
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset("assets/images/Empty.png"),
+                      ReusableText(
+                        text: 'there is no statics for this match yet'.tr,
+                        textSize: 120.sp,
+                        textColor: Theme.of(context).colorScheme.onSurface,
+                        textFontWeight: FontWeight.w900,
+                      ),
+                    ],
+                  ),
+                )
+                    : Column(
+                  children: matchDetails.statistics
+                      .where((stat) => stat.period == 'ALL')
+                      .expand((stat) => stat.groups)
+                      .map((group) => _buildStatsGroup(group, context))
+                      .toList(),
+                ),
               ],
             ),
           ),
           Padding(
             padding: EdgeInsets.all(16.w),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ReusableText(
                   text: 'match_information'.tr,

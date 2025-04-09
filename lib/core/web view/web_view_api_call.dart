@@ -7,7 +7,7 @@ import '../error/exceptions.dart';
 
 class WebViewApiCall {
   static final List<WebViewController> _controllerPool = [];
-  static const int _maxPoolSize = 10; // Limit pool size to avoid memory issues
+  static const int _maxPoolSize = 20; // Limit pool size to avoid memory issues
   static bool _isPoolInitialized = false;
   static final Map<int, Completer<dynamic>> _activeRequests = {}; // Track active requests by controller hash
 
