@@ -6,7 +6,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'core/app_themes.dart';
 import 'core/cubit/theme cubit/theme_cubit.dart';
 import 'features/auth/presentation layer/bloc/login_bloc/login_bloc.dart';

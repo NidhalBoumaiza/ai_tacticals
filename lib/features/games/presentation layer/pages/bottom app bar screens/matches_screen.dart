@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:analysis_ai/core/app_colors.dart';
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -65,17 +66,22 @@ class _MatchesScreenState extends State<MatchesScreen> {
     _preloadPriorityImages();
   }
 
+  Timer? _debounceTimer;
+
+  void _fetchMatchesForDate(DateTime date, {bool isInitial = false}) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      final formattedDate = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      context.read<HomeMatchesBloc>().add(FetchHomeMatches(date: formattedDate, isInitial: isInitial));
+    });
+  }
+
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _liveUpdateTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _fetchMatchesForDate(DateTime date, {bool isInitial = false}) {
-    final formattedDate =
-        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-    context.read<HomeMatchesBloc>().add(FetchHomeMatches(date: formattedDate, isInitial: isInitial));
   }
 
   void _fetchLiveUpdates(DateTime date) {
@@ -86,7 +92,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
   Future<void> _preloadPriorityImages() async {
     if (!mounted) return;
-    final state = context.read<HomeMatchesBloc>().state;
+    await compute(_preloadImagesIsolate, context.read<HomeMatchesBloc>().state);
+  }
+
+  static Future<void> _preloadImagesIsolate(HomeMatchesState state) async {
     if (state is HomeMatchesLoaded) {
       final matches = state.matches.tournamentTeamEvents?.values.expand((m) => m).toList() ?? [];
       final priorityMatches = matches.where((match) => priorityLeagueIds.contains(match.tournament?.id));
