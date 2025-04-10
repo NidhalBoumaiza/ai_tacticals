@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../../../../core/widgets/team_web_image_widget.dart';
+
 class StandingLineWidget extends StatelessWidget {
   final int position;
   final Color positionColor;
@@ -47,28 +49,13 @@ class StandingLineWidget extends StatelessWidget {
           ),
           SizedBox(width: 25.w),
           // IMAGE CLUB
-          CachedNetworkImage(
-            imageUrl:
-                "https://img.sofascore.com/api/v1/team/$teamId/image/small",
-            placeholder:
-                (context, url) => Shimmer.fromColors(
-                  baseColor: Theme.of(context).colorScheme.surface,
-                  highlightColor: Theme.of(context).colorScheme.surfaceVariant,
-                  child: Container(
-                    width: 25.w,
-                    height: 25.w,
-                    color: Theme.of(context).colorScheme.surface,
-                  ),
-                ),
-            errorWidget:
-                (context, url, error) => Icon(
-                  Icons.error,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-            fit: BoxFit.cover,
-            width: 25,
-            height: 25,
-            cacheKey: teamId.toString(),
+          TeamWebImageWidget(
+            imageUrl: "https://img.sofascore.com/api/v1/team/$teamId/image/small",
+            height: 60.w,
+            width: 60.w,
+            onLoaded: () {
+              print('Team image loaded for $teamName ($teamId)');
+            },
           ),
           SizedBox(
             width: 440.w,

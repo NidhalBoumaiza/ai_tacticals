@@ -4,13 +4,15 @@ import 'package:shimmer/shimmer.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
-import '../../features/games/presentation layer/cubit/image loading cubit/image_loading_cubit.dart';
-import '../../features/games/presentation layer/cubit/image loading cubit/image_loading_state.dart';
+import '../../features/games/presentation layer/cubit/League Image Loading Cubit/league_image_loading_cubit.dart';
+import '../../features/games/presentation layer/cubit/League Image Loading Cubit/league_image_loading_state.dart';
 
-class WebViewPool {
+
+class LeagueWebViewPool {
   static final List<WebViewController> _availableControllers = [];
   static final Map<String, WebViewController> _loadedControllers = {};
-  static const int _initialPoolSize = 20; // Increased to handle more images
+  static const int _initialPoolSize = 50; // Larger pool for LeagueScreen
+  static const int _maxPoolSize = 200;    // Reasonable max to avoid crashes
   static bool _isInitialized = false;
 
   static void initializePool() {
@@ -20,7 +22,7 @@ class WebViewPool {
       final controller = _createController();
       _availableControllers.add(controller);
     }
-    print('WebViewPool initialized with $_initialPoolSize controllers');
+    print('LeagueWebViewPool initialized with $_initialPoolSize controllers');
   }
 
   static WebViewController _createController() {
@@ -43,11 +45,15 @@ class WebViewPool {
     WebViewController controller;
     if (_availableControllers.isNotEmpty) {
       controller = _availableControllers.removeAt(0);
-    } else {
+    } else if (_loadedControllers.length + _availableControllers.length < _maxPoolSize) {
       controller = _createController();
+      print('Created new controller for $imageUrl. Total controllers: ${_loadedControllers.length + _availableControllers.length + 1}');
+    } else {
+      print('League pool exhausted for $imageUrl. Waiting for release. Loaded: ${_loadedControllers.length}, Available: ${_availableControllers.length}');
+      controller = _availableControllers.isNotEmpty ? _availableControllers.removeAt(0) : _createController();
     }
     _loadedControllers[imageUrl] = controller;
-    print('Controller assigned for $imageUrl. Pool size: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
+    print('League controller assigned for $imageUrl. Pool size: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
     return controller;
   }
 
@@ -58,7 +64,7 @@ class WebViewPool {
       controller.loadRequest(Uri.parse('about:blank'));
       _loadedControllers.remove(imageUrl);
       _availableControllers.add(controller);
-      print('Controller released for $imageUrl. Pool size: ${_availableControllers.length}');
+      print('League controller released for $imageUrl. Pool size: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
     }
   }
 
@@ -69,17 +75,17 @@ class WebViewPool {
       _availableControllers.add(controller);
     }
     _loadedControllers.clear();
-    print('All controllers released. Pool size: ${_availableControllers.length}');
+    print('All league controllers released. Pool size: ${_availableControllers.length}');
   }
 }
 
-class WebImageWidget extends StatefulWidget {
+class LeagueWebImageWidget extends StatefulWidget {
   final String imageUrl;
   final double height;
   final double width;
   final VoidCallback onLoaded;
 
-  const WebImageWidget({
+  const LeagueWebImageWidget({
     super.key,
     required this.imageUrl,
     required this.height,
@@ -88,10 +94,10 @@ class WebImageWidget extends StatefulWidget {
   });
 
   @override
-  State<WebImageWidget> createState() => _WebImageWidgetState();
+  State<LeagueWebImageWidget> createState() => _LeagueWebImageWidgetState();
 }
 
-class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAliveClientMixin {
+class _LeagueWebImageWidgetState extends State<LeagueWebImageWidget> with AutomaticKeepAliveClientMixin {
   WebViewController? _controller;
   bool _isLoading = true;
   bool _hasStartedLoading = false;
@@ -102,19 +108,19 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
   @override
   void initState() {
     super.initState();
-    if (WebViewPool._loadedControllers.containsKey(widget.imageUrl)) {
-      _controller = WebViewPool._loadedControllers[widget.imageUrl];
+    if (LeagueWebViewPool._loadedControllers.containsKey(widget.imageUrl)) {
+      _controller = LeagueWebViewPool._loadedControllers[widget.imageUrl];
       _isLoading = false;
       _hasStartedLoading = true;
     } else {
-      context.read<ImageLoadingCubit>().addImageToQueue(widget.imageUrl);
+      context.read<LeagueImageLoadingCubit>().addImageToQueue(widget.imageUrl);
     }
   }
 
   void _loadImage() {
     if (!mounted || _hasStartedLoading) return;
 
-    _controller = WebViewPool.getController(widget.imageUrl);
+    _controller = LeagueWebViewPool.getController(widget.imageUrl);
 
     _controller!.setNavigationDelegate(
       NavigationDelegate(
@@ -124,15 +130,15 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
         onPageFinished: (String url) {
           if (mounted) {
             setState(() => _isLoading = false);
-            context.read<ImageLoadingCubit>().markImageAsLoaded(widget.imageUrl);
+            context.read<LeagueImageLoadingCubit>().markImageAsLoaded(widget.imageUrl);
             widget.onLoaded();
           }
         },
         onWebResourceError: (WebResourceError error) {
-          print('Error loading ${widget.imageUrl}: ${error.description}');
+          print('League error loading ${widget.imageUrl}: ${error.description}');
           if (mounted) {
             setState(() => _isLoading = false);
-            context.read<ImageLoadingCubit>().markImageAsLoaded(widget.imageUrl);
+            context.read<LeagueImageLoadingCubit>().markImageAsLoaded(widget.imageUrl);
             widget.onLoaded();
           }
         },
@@ -144,14 +150,13 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
 
     _controller!.loadRequest(Uri.parse(widget.imageUrl));
     _hasStartedLoading = true;
-    print('Started loading ${widget.imageUrl}');
+    print('League started loading ${widget.imageUrl}');
   }
 
   @override
   void dispose() {
-    // Only release if not reused elsewhere
-    if (_controller != null && !WebViewPool._loadedControllers.containsValue(_controller)) {
-      WebViewPool.releaseController(widget.imageUrl);
+    if (_controller != null && !LeagueWebViewPool._loadedControllers.containsValue(_controller)) {
+      LeagueWebViewPool.releaseController(widget.imageUrl);
     }
     super.dispose();
   }
@@ -159,9 +164,9 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return BlocListener<ImageLoadingCubit, ImageLoadingState>(
+    return BlocListener<LeagueImageLoadingCubit, LeagueImageLoadingState>(
       listener: (context, state) {
-        if (state is ImageLoadingInProgress && state.currentUrls.contains(widget.imageUrl) && !_hasStartedLoading) {
+        if (state is LeagueImageLoadingInProgress && state.currentUrls.contains(widget.imageUrl) && !_hasStartedLoading) {
           _loadImage();
         }
       },

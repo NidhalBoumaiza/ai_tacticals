@@ -5,10 +5,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 
+import '../../../../../../core/widgets/league_web_image_widget.dart';
 import '../../../bloc/leagues_bloc/leagues_bloc.dart';
+import '../../../cubit/League Image Loading Cubit/league_image_loading_cubit.dart';
 import '../../../cubit/seasons cubit/seasons_cubit.dart';
 import '../../../pages/league info screens/league_infos_squelette_screen.dart';
-import 'country_flag_widget.dart';
 
 class LeaguesAndMatchesByCountryWidget extends StatefulWidget {
   final String countryName;
@@ -23,35 +24,31 @@ class LeaguesAndMatchesByCountryWidget extends StatefulWidget {
   });
 
   @override
-  State<LeaguesAndMatchesByCountryWidget> createState() =>
-      _LeaguesAndMatchesByCountryWidgetState();
+  State<LeaguesAndMatchesByCountryWidget> createState() => _LeaguesAndMatchesByCountryWidgetState();
 }
 
-class _LeaguesAndMatchesByCountryWidgetState
-    extends State<LeaguesAndMatchesByCountryWidget> {
+class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCountryWidget> {
   bool _isExpanded = false;
 
   @override
   void initState() {
     super.initState();
+    context.read<LeagueImageLoadingCubit>().addImageToQueue(
+      "https://www.sofascore.com/static/images/flags/${widget.countryFlag.toLowerCase()}.png",
+    );
   }
 
   @override
   void dispose() {
-    _isExpanded = false;
+    LeagueWebViewPool.releaseController(
+        "https://www.sofascore.com/static/images/flags/${widget.countryFlag.toLowerCase()}.png");
     super.dispose();
   }
 
-  void showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-      ),
-    );
+  String _getLeagueImageUrl(int leagueId) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final themeVariant = isDarkMode ? 'dark' : 'light';
+    return "https://api.sofascore.com/api/v1/unique-tournament/$leagueId/image/$themeVariant";
   }
 
   @override
@@ -63,9 +60,7 @@ class _LeaguesAndMatchesByCountryWidgetState
             setState(() {
               _isExpanded = !_isExpanded;
               if (_isExpanded) {
-                context.read<LeaguesBloc>().add(
-                  GetLeaguesByCountry(countryId: widget.countryId),
-                );
+                context.read<LeaguesBloc>().add(GetLeaguesByCountry(countryId: widget.countryId));
               }
             });
           },
@@ -94,7 +89,15 @@ class _LeaguesAndMatchesByCountryWidgetState
                 Expanded(
                   child: Row(
                     children: [
-                      CountryFlagWidget(flag: widget.countryFlag),
+                      LeagueWebImageWidget(
+                        imageUrl:
+                        "https://www.sofascore.com/static/images/flags/${widget.countryFlag.toLowerCase()}.png",
+                        height: 80.w,
+                        width: 80.w,
+                        onLoaded: () {
+                          print('Country flag loaded for ${widget.countryFlag}');
+                        },
+                      ),
                       SizedBox(width: 60.w),
                       ReusableText(
                         text: widget.countryName,
@@ -133,145 +136,85 @@ class _LeaguesAndMatchesByCountryWidgetState
             ),
           ),
         ),
-        BlocBuilder<LeaguesBloc, LeaguesState>(
-          builder: (context, state) {
-            if (state is LeaguesLoading && _isExpanded) {
-              return const SizedBox.shrink();
-            } else if (state is LeaguesError && _isExpanded) {
-              return Container(
-                padding: EdgeInsets.all(8.h),
-                color: Theme.of(context).colorScheme.surface,
-                child: Center(
-                  child: Text(
-                    state.message,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 14.sp,
-                    ),
-                  ),
-                ),
-              );
-            } else if (state is LeaguesSuccess && _isExpanded) {
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.easeInOut,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(10.r),
-                      bottomRight: Radius.circular(10.r),
-                    ),
-                  ),
-                  child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: state.leagues.length,
-                    itemBuilder: (context, index) {
-                      final league = state.leagues[index];
-                      return GestureDetector(
-                        onTap: () {
-                          context.read<SeasonsCubit>().getSeasons(league.id);
-                          _showSeasonsDialog(context, league.id!, league.name!);
-                        },
-                        child: Container(
-                          height: 105.h,
-                          padding: EdgeInsets.symmetric(
-                            vertical: 2.h,
-                            horizontal: 30.w,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              SizedBox(width: 10.w),
-                              CountryFlagWidget(flag: league.id.toString()),
-                              SizedBox(width: 30.w),
-                              Expanded(
-                                child: ReusableText(
-                                  text: league.name!,
-                                  textSize: 100.sp,
-                                  textFontWeight: FontWeight.w400,
-                                  textColor:
-                                      Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ],
-    );
-  }
-
-  void _showSeasonsDialog(
-    BuildContext context,
-    int leagueId,
-    String leagueName,
-  ) {
-    showDialog(
-      context: context,
-      builder:
-          (dialogContext) => BlocConsumer<SeasonsCubit, SeasonsState>(
-            listener: (context, state) {
-              if (state is SeasonsError) {
-                showErrorSnackBar(context, "Error while loading seasons");
+        BlocListener<LeaguesBloc, LeaguesState>(
+          listener: (context, state) {
+            if (state is LeaguesSuccess && _isExpanded) {
+              for (var league in state.leagues) {
+                context.read<LeagueImageLoadingCubit>().addImageToQueue(_getLeagueImageUrl(league.id!));
               }
-            },
+            }
+          },
+          child: BlocBuilder<LeaguesBloc, LeaguesState>(
             builder: (context, state) {
-              if (state is SeasonsLoading) {
-                return Container(
-                  height: 200.h,
-                  width: 200.h,
-                  child: AlertDialog(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    contentPadding: EdgeInsets.zero,
-                    insetPadding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                    content: SizedBox(
-                      height: 200.h,
-                      width: 200.h,
-                      child: Lottie.asset(
-                        'assets/lottie/animationBallLoading.json',
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                );
-              } else if (state is SeasonsLoaded) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  Navigator.pop(dialogContext);
-                  PersistentNavBarNavigator.pushNewScreen(
-                    context,
-                    screen: LeagueInfosSqueletteScreen(
-                      leagueId: leagueId,
-                      leagueName: leagueName,
-                      seasons: state.seasons,
-                    ),
-                    withNavBar: false,
-                    pageTransitionAnimation: PageTransitionAnimation.slideRight,
-                  );
-                });
+              if (state is LeaguesLoading && _isExpanded) {
                 return const SizedBox.shrink();
-              } else if (state is SeasonsError) {
-                return AlertDialog(
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  content: Center(
+              } else if (state is LeaguesError && _isExpanded) {
+                return Container(
+                  padding: EdgeInsets.all(8.h),
+                  color: Theme.of(context).colorScheme.surface,
+                  child: Center(
                     child: Text(
                       state.message,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 14.sp,
                       ),
+                    ),
+                  ),
+                );
+              } else if (state is LeaguesSuccess && _isExpanded) {
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOut,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(10.r),
+                        bottomRight: Radius.circular(10.r),
+                      ),
+                    ),
+                    child: ListView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      itemCount: state.leagues.length,
+                      itemBuilder: (context, index) {
+                        final league = state.leagues[index];
+                        return GestureDetector(
+                          onTap: () {
+                            context.read<SeasonsCubit>().getSeasons(league.id);
+                            _showSeasonsDialog(context, league.id!, league.name!);
+                          },
+                          child: Container(
+                            height: 105.h,
+                            padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 30.w),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SizedBox(width: 10.w),
+                                LeagueWebImageWidget(
+                                  imageUrl: _getLeagueImageUrl(league.id!),
+                                  height: 80.w,
+                                  width: 80.w,
+                                  onLoaded: () {
+                                    print('League image loaded for ${league.name}');
+                                  },
+                                ),
+                                SizedBox(width: 30.w),
+                                Expanded(
+                                  child: ReusableText(
+                                    text: league.name!,
+                                    textSize: 100.sp,
+                                    textFontWeight: FontWeight.w400,
+                                    textColor: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 );
@@ -279,6 +222,85 @@ class _LeaguesAndMatchesByCountryWidgetState
               return const SizedBox.shrink();
             },
           ),
+        ),
+      ],
+    );
+  }
+
+  void showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+      ),
+    );
+  }
+
+  void _showSeasonsDialog(BuildContext context, int leagueId, String leagueName) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => BlocConsumer<SeasonsCubit, SeasonsState>(
+        listener: (context, state) {
+          if (state is SeasonsError) {
+            showErrorSnackBar(context, "Error while loading seasons");
+          }
+        },
+        builder: (context, state) {
+          if (state is SeasonsLoading) {
+            return Container(
+              height: 200.h,
+              width: 200.h,
+              child: AlertDialog(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                contentPadding: EdgeInsets.zero,
+                insetPadding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                content: SizedBox(
+                  height: 200.h,
+                  width: 200.h,
+                  child: Lottie.asset(
+                    'assets/lottie/animationBallLoading.json',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            );
+          } else if (state is SeasonsLoaded) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pop(dialogContext);
+              PersistentNavBarNavigator.pushNewScreen(
+                context,
+                screen: LeagueInfosSqueletteScreen(
+                  leagueId: leagueId,
+                  leagueName: leagueName,
+                  seasons: state.seasons,
+                ),
+                withNavBar: false,
+                pageTransitionAnimation: PageTransitionAnimation.slideRight,
+              );
+            });
+            return const SizedBox.shrink();
+          } else if (state is SeasonsError) {
+            return AlertDialog(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              content: Center(
+                child: Text(
+                  state.message,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 }

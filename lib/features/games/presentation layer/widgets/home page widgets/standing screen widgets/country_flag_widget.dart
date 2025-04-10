@@ -37,7 +37,7 @@ class CountryFlagWidget extends StatelessWidget {
     } else if (isNumeric(flag.toString())) {
       // Use tournament image endpoint for tournament IDs
       imageUrl =
-          "https://api.sofascore.com/api/v1/unique-tournament/${flag.toString()}/image/$themeVariant";
+          "https://api.sofascore.com/api/v1/unique-tournament/${flag.toString()}/image/dark";
     } else {
       // Use country flag endpoint for country codes
       imageUrl =

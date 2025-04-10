@@ -1,3 +1,4 @@
+
 abstract class ImageLoadingState {}
 
 class ImageLoadingInitial extends ImageLoadingState {}

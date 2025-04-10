@@ -4,13 +4,15 @@ import 'package:shimmer/shimmer.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
-import '../../features/games/presentation layer/cubit/image loading cubit/image_loading_cubit.dart';
-import '../../features/games/presentation layer/cubit/image loading cubit/image_loading_state.dart';
 
-class WebViewPool {
+import '../../features/games/presentation layer/cubit/team image loading cubit/team_image_loading_cubit.dart';
+import '../../features/games/presentation layer/cubit/team image loading cubit/team_image_loading_state.dart';
+
+class TeamWebViewPool {
   static final List<WebViewController> _availableControllers = [];
   static final Map<String, WebViewController> _loadedControllers = {};
-  static const int _initialPoolSize = 20; // Increased to handle more images
+  static const int _initialPoolSize = 20; // Increased for reliability
+  static const int _maxPoolSize = 50;
   static bool _isInitialized = false;
 
   static void initializePool() {
@@ -20,7 +22,7 @@ class WebViewPool {
       final controller = _createController();
       _availableControllers.add(controller);
     }
-    print('WebViewPool initialized with $_initialPoolSize controllers');
+    print('TeamWebViewPool initialized with $_initialPoolSize controllers');
   }
 
   static WebViewController _createController() {
@@ -37,7 +39,9 @@ class WebViewPool {
 
   static WebViewController getController(String imageUrl) {
     initializePool();
+    print('Pool status - Available: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
     if (_loadedControllers.containsKey(imageUrl)) {
+      print('Reusing loaded controller for $imageUrl');
       return _loadedControllers[imageUrl]!;
     }
     WebViewController controller;
@@ -45,9 +49,10 @@ class WebViewPool {
       controller = _availableControllers.removeAt(0);
     } else {
       controller = _createController();
+      print('Created new controller for $imageUrl. Total: ${_loadedControllers.length + _availableControllers.length + 1}');
     }
     _loadedControllers[imageUrl] = controller;
-    print('Controller assigned for $imageUrl. Pool size: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
+    print('Team controller assigned for $imageUrl. Pool size: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
     return controller;
   }
 
@@ -58,7 +63,7 @@ class WebViewPool {
       controller.loadRequest(Uri.parse('about:blank'));
       _loadedControllers.remove(imageUrl);
       _availableControllers.add(controller);
-      print('Controller released for $imageUrl. Pool size: ${_availableControllers.length}');
+      print('Team controller released for $imageUrl. Pool size: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
     }
   }
 
@@ -69,17 +74,17 @@ class WebViewPool {
       _availableControllers.add(controller);
     }
     _loadedControllers.clear();
-    print('All controllers released. Pool size: ${_availableControllers.length}');
+    print('All team controllers released. Pool size: ${_availableControllers.length}');
   }
 }
 
-class WebImageWidget extends StatefulWidget {
+class TeamWebImageWidget extends StatefulWidget {
   final String imageUrl;
   final double height;
   final double width;
   final VoidCallback onLoaded;
 
-  const WebImageWidget({
+  const TeamWebImageWidget({
     super.key,
     required this.imageUrl,
     required this.height,
@@ -88,13 +93,14 @@ class WebImageWidget extends StatefulWidget {
   });
 
   @override
-  State<WebImageWidget> createState() => _WebImageWidgetState();
+  State<TeamWebImageWidget> createState() => _TeamWebImageWidgetState();
 }
 
-class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAliveClientMixin {
+class _TeamWebImageWidgetState extends State<TeamWebImageWidget> with AutomaticKeepAliveClientMixin {
   WebViewController? _controller;
   bool _isLoading = true;
   bool _hasStartedLoading = false;
+  bool _timedOut = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -102,37 +108,56 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
   @override
   void initState() {
     super.initState();
-    if (WebViewPool._loadedControllers.containsKey(widget.imageUrl)) {
-      _controller = WebViewPool._loadedControllers[widget.imageUrl];
+    print('TeamWebImageWidget init for ${widget.imageUrl}');
+    if (TeamWebViewPool._loadedControllers.containsKey(widget.imageUrl)) {
+      _controller = TeamWebViewPool._loadedControllers[widget.imageUrl];
       _isLoading = false;
       _hasStartedLoading = true;
+      print('Reusing existing controller for ${widget.imageUrl}');
     } else {
-      context.read<ImageLoadingCubit>().addImageToQueue(widget.imageUrl);
+      context.read<TeamImageLoadingCubit>().addImageToQueue(widget.imageUrl);
+      // Add timeout to fallback if loading stalls
+      Future.delayed(Duration(seconds: 10), () {
+        if (mounted && _isLoading && !_timedOut) {
+          print('Loading timed out for ${widget.imageUrl}');
+          setState(() {
+            _isLoading = false;
+            _timedOut = true;
+          });
+          widget.onLoaded();
+        }
+      });
     }
   }
 
   void _loadImage() {
-    if (!mounted || _hasStartedLoading) return;
+    if (!mounted || _hasStartedLoading) {
+      print('Skipping load for ${widget.imageUrl} - not mounted or already started');
+      return;
+    }
 
-    _controller = WebViewPool.getController(widget.imageUrl);
+    print('Attempting to load image: ${widget.imageUrl}');
+    _controller = TeamWebViewPool.getController(widget.imageUrl);
 
     _controller!.setNavigationDelegate(
       NavigationDelegate(
         onPageStarted: (String url) {
           if (mounted) setState(() => _isLoading = true);
+          print('Page started for ${widget.imageUrl}');
         },
         onPageFinished: (String url) {
           if (mounted) {
             setState(() => _isLoading = false);
-            context.read<ImageLoadingCubit>().markImageAsLoaded(widget.imageUrl);
+            context.read<TeamImageLoadingCubit>().markImageAsLoaded(widget.imageUrl);
             widget.onLoaded();
           }
+          print('Page finished for ${widget.imageUrl}');
         },
         onWebResourceError: (WebResourceError error) {
-          print('Error loading ${widget.imageUrl}: ${error.description}');
+          print('Team error loading ${widget.imageUrl}: ${error.description}');
           if (mounted) {
             setState(() => _isLoading = false);
-            context.read<ImageLoadingCubit>().markImageAsLoaded(widget.imageUrl);
+            context.read<TeamImageLoadingCubit>().markImageAsLoaded(widget.imageUrl);
             widget.onLoaded();
           }
         },
@@ -144,14 +169,13 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
 
     _controller!.loadRequest(Uri.parse(widget.imageUrl));
     _hasStartedLoading = true;
-    print('Started loading ${widget.imageUrl}');
+    print('Team started loading ${widget.imageUrl}');
   }
 
   @override
   void dispose() {
-    // Only release if not reused elsewhere
-    if (_controller != null && !WebViewPool._loadedControllers.containsValue(_controller)) {
-      WebViewPool.releaseController(widget.imageUrl);
+    if (_controller != null && !TeamWebViewPool._loadedControllers.containsValue(_controller)) {
+      TeamWebViewPool.releaseController(widget.imageUrl);
     }
     super.dispose();
   }
@@ -159,9 +183,10 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return BlocListener<ImageLoadingCubit, ImageLoadingState>(
+    return BlocListener<TeamImageLoadingCubit, TeamImageLoadingState>(
       listener: (context, state) {
-        if (state is ImageLoadingInProgress && state.currentUrls.contains(widget.imageUrl) && !_hasStartedLoading) {
+        print('BlocListener state for ${widget.imageUrl}: $state');
+        if (state is TeamImageLoadingInProgress && state.currentUrls.contains(widget.imageUrl) && !_hasStartedLoading) {
           _loadImage();
         }
       },
@@ -173,7 +198,7 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
           children: [
             if (_hasStartedLoading && _controller != null && !_isLoading)
               ClipOval(child: WebViewWidget(controller: _controller!)),
-            if (_isLoading)
+            if (_isLoading && !_timedOut)
               Shimmer.fromColors(
                 baseColor: Colors.grey[300]!,
                 highlightColor: Colors.grey[100]!,
@@ -185,7 +210,7 @@ class _WebImageWidgetState extends State<WebImageWidget> with AutomaticKeepAlive
                   ),
                 ),
               ),
-            if (!_isLoading && _controller == null)
+            if ((!_isLoading && _controller == null) || _timedOut)
               ClipOval(
                 child: Image.asset(
                   'assets/placeholder.png',
