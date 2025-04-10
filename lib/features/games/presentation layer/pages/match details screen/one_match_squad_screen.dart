@@ -4,16 +4,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
+
 import '../../../../../core/widgets/field_drawing_painter.dart';
 import '../../../../../core/widgets/reusable_text.dart';
 import '../../../domain%20layer/entities/manager_entity.dart';
 import '../../../domain%20layer/entities/player_per_match_entity.dart';
 import '../../bloc/manager%20bloc/manager_bloc.dart';
 import '../../bloc/player%20per%20match%20bloc/player_per_match_bloc.dart';
-import '../../cubit/lineup drawing cubut/drawing__state.dart'; // Import DrawingState for DrawingItem
+import '../../cubit/lineup drawing cubut/drawing__state.dart';
 
 class MatchLineupsScreen extends StatefulWidget {
   final int matchId;
@@ -32,9 +32,10 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
   late final ManagerBloc _managerBloc;
   List<PlayerPosition> homePlayerPositions = [];
   List<PlayerPosition> awayPlayerPositions = [];
-  List<DrawingItem> drawings = []; // New field to store drawings
+  List<DrawingItem> drawings = [];
   final ValueNotifier<bool> isDialOpen = ValueNotifier(false);
   late final ScrollController _scrollController;
+  int? _lastMatchId; // Track the last matchId to detect changes
 
   @override
   void initState() {
@@ -42,6 +43,7 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     _scrollController = ScrollController();
     _playerBloc = context.read<PlayerPerMatchBloc>();
     _managerBloc = context.read<ManagerBloc>();
+    _lastMatchId = widget.matchId;
     _initializeData();
   }
 
@@ -65,8 +67,8 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
       List<PlayerPerMatchEntity> homePlayers,
       List<PlayerPerMatchEntity> awayPlayers,
       ) {
-    homePlayerPositions = [];
-    awayPlayerPositions = [];
+    homePlayerPositions.clear(); // Clear previous positions
+    awayPlayerPositions.clear(); // Clear previous positions
 
     final homeGoalkeepers = homePlayers.where((p) => p.position == 'G').toList();
     final homeDefenders = homePlayers.where((p) => p.position == 'D').toList();
@@ -331,9 +333,8 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
       List<PlayerPerMatchEntity> homePlayers,
       List<PlayerPerMatchEntity> awayPlayers,
       ) {
-    if (homePlayerPositions.isEmpty && awayPlayerPositions.isEmpty) {
-      _initializePlayerPositions(homePlayers, awayPlayers);
-    }
+    // Always reinitialize positions for the current match
+    _initializePlayerPositions(homePlayers, awayPlayers);
 
     final fieldWidth = MediaQuery.of(context).size.width;
     final fieldHeight = 1900.h;
@@ -348,11 +349,11 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
           CustomPaint(
             size: Size(fieldWidth, fieldHeight),
             painter: FieldDrawingPainter(
-              drawings, // Pass stored drawings
-              [], // No current points (static display)
-              DrawingMode.none, // No active drawing mode
-              Colors.red, // Default color (not used for completed drawings)
-              null, // No selected drawing
+              drawings,
+              [],
+              DrawingMode.none,
+              Colors.red,
+              null,
             ),
           ),
           ...homePlayerPositions.map(
@@ -478,7 +479,6 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
     );
   }
 
-  // ... (_buildSubstitutesSection, _buildManagerHeader, _buildSubsList, _buildPlayerRow unchanged) ...
   Widget _buildSubstitutesSection(
       ManagerEntity? homeManager,
       List<PlayerPerMatchEntity> homeSubs,
@@ -693,8 +693,18 @@ class _MatchLineupsScreenState extends State<MatchLineupsScreen> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
+    // Check if matchId changed since last build
+    if (_lastMatchId != widget.matchId) {
+      _lastMatchId = widget.matchId;
+      homePlayerPositions.clear();
+      awayPlayerPositions.clear();
+      drawings.clear();
+      _initializeData();
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton(

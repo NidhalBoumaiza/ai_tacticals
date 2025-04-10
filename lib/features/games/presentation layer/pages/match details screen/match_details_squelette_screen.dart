@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../../../core/utils/navigation_with_transition.dart';
 import '../../../../../core/widgets/reusable_text.dart';
-import '../../../../../core/widgets/team_web_image_widget.dart';
+import '../../../../../core/widgets/team_web_image_widget.dart'; // Ensure this import points to the correct file
 import '../../cubit/team image loading cubit/team_image_loading_cubit.dart';
 import '../team info screens/team_info_screen_squelette.dart';
 import 'one_match_squad_screen.dart';
@@ -60,9 +60,10 @@ class _MatchDetailsSqueletteScreenState extends State<MatchDetailsSqueletteScree
   @override
   void dispose() {
     print('Disposing MatchDetailsSqueletteScreen');
-    TeamWebViewPool.releaseController(
+    // Access the static pool instance from TeamWebImageWidget
+    TeamWebImageWidget.pool.releaseController(
         "https://img.sofascore.com/api/v1/team/${widget.homeTeamId}/image/small");
-    TeamWebViewPool.releaseController(
+    TeamWebImageWidget.pool.releaseController(
         "https://img.sofascore.com/api/v1/team/${widget.awayTeamId}/image/small");
     _tabController.dispose();
     _scrollController.dispose();
@@ -161,7 +162,6 @@ class _MatchDetailsSqueletteScreenState extends State<MatchDetailsSqueletteScree
                                             textFontWeight: FontWeight.w800,
                                             textColor: Theme.of(context).colorScheme.onSurface,
                                             textAlign: TextAlign.right,
-
                                           ),
                                         ),
                                         SizedBox(width: 20.w),
@@ -203,7 +203,6 @@ class _MatchDetailsSqueletteScreenState extends State<MatchDetailsSqueletteScree
                                             textFontWeight: FontWeight.w800,
                                             textColor: Theme.of(context).colorScheme.onSurface,
                                             textAlign: TextAlign.left,
-
                                           ),
                                         ),
                                         GestureDetector(

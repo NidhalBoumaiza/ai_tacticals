@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,9 +8,11 @@ import '../error/exceptions.dart';
 
 class WebViewApiCall {
   static final List<WebViewController> _controllerPool = [];
-  static const int _maxPoolSize = 10; // Limit pool size to avoid memory issues
+  static const int _initialPoolSize = 3; // Start small
+  static const int _maxPoolSize = 8;    // Reasonable cap for mobile
+  static final Semaphore _semaphore = Semaphore(5); // Limit concurrent requests
   static bool _isPoolInitialized = false;
-  static final Map<int, Completer<dynamic>> _activeRequests = {}; // Track active requests by controller hash
+  static final Queue<WebViewController> _cleanupQueue = Queue();
 
   WebViewApiCall() {
     _initializePool();
@@ -17,16 +20,18 @@ class WebViewApiCall {
 
   void _initializePool() {
     if (_isPoolInitialized) return;
-    // Initialize pool asynchronously to avoid main thread blocking
     Future.microtask(() {
-      for (int i = 0; i < _maxPoolSize ~/ 2; i++) { // Start with half the pool size
+      for (int i = 0; i < _initialPoolSize; i++) {
         _controllerPool.add(_createController());
       }
       _isPoolInitialized = true;
+      if (kDebugMode) {
+        print('WebView pool initialized with $_initialPoolSize controllers');
+      }
     });
   }
 
-  WebViewController _createController() {
+  static WebViewController _createController() {
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.transparent)
@@ -35,81 +40,94 @@ class WebViewApiCall {
     return controller;
   }
 
-  WebViewController _getAvailableController() {
-    if (_controllerPool.isNotEmpty) {
-      return _controllerPool.removeAt(0);
+  Future<WebViewController> _getController() async {
+    await _semaphore.acquire();
+    try {
+      if (_controllerPool.isNotEmpty) {
+        return _controllerPool.removeLast();
+      } else if (_controllerPool.length + _cleanupQueue.length < _maxPoolSize) {
+        final controller = _createController();
+        if (kDebugMode) {
+          print('Created new controller. Total: ${_controllerPool.length + _cleanupQueue.length + 1}');
+        }
+        return controller;
+      } else if (_cleanupQueue.isNotEmpty) {
+        return _cleanupQueue.removeFirst();
+      } else {
+        if (kDebugMode) {
+          print('Pool exhausted. Waiting for a controller.');
+        }
+        await Future.delayed(const Duration(milliseconds: 100)); // Small delay to wait for release
+        return _getController(); // Retry
+      }
+    } catch (e) {
+      _semaphore.release();
+      rethrow;
     }
-    return _createController(); // Create new if pool is empty
   }
 
   void _releaseController(WebViewController controller) {
     controller.clearCache();
     controller.clearLocalStorage();
-    controller.loadRequest(Uri.parse('about:blank')); // Reset state
-    if (_controllerPool.length < _maxPoolSize) {
-      _controllerPool.add(controller);
+    controller.loadRequest(Uri.parse('about:blank'));
+    _cleanupQueue.add(controller);
+    if (_cleanupQueue.length > 2) { // Keep a small buffer
+      _cleanupQueue.removeFirst();
+    }
+    _semaphore.release();
+    if (kDebugMode) {
+      print('Controller released. Pool: ${_controllerPool.length}, Cleanup: ${_cleanupQueue.length}');
     }
   }
 
   Future<dynamic> fetchJsonFromWebView(String url) async {
-    final controller = _getAvailableController();
+    final controller = await _getController();
     final completer = Completer<dynamic>();
-    final controllerId = controller.hashCode;
 
-    _activeRequests[controllerId] = completer;
-
-    // Set navigation delegate asynchronously
-    await Future.microtask(() {
-      controller.setNavigationDelegate(
+    try {
+      await controller.setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (finishedUrl) async {
-            if (!_activeRequests.containsKey(controllerId) || completer.isCompleted) return;
-
+            if (completer.isCompleted) return;
             try {
-              final rawResult = await controller.runJavaScriptReturningResult(
-                'document.body.innerText',
-              );
-
+              final rawResult = await controller.runJavaScriptReturningResult('document.body.innerText');
               String jsonString = rawResult is String ? rawResult : rawResult.toString();
               final processedString = _processJsonString(jsonString);
               final jsonData = jsonDecode(processedString);
-
-              completer.complete(jsonData);
+              if (!completer.isCompleted) {
+                completer.complete(jsonData);
+              }
             } catch (e) {
-              completer.completeError(ServerException('Failed to process JSON: $e'));
+              if (!completer.isCompleted) {
+                completer.completeError(ServerException('Failed to process JSON: $e'));
+              }
             } finally {
-              _activeRequests.remove(controllerId);
               _releaseController(controller);
             }
           },
           onWebResourceError: (error) {
-            if (_activeRequests.containsKey(controllerId) && !completer.isCompleted) {
+            if (!completer.isCompleted) {
               completer.completeError(ServerException('WebView error: ${error.description}'));
-              _activeRequests.remove(controllerId);
               _releaseController(controller);
             }
           },
         ),
       );
-    });
 
-    try {
       await controller.loadRequest(Uri.parse(url));
       return await completer.future.timeout(
-        const Duration(seconds: 35),
+        const Duration(seconds: 30),
         onTimeout: () {
           if (!completer.isCompleted) {
-            completer.completeError(ServerException('Request timed out after 35 seconds'));
-            _activeRequests.remove(controllerId);
+            completer.completeError(ServerException('Request timed out after 30 seconds'));
             _releaseController(controller);
           }
-          throw ServerException('Request timed out after 35 seconds');
+          throw ServerException('Request timed out after 30 seconds');
         },
       );
     } catch (e) {
       if (!completer.isCompleted) {
         completer.completeError(ServerException('Failed to load request: $e'));
-        _activeRequests.remove(controllerId);
         _releaseController(controller);
       }
       rethrow;
@@ -141,8 +159,43 @@ class WebViewApiCall {
       controller.clearLocalStorage();
       controller.loadRequest(Uri.parse('about:blank'));
     }
+    for (var controller in _cleanupQueue) {
+      controller.clearCache();
+      controller.clearLocalStorage();
+      controller.loadRequest(Uri.parse('about:blank'));
+    }
     _controllerPool.clear();
-    _activeRequests.clear();
+    _cleanupQueue.clear();
     _isPoolInitialized = false;
+    if (kDebugMode) {
+      print('WebView pool disposed');
+    }
+  }
+}
+
+// Simple Semaphore implementation
+class Semaphore {
+  final int maxPermits;
+  int _currentPermits;
+  final Queue<Completer<void>> _waiters = Queue();
+
+  Semaphore(this.maxPermits) : _currentPermits = maxPermits;
+
+  Future<void> acquire() async {
+    if (_currentPermits > 0) {
+      _currentPermits--;
+      return;
+    }
+    final completer = Completer<void>();
+    _waiters.add(completer);
+    await completer.future;
+  }
+
+  void release() {
+    if (_waiters.isNotEmpty) {
+      _waiters.removeFirst().complete();
+    } else {
+      _currentPermits++;
+    }
   }
 }

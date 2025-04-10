@@ -40,7 +40,7 @@ class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCo
 
   @override
   void dispose() {
-    LeagueWebViewPool.releaseController(
+    LeagueWebImageWidget.pool.releaseController(
         "https://www.sofascore.com/static/images/flags/${widget.countryFlag.toLowerCase()}.png");
     super.dispose();
   }

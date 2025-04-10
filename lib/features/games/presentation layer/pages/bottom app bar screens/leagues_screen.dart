@@ -1,5 +1,5 @@
 import 'package:analysis_ai/core/widgets/reusable_text.dart';
-import 'package:analysis_ai/features/games/presentation%20layer/bloc/countries_bloc/countries_bloc.dart';
+import 'package:analysis_ai/features/games/presentation layer/bloc/countries_bloc/countries_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,10 +9,10 @@ import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../core/cubit/theme cubit/theme_cubit.dart';
-import '../../../../../core/widgets/league_web_image_widget.dart';
-import '../../../../auth/presentation%20layer/pages/login_screen.dart';
+import '../../../../../core/widgets/league_web_image_widget.dart'; // Assuming this is the correct path
+import '../../../../auth/presentation layer/pages/login_screen.dart';
 import '../../cubit/League Image Loading Cubit/league_image_loading_cubit.dart';
-import '../../widgets/home%20page%20widgets/standing%20screen%20widgets/league_and_matches_by_country_widget.dart';
+import '../../widgets/home page widgets/standing screen widgets/league_and_matches_by_country_widget.dart';
 
 class LeagueScreen extends StatefulWidget {
   const LeagueScreen({super.key});
@@ -25,9 +25,9 @@ class _LeagueScreenState extends State<LeagueScreen> {
   @override
   void initState() {
     super.initState();
-    LeagueWebViewPool.initializePool(); // Initialize league-specific pool
+    // Initialize the pool via the static instance in LeagueWebImageWidget
+    // Assuming LeagueWebImageWidget has a static _pool, we don’t need to call it here unless you want a separate instance
     context.read<CountriesBloc>().add(GetAllCountries());
-
   }
 
   Future<void> _preloadCountryFlags(List<dynamic> countries) async {
@@ -41,7 +41,8 @@ class _LeagueScreenState extends State<LeagueScreen> {
 
   @override
   void dispose() {
-    LeagueWebViewPool.disposeAll(); // Clean up league-specific pool
+    // Dispose the pool via the static instance in LeagueWebImageWidget
+    // If LeagueWebImageWidget manages its own pool, we don’t need to call disposeAll here unless this screen has its own instance
     super.dispose();
   }
 
