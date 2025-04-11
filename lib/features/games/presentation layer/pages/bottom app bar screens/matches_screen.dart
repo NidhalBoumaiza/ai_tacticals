@@ -1,25 +1,15 @@
 import 'dart:async';
 
-import 'package:analysis_ai/core/app_colors.dart';
-import 'package:analysis_ai/core/widgets/reusable_text.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:lottie/lottie.dart';
-import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../../../../../core/cubit/theme cubit/theme_cubit.dart';
-import '../../../../../core/widgets/web_image_widget.dart';
-import '../../../../../features/games/presentation layer/cubit/image loading cubit/image_loading_cubit.dart';
+import '../../../../../core/widgets/reusable_text.dart';
+import '../../../../../core/widgets/web_image_widget.dart'; // Correct import
 import '../../../domain layer/entities/matches_entities.dart';
 import '../../bloc/home match bloc/home_matches_bloc.dart';
-import '../../widgets/home page widgets/standing screen widgets/country_flag_widget.dart';
-import '../match details screen/match_details_squelette_screen.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -34,21 +24,30 @@ class _MatchesScreenState extends State<MatchesScreen> {
   late CalendarFormat _calendarFormat;
   late DateTime _focusedDay;
   bool _isCalendarVisible = false;
-  bool _isFirstLoad = true;
   Timer? _liveUpdateTimer;
-  late ScrollController _scrollController;
+  final ScrollController _scrollController = ScrollController();
 
   static const List<int> priorityLeagueIds = [
-    17, 7, 679, 17015, 465, 27, 10783, 19, 211054, 35, 34, 8, 329, 213, 984, 1682, 23, 328, 341,
+    17,
+    7,
+    679,
+    17015,
+    465,
+    27,
+    10783,
+    19,
+    211054,
+    35,
+    34,
+    8,
+    329,
+    213,
+    984,
+    1682,
+    23,
+    328,
+    341,
   ];
-
-  static final CustomCacheManager _cacheManager = CustomCacheManager(
-    Config(
-      'teamLogosCache',
-      stalePeriod: const Duration(days: 30),
-      maxNrOfCacheObjects: 500,
-    ),
-  );
 
   @override
   void initState() {
@@ -56,65 +55,35 @@ class _MatchesScreenState extends State<MatchesScreen> {
     _selectedDate = DateTime.now();
     _focusedDay = _selectedDate;
     _calendarFormat = CalendarFormat.week;
-    _scrollController = ScrollController();
-    _fetchMatchesForDate(_selectedDate, isInitial: true);
+    _fetchMatchesForDate(_selectedDate);
 
-    _liveUpdateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted) _fetchLiveUpdates(_selectedDate);
-    });
-
-    _preloadPriorityImages();
-  }
-
-  Timer? _debounceTimer;
-
-  void _fetchMatchesForDate(DateTime date, {bool isInitial = false}) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      final formattedDate = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-      context.read<HomeMatchesBloc>().add(FetchHomeMatches(date: formattedDate, isInitial: isInitial));
+    _liveUpdateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _fetchLiveUpdates(_selectedDate);
     });
   }
 
-  @override
-  void dispose() {
-    _debounceTimer?.cancel();
-    _liveUpdateTimer?.cancel();
-    _scrollController.dispose();
-    super.dispose();
+  void _fetchMatchesForDate(DateTime date) {
+    final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    context.read<HomeMatchesBloc>().add(FetchHomeMatches(date: formattedDate));
   }
 
   void _fetchLiveUpdates(DateTime date) {
-    final formattedDate =
-        "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-    context.read<HomeMatchesBloc>().add(FetchLiveMatchUpdates(date: formattedDate));
-  }
-
-  Future<void> _preloadPriorityImages() async {
-    if (!mounted) return;
-    await compute(_preloadImagesIsolate, context.read<HomeMatchesBloc>().state);
-  }
-
-  static Future<void> _preloadImagesIsolate(HomeMatchesState state) async {
-    if (state is HomeMatchesLoaded) {
-      final matches = state.matches.tournamentTeamEvents?.values.expand((m) => m).toList() ?? [];
-      final priorityMatches = matches.where((match) => priorityLeagueIds.contains(match.tournament?.id));
-      for (final match in priorityMatches) {
-        final homeUrl = "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small";
-        final awayUrl = "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small";
-        await _cacheManager.downloadFile(homeUrl);
-        await _cacheManager.downloadFile(awayUrl);
-      }
-    }
+    final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    context.read<HomeMatchesBloc>().add(
+      FetchLiveMatchUpdates(date: formattedDate),
+    );
   }
 
   String _getMatchStatus(MatchEventEntity match) {
-    if (match.status == null) return '';
-    final statusType = match.status!.type?.toLowerCase() ?? '';
-    final statusDescription = match.status!.description?.toLowerCase() ?? '';
+    final statusType = match.status?.type?.toLowerCase() ?? '';
+    final statusDescription = match.status?.description?.toLowerCase() ?? '';
+
     if (statusType == 'inprogress') return 'LIVE';
     if (statusType == 'finished') {
-      if (statusDescription.contains('penalties') || statusDescription.contains('extra time')) return 'FT (ET/AP)';
+      if (statusDescription.contains('penalties') ||
+          statusDescription.contains('extra time')) {
+        return 'FT (ET/AP)';
+      }
       return 'FT';
     }
     if (statusType == 'notstarted' || statusType == 'scheduled') return 'NS';
@@ -124,27 +93,27 @@ class _MatchesScreenState extends State<MatchesScreen> {
   List<MatchEventEntity> _deduplicateMatches(List<MatchEventEntity> matches) {
     final seenIds = <String>{};
     return matches.where((match) {
-      final compositeId = '${match.id}-${match.homeTeam?.id}-${match.awayTeam?.id}-${match.startTimestamp}';
-      final added = seenIds.add(compositeId);
-      return added;
+      final id = '${match.id}-${match.homeTeam?.id}-${match.awayTeam?.id}';
+      return seenIds.add(id);
     }).toList();
   }
 
-  Map<String, List<MatchEventEntity>> _groupMatchesByLeague(List<MatchEventEntity> matches) {
+  Map<String, List<MatchEventEntity>> _groupMatchesByLeague(
+    List<MatchEventEntity> matches,
+  ) {
     final groupedMatches = <String, List<MatchEventEntity>>{};
     for (var match in matches) {
       final leagueName = match.tournament?.name ?? 'Unknown League';
       groupedMatches.putIfAbsent(leagueName, () => []).add(match);
     }
-    groupedMatches.forEach((league, matchList) {
-      matchList.sort((a, b) => (a.startTimestamp ?? 0).compareTo(b.startTimestamp ?? 0));
-    });
     return groupedMatches;
   }
 
   Widget _buildMatchItem(MatchEventEntity match) {
     final date =
-    match.startTimestamp != null ? DateTime.fromMillisecondsSinceEpoch(match.startTimestamp! * 1000) : null;
+        match.startTimestamp != null
+            ? DateTime.fromMillisecondsSinceEpoch(match.startTimestamp! * 1000)
+            : null;
     final status = _getMatchStatus(match);
 
     return Container(
@@ -172,12 +141,19 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
                   selector: (state) {
                     if (state is HomeMatchesLoaded) {
-                      final updatedMatch = state.matches.tournamentTeamEvents?.values
+                      final updatedMatch = state
+                          .matches
+                          .tournamentTeamEvents
+                          ?.values
                           .expand((matches) => matches)
-                          .firstWhere((m) => m.id == match.id, orElse: () => match);
+                          .firstWhere(
+                            (m) => m.id == match.id,
+                            orElse: () => match,
+                          );
                       final isLive = updatedMatch?.isLive ?? false;
                       final currentMinutes = updatedMatch?.currentLiveMinutes;
-                      if (isLive && currentMinutes != null) return "$currentMinutes'";
+                      if (isLive && currentMinutes != null)
+                        return "$currentMinutes'";
                       return date != null
                           ? "${DateFormat('MMM d').format(date)} ${date.hour}:${date.minute.toString().padLeft(2, '0')}"
                           : "N/A";
@@ -190,16 +166,25 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     return ReusableText(
                       text: timeText,
                       textSize: 90.sp,
-                      textColor: match.isLive ?? false ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurface,
+                      textColor:
+                          match.isLive ?? false
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.onSurface,
                     );
                   },
                 ),
                 BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
                   selector: (state) {
                     if (state is HomeMatchesLoaded) {
-                      final updatedMatch = state.matches.tournamentTeamEvents?.values
+                      final updatedMatch = state
+                          .matches
+                          .tournamentTeamEvents
+                          ?.values
                           .expand((matches) => matches)
-                          .firstWhere((m) => m.id == match.id, orElse: () => match);
+                          .firstWhere(
+                            (m) => m.id == match.id,
+                            orElse: () => match,
+                          );
                       return _getMatchStatus(updatedMatch!);
                     }
                     return status;
@@ -207,13 +192,16 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   builder: (context, statusText) {
                     return statusText.isNotEmpty
                         ? ReusableText(
-                      text: statusText,
-                      textSize: 80.sp,
-                      textColor: statusText == 'LIVE'
-                          ? Theme.of(context).colorScheme.error
-                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                      textFontWeight: FontWeight.bold,
-                    )
+                          text: statusText,
+                          textSize: 80.sp,
+                          textColor:
+                              statusText == 'LIVE'
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.7),
+                          textFontWeight: FontWeight.bold,
+                        )
                         : const SizedBox.shrink();
                   },
                 ),
@@ -232,11 +220,14 @@ class _MatchesScreenState extends State<MatchesScreen> {
               children: [
                 SizedBox(width: 20.w),
                 WebImageWidget(
-                  imageUrl: "https://img.sofascore.com/api/v1/team/${match.homeTeam!.id}/image/small",
-                  height: 50.w,
-                  width: 50.w,
+                  // Updated to WebImageWidget
+                  imageUrl:
+                      "https://img.sofascore.com/team/${match.homeTeam?.id ?? 'default'}/image",
+                  width: 60.w,
+                  height: 60.w,
+
                   onLoaded: () {
-                    print('Home team image loaded for ${match.homeTeam!.shortName}');
+                    print('Home team image loaded for ${match.homeTeam?.id}');
                   },
                 ),
                 SizedBox(width: 10.w),
@@ -253,14 +244,22 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 BlocSelector<HomeMatchesBloc, HomeMatchesState, String>(
                   selector: (state) {
                     if (state is HomeMatchesLoaded) {
-                      final updatedMatch = state.matches.tournamentTeamEvents?.values
+                      final updatedMatch = state
+                          .matches
+                          .tournamentTeamEvents
+                          ?.values
                           .expand((matches) => matches)
-                          .firstWhere((m) => m.id == match.id, orElse: () => match);
-                      return updatedMatch?.homeScore?.current == null && updatedMatch?.awayScore?.current == null
+                          .firstWhere(
+                            (m) => m.id == match.id,
+                            orElse: () => match,
+                          );
+                      return updatedMatch?.homeScore?.current == null &&
+                              updatedMatch?.awayScore?.current == null
                           ? "VS"
                           : '${updatedMatch?.homeScore?.current ?? "-"} - ${updatedMatch?.awayScore?.current ?? "-"}';
                     }
-                    return match.homeScore?.current == null && match.awayScore?.current == null
+                    return match.homeScore?.current == null &&
+                            match.awayScore?.current == null
                         ? "VS"
                         : '${match.homeScore?.current ?? "-"} - ${match.awayScore?.current ?? "-"}';
                   },
@@ -268,7 +267,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     return ReusableText(
                       text: scoreText,
                       textSize: 100.sp,
-                      textColor: match.isLive ?? false ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurface,
+                      textColor:
+                          match.isLive ?? false
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.onSurface,
                       textFontWeight: FontWeight.w600,
                     );
                   },
@@ -285,11 +287,16 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 ),
                 SizedBox(width: 10.w),
                 WebImageWidget(
-                  imageUrl: "https://img.sofascore.com/api/v1/team/${match.awayTeam!.id}/image/small",
-                  height: 50.w,
-                  width: 50.w,
+                  // Updated to WebImageWidget
+                  imageUrl:
+                      "https://img.sofascore.com/team/${match.awayTeam?.id ?? 'default'}/image",
+                  width: 60.w,
+                  height: 60.w,
+                  // uniqueKey:
+                  //     'away_${match.id}_${match.awayTeam?.id ?? 'default'}',
+                  // Fixed uniqueKey
                   onLoaded: () {
-                    print('Away team image loaded for ${match.awayTeam!.shortName}');
+                    print('Away team image loaded for ${match.awayTeam?.id}');
                   },
                 ),
               ],
@@ -300,356 +307,155 @@ class _MatchesScreenState extends State<MatchesScreen> {
     );
   }
 
-  List<Widget> _buildMatchSection(List<MatchEventEntity> matches) {
-    final deduplicatedMatches = _deduplicateMatches(matches);
-    final groupedMatches = _groupMatchesByLeague(deduplicatedMatches);
-    final priorityLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
-    final otherLeagues = <MapEntry<String, List<MatchEventEntity>>>[];
-
-    groupedMatches.entries.forEach((entry) {
-      final leagueId = entry.value.first.tournament?.id;
-      if (leagueId != null && priorityLeagueIds.contains(leagueId)) {
-        priorityLeagues.add(entry);
-      } else {
-        otherLeagues.add(entry);
-      }
-    });
-
-    priorityLeagues.sort((a, b) {
-      final aId = a.value.first.tournament?.id ?? 0;
-      final bId = b.value.first.tournament?.id ?? 0;
-      final aIndex = priorityLeagueIds.indexOf(aId);
-      final bIndex = priorityLeagueIds.indexOf(bId);
-      return aIndex.compareTo(bIndex);
-    });
-
-    otherLeagues.sort((a, b) => a.key.compareTo(b.key));
-
-    final sortedLeagues = [...priorityLeagues, ...otherLeagues];
-
-    return sortedLeagues.map((entry) {
-      final leagueName = entry.key;
-      final leagueMatches = entry.value;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceVariant,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                WebImageWidget(
-                  imageUrl:
-                  "https://img.sofascore.com/api/v1/unique-tournament/${leagueMatches.first.tournament?.id}/image/dark",
-                  height: 80.w,
-                  width: 80.w,
-                  onLoaded: () {
-                    print('League image loaded for $leagueName');
-                  },
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: ReusableText(
-                    text: leagueName,
-                    textSize: 110.sp,
-                    textColor: Theme.of(context).colorScheme.onSurface,
-                    textFontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
+  Widget _buildLeagueSection(
+    String leagueName,
+    List<MatchEventEntity> matches,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12.r)),
           ),
-          ...leagueMatches
-              .map(
-                (match) => GestureDetector(
-              onTap: () {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  PersistentNavBarNavigator.pushNewScreen(
-                    context,
-                    screen: MatchDetailsSqueletteScreen(
-                      matchId: match.id!,
-                      homeTeamId: match.homeTeam!.id.toString(),
-                      awayTeamId: match.awayTeam!.id.toString(),
-                      homeShortName: match.homeTeam!.shortName!,
-                      awayShortName: match.awayTeam!.shortName!,
-                      leagueName: leagueName,
-                      matchDate: DateTime.fromMillisecondsSinceEpoch(match.startTimestamp! * 1000)!,
-                      matchStatus: _getMatchStatus(match),
-                      homeScore: match.homeScore!.current ?? 0,
-                      awayScore: match.awayScore!.current ?? 0,
-                      seasonId: match.seasonId!,
-                      uniqueTournamentId: leagueMatches.first.tournament!.id!,
-                    ),
-                    withNavBar: false,
-                    pageTransitionAnimation: PageTransitionAnimation.slideRight,
-                  );
-                });
-              },
-              child: _buildMatchItem(match),
-            ),
-          )
-              .toList(),
-        ],
-      );
-    }).toList();
-  }
+          child: Row(
+            children: [
+              WebImageWidget(
+                // Updated to WebImageWidget
+                imageUrl:
+                    "https://img.sofascore.com/tournament/${matches.first.tournament?.id ?? 'default'}/image",
+                width: 85.w,
+                height: 85.w,
 
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ImageLoadingCubit(),
-      child: Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(120.h),
-          child: AppBar(
-            backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-            elevation: 0,
-            title: ReusableText(
-              text: 'matches'.tr,
-              textSize: 130.sp,
-              textColor: Theme.of(context).appBarTheme.foregroundColor,
-              textFontWeight: FontWeight.w800,
-            ),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      size: 60.sp,
-                      Icons.calendar_today,
-                      color: Theme.of(context).appBarTheme.foregroundColor,
-                    ),
-                    Positioned(
-                      bottom: 10.h,
-                      child: ReusableText(
-                        text: _selectedDate.day.toString(),
-                        textSize: 60.sp,
-                        textColor: Theme.of(context).appBarTheme.foregroundColor,
-                        textFontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                onPressed: () => setState(() => _isCalendarVisible = !_isCalendarVisible),
+                onLoaded: () {
+                  print(
+                    'League image loaded for ${matches.first.tournament?.id}',
+                  );
+                },
               ),
-              IconButton(
-                icon: Icon(
-                  size: 60.sp,
-                  _showLiveMatchesOnly ? Icons.watch_later : Icons.watch_later_outlined,
-                  color: Theme.of(context).appBarTheme.foregroundColor,
-                ),
-                onPressed: () => setState(() => _showLiveMatchesOnly = !_showLiveMatchesOnly),
-              ),
-              IconButton(
-                onPressed: () => context.read<ThemeCubit>().toggleTheme(),
-                icon: Icon(
-                  size: 60.sp,
-                  Icons.brightness_6,
-                  color: Theme.of(context).appBarTheme.foregroundColor,
+              SizedBox(width: 30.w),
+              Expanded(
+                child: ReusableText(
+                  text: leagueName,
+                  textSize: 120.sp,
+                  textColor: Theme.of(context).colorScheme.onSurface,
+                  textFontWeight: FontWeight.w800,
                 ),
               ),
             ],
           ),
         ),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Stack(
-          children: [
-            BlocBuilder<HomeMatchesBloc, HomeMatchesState>(
-              builder: (context, state) {
-                if (state is HomeMatchesLoading && _isFirstLoad) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  );
-                } else if (state is HomeMatchesError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset("assets/images/Empty.png", height: 300.h),
-                        SizedBox(height: 20.h),
-                        ReusableText(
-                          text: 'error_loading_matches'.tr,
-                          textSize: 100.sp,
-                          textColor: Theme.of(context).colorScheme.onSurface,
-                          textFontWeight: FontWeight.w600,
-                        ),
-                      ],
-                    ),
-                  );
-                } else if (state is HomeMatchesLoaded) {
-                  _isFirstLoad = false;
-                  final matchesPerTeam = state.matches.tournamentTeamEvents;
-                  if (matchesPerTeam == null || matchesPerTeam.isEmpty) {
-                    return Center(
-                      child: ReusableText(
-                        text: 'no_matches_available'.tr,
-                        textSize: 100.sp,
-                        textColor: Theme.of(context).colorScheme.onSurface,
-                        textFontWeight: FontWeight.w600,
-                      ),
-                    );
-                  }
+        ...matches.map(_buildMatchItem).toList(),
+      ],
+    );
+  }
 
-                  final allMatches = <MatchEventEntity>[];
-                  matchesPerTeam.forEach((teamId, matchList) => allMatches.addAll(matchList));
-                  final deduplicatedMatches = _deduplicateMatches(allMatches);
-                  final matchesToDisplay = _showLiveMatchesOnly
-                      ? deduplicatedMatches.where((match) => match.isLive ?? false).toList()
-                      : deduplicatedMatches;
-
-                  if (matchesToDisplay.isEmpty) {
-                    return Center(
-                      child: ReusableText(
-                        text: _showLiveMatchesOnly ? 'no_live_matches_available'.tr : 'no_matches_available'.tr,
-                        textSize: 100.sp,
-                        textColor: Theme.of(context).colorScheme.onSurface,
-                        textFontWeight: FontWeight.w600,
-                      ),
-                    );
-                  }
-
-                  return SingleChildScrollView(
-                    controller: _scrollController,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(30.w, 150.h, 30.w, 60.h),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _buildMatchSection(matchesToDisplay),
-                      ),
-                    ),
-                  );
-                }
-                return Container(
-                  height: 100.w,
-                  width: 100.w,
-                  decoration: BoxDecoration(
-                    color: AppColor.primaryColor,
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Center(
-                    child: Lottie.asset(
-                      'assets/lottie/animationBallLoading.json',
-                      height: 150.h,
-                    ),
-                  ),
-                );
-              },
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Matches'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_today),
+            onPressed:
+                () => setState(() => _isCalendarVisible = !_isCalendarVisible),
+          ),
+          IconButton(
+            icon: Icon(
+              _showLiveMatchesOnly ? Icons.live_tv : Icons.live_tv_outlined,
             ),
-            if (_isCalendarVisible)
-              Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: EdgeInsets.only(top: 130.h, left: 30.w, right: 30.w),
-                  child: Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(12.r),
-                    color: Theme.of(context).colorScheme.surface,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: 900.h,
-                        maxWidth: MediaQuery.of(context).size.width - 60.w,
-                      ),
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-                          child: TableCalendar(
-                            firstDay: DateTime(2000),
-                            lastDay: DateTime(2050),
-                            focusedDay: _focusedDay,
-                            calendarFormat: _calendarFormat,
-                            selectedDayPredicate: (day) => isSameDay(day, _selectedDate),
-                            onDaySelected: (selectedDay, focusedDay) {
-                              if (!mounted) return;
-                              setState(() {
-                                _selectedDate = selectedDay;
-                                _focusedDay = focusedDay;
-                                _isCalendarVisible = false;
-                              });
-                              _fetchMatchesForDate(selectedDay, isInitial: true);
-                            },
-                            onFormatChanged: (format) {
-                              if (!mounted) return;
-                              setState(() => _calendarFormat = format);
-                            },
-                            onPageChanged: (focusedDay) {
-                              if (!mounted) return;
-                              setState(() => _focusedDay = focusedDay);
-                            },
-                            locale: Get.locale?.toString(),
-                            rowHeight: 90.h,
-                            calendarStyle: CalendarStyle(
-                              defaultTextStyle: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontSize: 30.sp,
-                              ),
-                              weekendTextStyle: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontSize: 30.sp,
-                              ),
-                              selectedDecoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              todayDecoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            headerStyle: HeaderStyle(
-                              formatButtonVisible: true,
-                              titleCentered: true,
-                              titleTextStyle: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontSize: 40.sp,
-                              ),
-                              formatButtonTextStyle: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontSize: 30.sp,
-                              ),
-                              leftChevronIcon: Icon(
-                                Icons.chevron_left,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                size: 30.sp,
-                              ),
-                              rightChevronIcon: Icon(
-                                Icons.chevron_right,
-                                color: Theme.of(context).colorScheme.onSurface,
-                                size: 30.sp,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+            onPressed:
+                () => setState(
+                  () => _showLiveMatchesOnly = !_showLiveMatchesOnly,
                 ),
-              ),
-          ],
-        ),
+          ),
+        ],
+      ),
+      body: BlocBuilder<HomeMatchesBloc, HomeMatchesState>(
+        builder: (context, state) {
+          if (state is HomeMatchesLoading) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (state is HomeMatchesError) {
+            return const Center(child: Text('Error loading matches'));
+          } else if (state is HomeMatchesLoaded) {
+            final allMatches =
+                state.matches.tournamentTeamEvents?.values
+                    .expand((matches) => matches)
+                    .toList() ??
+                [];
+
+            final filteredMatches =
+                _showLiveMatchesOnly
+                    ? allMatches
+                        .where((match) => match.isLive ?? false)
+                        .toList()
+                    : allMatches;
+
+            if (filteredMatches.isEmpty) {
+              return const Center(child: Text('No matches available'));
+            }
+
+            final groupedMatches = _groupMatchesByLeague(
+              _deduplicateMatches(filteredMatches),
+            );
+            final priorityLeagues = <String, List<MatchEventEntity>>{};
+            final otherLeagues = <String, List<MatchEventEntity>>{};
+
+            groupedMatches.forEach((league, matches) {
+              final leagueId = matches.first.tournament?.id;
+              if (leagueId != null && priorityLeagueIds.contains(leagueId)) {
+                priorityLeagues[league] = matches;
+              } else {
+                otherLeagues[league] = matches;
+              }
+            });
+
+            final sortedLeagues = {...priorityLeagues, ...otherLeagues};
+
+            return ListView(
+              controller: _scrollController,
+              children: [
+                if (_isCalendarVisible)
+                  TableCalendar(
+                    firstDay: DateTime.now().subtract(
+                      const Duration(days: 365),
+                    ),
+                    lastDay: DateTime.now().add(const Duration(days: 365)),
+                    focusedDay: _focusedDay,
+                    selectedDayPredicate:
+                        (day) => isSameDay(day, _selectedDate),
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDate = selectedDay;
+                        _focusedDay = focusedDay;
+                        _isCalendarVisible = false;
+                      });
+                      _fetchMatchesForDate(selectedDay);
+                    },
+                    calendarFormat: _calendarFormat,
+                    onFormatChanged: (format) {
+                      setState(() => _calendarFormat = format);
+                    },
+                  ),
+                ...sortedLeagues.entries
+                    .map((entry) => _buildLeagueSection(entry.key, entry.value))
+                    .toList(),
+              ],
+            );
+          }
+          return const SizedBox();
+        },
       ),
     );
   }
-}
 
-extension IterableIndexed<T> on Iterable<T> {
-  Iterable<E> mapIndexed<E>(E Function(int index, T item) f) sync* {
-    var index = 0;
-    for (final item in this) {
-      yield f(index++, item);
-    }
+  @override
+  void dispose() {
+    _liveUpdateTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
   }
-}
-
-class CustomCacheManager extends CacheManager {
-  CustomCacheManager(Config config) : super(config);
-  static const key = 'teamLogosCache';
 }

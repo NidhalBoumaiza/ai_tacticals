@@ -10,7 +10,10 @@
     <application
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:label="analysis_ai">
+        android:label="analysis_ai"
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config">
         <service
             android:name=".ScreenRecordService"
             android:foregroundServiceType="mediaProjection"

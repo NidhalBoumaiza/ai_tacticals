@@ -24,10 +24,12 @@ class LeaguesAndMatchesByCountryWidget extends StatefulWidget {
   });
 
   @override
-  State<LeaguesAndMatchesByCountryWidget> createState() => _LeaguesAndMatchesByCountryWidgetState();
+  State<LeaguesAndMatchesByCountryWidget> createState() =>
+      _LeaguesAndMatchesByCountryWidgetState();
 }
 
-class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCountryWidget> {
+class _LeaguesAndMatchesByCountryWidgetState
+    extends State<LeaguesAndMatchesByCountryWidget> {
   bool _isExpanded = false;
 
   @override
@@ -40,8 +42,10 @@ class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCo
 
   @override
   void dispose() {
-    LeagueWebImageWidget.pool.releaseController(
-        "https://www.sofascore.com/static/images/flags/${widget.countryFlag.toLowerCase()}.png");
+    WebImageWidget.pool.releaseController(
+      // Update to new class name
+      "https://www.sofascore.com/static/images/flags/${widget.countryFlag.toLowerCase()}.png",
+    );
     super.dispose();
   }
 
@@ -60,7 +64,9 @@ class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCo
             setState(() {
               _isExpanded = !_isExpanded;
               if (_isExpanded) {
-                context.read<LeaguesBloc>().add(GetLeaguesByCountry(countryId: widget.countryId));
+                context.read<LeaguesBloc>().add(
+                  GetLeaguesByCountry(countryId: widget.countryId),
+                );
               }
             });
           },
@@ -89,13 +95,16 @@ class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCo
                 Expanded(
                   child: Row(
                     children: [
-                      LeagueWebImageWidget(
+                      WebImageWidget(
+                        // Replace LeagueWebImageWidget
                         imageUrl:
-                        "https://www.sofascore.com/static/images/flags/${widget.countryFlag.toLowerCase()}.png",
+                            "https://www.sofascore.com/static/images/flags/${widget.countryFlag.toLowerCase()}.png",
                         height: 80.w,
                         width: 80.w,
                         onLoaded: () {
-                          print('Country flag loaded for ${widget.countryFlag}');
+                          print(
+                            'Country flag loaded for ${widget.countryFlag}',
+                          );
                         },
                       ),
                       SizedBox(width: 60.w),
@@ -140,7 +149,9 @@ class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCo
           listener: (context, state) {
             if (state is LeaguesSuccess && _isExpanded) {
               for (var league in state.leagues) {
-                context.read<LeagueImageLoadingCubit>().addImageToQueue(_getLeagueImageUrl(league.id!));
+                context.read<LeagueImageLoadingCubit>().addImageToQueue(
+                  _getLeagueImageUrl(league.id!),
+                );
               }
             }
           },
@@ -183,22 +194,31 @@ class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCo
                         return GestureDetector(
                           onTap: () {
                             context.read<SeasonsCubit>().getSeasons(league.id);
-                            _showSeasonsDialog(context, league.id!, league.name!);
+                            _showSeasonsDialog(
+                              context,
+                              league.id!,
+                              league.name!,
+                            );
                           },
                           child: Container(
                             height: 105.h,
-                            padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 30.w),
+                            padding: EdgeInsets.symmetric(
+                              vertical: 2.h,
+                              horizontal: 30.w,
+                            ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 SizedBox(width: 10.w),
-                                LeagueWebImageWidget(
+                                WebImageWidget(
                                   imageUrl: _getLeagueImageUrl(league.id!),
                                   height: 80.w,
                                   width: 80.w,
                                   onLoaded: () {
-                                    print('League image loaded for ${league.name}');
+                                    print(
+                                      'League image loaded for ${league.name}',
+                                    );
                                   },
                                 ),
                                 SizedBox(width: 30.w),
@@ -207,7 +227,8 @@ class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCo
                                     text: league.name!,
                                     textSize: 100.sp,
                                     textFontWeight: FontWeight.w400,
-                                    textColor: Theme.of(context).colorScheme.onSurface,
+                                    textColor:
+                                        Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                               ],
@@ -239,68 +260,73 @@ class _LeaguesAndMatchesByCountryWidgetState extends State<LeaguesAndMatchesByCo
     );
   }
 
-  void _showSeasonsDialog(BuildContext context, int leagueId, String leagueName) {
+  void _showSeasonsDialog(
+    BuildContext context,
+    int leagueId,
+    String leagueName,
+  ) {
     showDialog(
       context: context,
-      builder: (dialogContext) => BlocConsumer<SeasonsCubit, SeasonsState>(
-        listener: (context, state) {
-          if (state is SeasonsError) {
-            showErrorSnackBar(context, "Error while loading seasons");
-          }
-        },
-        builder: (context, state) {
-          if (state is SeasonsLoading) {
-            return Container(
-              height: 200.h,
-              width: 200.h,
-              child: AlertDialog(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                contentPadding: EdgeInsets.zero,
-                insetPadding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                content: SizedBox(
+      builder:
+          (dialogContext) => BlocConsumer<SeasonsCubit, SeasonsState>(
+            listener: (context, state) {
+              if (state is SeasonsError) {
+                showErrorSnackBar(context, "Error while loading seasons");
+              }
+            },
+            builder: (context, state) {
+              if (state is SeasonsLoading) {
+                return Container(
                   height: 200.h,
                   width: 200.h,
-                  child: Lottie.asset(
-                    'assets/lottie/animationBallLoading.json',
-                    fit: BoxFit.contain,
+                  child: AlertDialog(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    contentPadding: EdgeInsets.zero,
+                    insetPadding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    content: SizedBox(
+                      height: 200.h,
+                      width: 200.h,
+                      child: Lottie.asset(
+                        'assets/lottie/animationBallLoading.json',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            );
-          } else if (state is SeasonsLoaded) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.pop(dialogContext);
-              PersistentNavBarNavigator.pushNewScreen(
-                context,
-                screen: LeagueInfosSqueletteScreen(
-                  leagueId: leagueId,
-                  leagueName: leagueName,
-                  seasons: state.seasons,
-                ),
-                withNavBar: false,
-                pageTransitionAnimation: PageTransitionAnimation.slideRight,
-              );
-            });
-            return const SizedBox.shrink();
-          } else if (state is SeasonsError) {
-            return AlertDialog(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              content: Center(
-                child: Text(
-                  state.message,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
+                );
+              } else if (state is SeasonsLoaded) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  Navigator.pop(dialogContext);
+                  PersistentNavBarNavigator.pushNewScreen(
+                    context,
+                    screen: LeagueInfosSqueletteScreen(
+                      leagueId: leagueId,
+                      leagueName: leagueName,
+                      seasons: state.seasons,
+                    ),
+                    withNavBar: false,
+                    pageTransitionAnimation: PageTransitionAnimation.slideRight,
+                  );
+                });
+                return const SizedBox.shrink();
+              } else if (state is SeasonsError) {
+                return AlertDialog(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  content: Center(
+                    child: Text(
+                      state.message,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
     );
   }
 }

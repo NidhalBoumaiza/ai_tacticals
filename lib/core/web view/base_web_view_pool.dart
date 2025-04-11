@@ -1,149 +1,146 @@
 import 'dart:async';
 import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 class BaseWebViewPool {
-  final List<WebViewController> _availableControllers = [];
-  final Map<String, WebViewController> _loadedControllers = {};
   final int initialPoolSize;
   final int maxPoolSize;
-  final Semaphore _semaphore;
-  bool _isInitialized = false;
+  final int concurrentLoads;
+  final Queue<WebViewController> _availableControllers = Queue();
+  final Map<String, WebViewController> _loadedControllers = {};
+  final Map<WebViewController, String> _controllerToUrl = {};
+  final Queue<Completer<WebViewController>> _controllerRequests = Queue();
+  bool _isDisposed = false;
 
   BaseWebViewPool({
     required this.initialPoolSize,
     required this.maxPoolSize,
-    required int concurrentLoads,
-  }) : _semaphore = Semaphore(concurrentLoads);
+    required this.concurrentLoads,
+  }) {
+    _initializePool();
+  }
 
-  void initializePool() {
-    if (_isInitialized) return;
-    _isInitialized = true;
+  void _initializePool() {
     for (int i = 0; i < initialPoolSize; i++) {
-      final controller = _createController();
-      _availableControllers.add(controller);
+      _availableControllers.add(_createController());
     }
-    if (kDebugMode) {
-      print('$runtimeType initialized with $initialPoolSize controllers');
-    }
+    if (kDebugMode) print('Pool initialized with $initialPoolSize controllers');
   }
 
   WebViewController _createController() {
-    final controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.transparent)
-      ..setUserAgent(
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-    if (controller.platform is AndroidWebViewController) {
-      (controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
-    }
+    final controller =
+        WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.disabled)
+          ..setBackgroundColor(Colors.transparent)
+          ..setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+          );
     return controller;
   }
 
-  Future<WebViewController> getController(String imageUrl) async {
-    initializePool();
-    await _semaphore.acquire();
-    try {
-      if (_loadedControllers.containsKey(imageUrl)) {
-        if (kDebugMode) {
-          print('$runtimeType: Reusing loaded controller for $imageUrl');
-        }
-        return _loadedControllers[imageUrl]!;
-      }
-      WebViewController controller;
-      if (_availableControllers.isNotEmpty) {
-        controller = _availableControllers.removeAt(0);
-      } else if (_loadedControllers.length + _availableControllers.length < maxPoolSize) {
-        controller = _createController();
-        if (kDebugMode) {
-          print('$runtimeType: Created new controller for $imageUrl. Total: ${_loadedControllers.length + _availableControllers.length + 1}');
-        }
-      } else {
-        if (kDebugMode) {
-          print('$runtimeType: Pool exhausted for $imageUrl. Waiting... Loaded: ${_loadedControllers.length}, Available: ${_availableControllers.length}');
-        }
-        await Future.delayed(const Duration(milliseconds: 50));
-        return getController(imageUrl); // Retry
-      }
-      _loadedControllers[imageUrl] = controller;
+  Future<WebViewController> getController(String url) async {
+    if (_isDisposed) throw Exception('WebViewPool is disposed');
+
+    if (_loadedControllers.containsKey(url)) {
+      if (kDebugMode) print('Reusing loaded controller for $url');
+      return _loadedControllers[url]!;
+    }
+
+    if (_availableControllers.isNotEmpty) {
+      final controller = _availableControllers.removeFirst();
+      await _loadUrl(controller, url);
+      _loadedControllers[url] = controller;
+      _controllerToUrl[controller] = url;
       if (kDebugMode) {
-        print('$runtimeType: Assigned controller for $imageUrl. Available: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
+        print(
+          'Acquired controller for $url. Loaded: ${_loadedControllers.length}, Available: ${_availableControllers.length}',
+        );
       }
       return controller;
-    } catch (e) {
-      _semaphore.release();
-      rethrow;
+    } else if (_loadedControllers.length + _availableControllers.length <
+        maxPoolSize) {
+      final controller = _createController();
+      await _loadUrl(controller, url);
+      _loadedControllers[url] = controller;
+      _controllerToUrl[controller] = url;
+      if (kDebugMode) {
+        print(
+          'Created new controller for $url. Loaded: ${_loadedControllers.length}, Available: ${_availableControllers.length}',
+        );
+      }
+      return controller;
+    } else {
+      final completer = Completer<WebViewController>();
+      _controllerRequests.add(completer);
+      if (kDebugMode)
+        print(
+          'Queued request for $url. Queue size: ${_controllerRequests.length}',
+        );
+      return completer.future;
     }
   }
 
-  void releaseController(String imageUrl) {
-    if (_loadedControllers.containsKey(imageUrl)) {
-      final controller = _loadedControllers[imageUrl]!;
+  Future<void> _loadUrl(WebViewController controller, String url) async {
+    await controller.loadRequest(Uri.parse(url));
+  }
+
+  void releaseController(String url) {
+    if (_isDisposed || !_loadedControllers.containsKey(url)) return;
+
+    final controller = _loadedControllers.remove(url);
+    if (controller != null) {
+      _controllerToUrl.remove(controller);
       controller.clearCache();
       controller.loadRequest(Uri.parse('about:blank'));
-      _loadedControllers.remove(imageUrl);
-      _availableControllers.add(controller);
-      _semaphore.release();
-      if (kDebugMode) {
-        print('$runtimeType: Released controller for $imageUrl. Available: ${_availableControllers.length}, Loaded: ${_loadedControllers.length}');
+
+      if (_controllerRequests.isNotEmpty) {
+        final completer = _controllerRequests.removeFirst();
+        completer.complete(controller);
+        if (kDebugMode) print('Reassigned controller to queued request');
+      } else {
+        _availableControllers.add(controller);
+        if (kDebugMode) {
+          print(
+            'Released $url. Loaded: ${_loadedControllers.length}, Available: ${_availableControllers.length}',
+          );
+        }
       }
     }
   }
 
-  void disposeAll() {
-    for (var controller in _loadedControllers.values) {
+  bool hasController(String url) => _loadedControllers.containsKey(url);
+
+  WebViewController? getLoadedController(String url) => _loadedControllers[url];
+
+  bool isControllerInUse(WebViewController controller) =>
+      _controllerToUrl.containsKey(controller);
+
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+
+    _loadedControllers.forEach((url, controller) {
       controller.clearCache();
       controller.loadRequest(Uri.parse('about:blank'));
-      _availableControllers.add(controller);
-    }
+    });
     _loadedControllers.clear();
-    _isInitialized = false;
-    if (kDebugMode) {
-      print('$runtimeType: All controllers released. Available: ${_availableControllers.length}');
+    _controllerToUrl.clear();
+
+    for (var controller in _availableControllers) {
+      controller.clearCache();
+      controller.loadRequest(Uri.parse('about:blank'));
     }
-  }
+    ;
+    _availableControllers.clear();
 
-  // Public method to check if a controller exists for an image URL
-  bool hasController(String imageUrl) {
-    return _loadedControllers.containsKey(imageUrl);
-  }
+    _controllerRequests.forEach(
+      (completer) => completer.completeError(Exception('Pool disposed')),
+    );
+    _controllerRequests.clear();
 
-  // Public method to get a loaded controller (nullable)
-  WebViewController? getLoadedController(String imageUrl) {
-    return _loadedControllers[imageUrl];
-  }
-
-  // Public method to check if a controller is in use
-  bool isControllerInUse(WebViewController controller) {
-    return _loadedControllers.containsValue(controller);
-  }
-}
-
-class Semaphore {
-  final int maxPermits;
-  int _currentPermits;
-  final Queue<Completer<void>> _waiters = Queue();
-
-  Semaphore(this.maxPermits) : _currentPermits = maxPermits;
-
-  Future<void> acquire() async {
-    if (_currentPermits > 0) {
-      _currentPermits--;
-      return;
-    }
-    final completer = Completer<void>();
-    _waiters.add(completer);
-    await completer.future;
-  }
-
-  void release() {
-    if (_waiters.isNotEmpty) {
-      _waiters.removeFirst().complete();
-    } else {
-      _currentPermits++;
-    }
+    if (kDebugMode) print('WebViewPool disposed');
   }
 }

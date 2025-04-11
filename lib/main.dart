@@ -1,7 +1,9 @@
 import 'package:analysis_ai/features/auth/presentation%20layer/pages/login_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -36,7 +38,12 @@ import 'injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    await InAppWebViewController.setWebContentsDebuggingEnabled(true);
+  }
+  if (kDebugMode) {
+    await InAppWebViewController.setWebContentsDebuggingEnabled(true);
+  }
   await initializeDateFormatting('fr_FR', null);
   await di.init();
 
